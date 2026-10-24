@@ -1,0 +1,19 @@
+title: "RV Command Center"
+description: "Panel operativo personal"
+markdown: kramdown
+exclude:
+  - AGENTS.md
+  - README.md
+  - DEPLOYMENT.md
+  - package.json
+  - package-lock.json
+  - vite.config.js
+  - protected-runtime.json
+  - config.json
+  - backend
+  - deploy
+  - docs
+  - scripts
+  - src
+  - .github
+  - .openai
