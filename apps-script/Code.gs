@@ -780,11 +780,128 @@ function reconcileClinical_(bookings,matrix,week,clinical){
  * owner explicitly requested them. Never publish this response in GitHub Pages,
  * shared documents, analytics or logs. Keep deployment access set to Only myself.
  */
+/**
+ * Source health measures operational coverage, NOT the underlying Drive file
+ * modified timestamp. No additional Drive scope or API is required.
+ */
+function sourceHealth_(out,now) {
+  const today=iso_(now);
+  const summaries=[
+    {key:'matrix',label:'MTS System Matrix',
+      state:out.matrix.state==='ok'?'ok':'error',
+      detail:out.matrix.state==='ok'?'Pestaña de semana '+out.matrix.week+' disponible':
+        String(out.matrix.message||'No se pudo leer Matrix')},
+    {key:'training',label:'MTS Execution Log',
+      state:out.training.state!=='ok'?'error':
+        !out.training.nextWeekScheduled?'warning':'ok',
+      detail:out.training.state==='ok'?
+        ('Última sesión planificada: '+(out.training.lastProgrammedDate||'sin fecha')+
+          ' · próxima semana '+(out.training.nextWeekScheduled?'con plan':'sin plan')):
+        'No se pudo verificar el registro MTS'},
+    {key:'clinical',label:'RODOLFO.PSICOPRO',
+      state:out.clinical.state!=='ok'?'error':
+        out.clinical.agendaState==='ok'?'ok':'warning',
+      detail:out.clinical.state==='ok'?
+        ('Meta '+out.clinical.weekly+'/15 · agenda '+(out.clinical.agendaState==='ok'?'disponible':'no disponible')):
+        String(out.clinical.message||'Sin validación de agenda')},
+    {key:'finance',label:'Finanzas',
+      state:out.finance.state==='ok'?'ok':
+        out.finance.state==='stale'?'warning':'error',
+      detail:out.finance.state==='ok'?'Período '+out.finance.month+' con totales conciliados':
+        String(out.finance.message||'No se pudo verificar presupuesto')},
+    {key:'calendar',label:'Google Calendar',
+      state:out.calendar.state==='ok'?'ok':'error',
+      detail:out.calendar.state==='ok'?'Agenda consultada '+today:
+        'Sin acceso a calendario'}
+  ];
+  return {available:summaries.filter(x=>x.state==='ok').length,total:summaries.length,
+    issues:summaries.filter(x=>x.state!=='ok').map(x=>x.key),
+    details:summaries,checkedAt:now.toISOString(),
+    note:'Valida cobertura de semana/mes y lectura; no comprueba la última modificación del archivo en Drive'};
+}
+function auditHash_(input){
+  let hash=2166136261;
+  const value=String(input||'');
+  for(let i=0;i<value.length;i++){
+    hash^=value.charCodeAt(i);
+    hash=Math.imul(hash,16777619);
+  }
+  return (hash>>>0).toString(36);
+}
+function auditKeys_(out) {
+  const keys=[];
+  const push=(kind,records)=>{for(const r of records||[])
+    keys.push(auditHash_(kind+'|'+(r.date||'')+'|'+(r.hour||'')+'|'+(r.type||'')))};
+  const c=out.comparisons?.clinical;
+  const t=out.comparisons?.training;
+  const cal=out.comparisons?.calendar;
+  if(c?.state==='ok'){
+    push('clinic_missing',c.items);
+    push('clinic_conflict',c.collisionItems);
+    push('clinic_identity',c.identityItems);
+    push('matrix_only',c.matrixOnlyItems);
+  }
+  if(t?.state==='ok')push('training_missing',t.items);
+  if(t?.state==='no_plan')keys.push(auditHash_('mts_no_plan|'+(t.week||'')));
+  if(cal?.state==='ok'){
+    push('cal_without_matrix',cal.items);
+    push('matrix_without_cal',cal.reverseItems);
+    push('calendar_conflict',cal.conflictItems);
+  }
+  if(out.training?.drgToday &&
+    (out.training.drgToday.hardStop||/ABORT/i.test(out.training.drgToday.output)))
+    keys.push(auditHash_('drg_abort|'+iso_(new Date(out.generatedAt))));
+  if(out.clinical?.state==='ok'&&out.clinical.gap<0)
+    keys.push(auditHash_('clinic_capacity|'+out.clinical.week));
+  if(out.finance?.state==='ok'&&out.finance.over>0)
+    keys.push(auditHash_('finance_over|'+out.finance.month));
+  if(out.finance?.state==='stale')
+    keys.push(auditHash_('finance_stale|'+out.finance.month));
+  return [...new Set(keys)].sort().slice(0,200);
+}
+function history_(out,props,now) {
+  const key='RVCC_ALERT_HISTORY_V2';
+  if(!props||typeof props.getProperty!=='function'||typeof props.setProperty!=='function')
+    return {state:'unavailable',message:'El historial necesita Script Properties'};
+  // An incomplete source must never produce fabricated "resolved" alerts.
+  const blocked=['matrix','training','clinical','finance','calendar']
+    .some(name=>!out[name]||['error','unconfigured','unavailable','partial'].includes(out[name].state));
+  if(blocked)return {state:'incomplete',message:'Historial suspendido porque falta verificar alguna fuente'};
+  const nowMs=now.getTime(),windowMs=24*60*60*1000;
+  const current=auditKeys_(out),keys=new Set(current);
+  let old=null;
+  try{old=JSON.parse(props.getProperty(key)||'null')}catch(e){}
+  if(!old||!Array.isArray(old.items)){
+    const baseline={version:2,at:now.toISOString(),
+      items:current.map(id=>({id,firstSeen:nowMs-windowMs-1})),resolved:[]};
+    try{props.setProperty(key,JSON.stringify(baseline))}catch(e){return {state:'error',message:'No se pudo guardar línea base'};}
+    return {state:'baseline',open:current.length,new24h:0,
+      resolved24h:0,persistent:current.length,checkedAt:now.toISOString(),
+      message:'Línea base inicial registrada. La próxima actualización detectará cambios.'};
+  }
+  const former=new Map(old.items.filter(x=>x&&typeof x.id==='string').map(x=>[x.id,x]));
+  const items=current.map(id=>({id,firstSeen:former.has(id)?Number(former.get(id).firstSeen)||nowMs:nowMs}));
+  const removed=(old.items||[]).filter(x=>!keys.has(x.id)).map(x=>({id:x.id,at:nowMs}));
+  const resolved=[...(Array.isArray(old.resolved)?old.resolved:[]),...removed]
+    .filter(x=>x&&nowMs-Number(x.at)<windowMs&&keys.has(x.id)===false).slice(-150);
+  const state={version:2,at:now.toISOString(),items,resolved};
+  const changed=JSON.stringify(old.items)!==JSON.stringify(items)||
+    removed.length>0||!Array.isArray(old.resolved);
+  if(changed)try{props.setProperty(key,JSON.stringify(state))}catch(e){
+    return {state:'error',message:'No se pudieron persistir cambios del historial'};
+  }
+  const new24h=items.filter(x=>x.firstSeen>=nowMs-windowMs).length;
+  return {state:'ok',open:items.length,new24h,
+    resolved24h:resolved.length,persistent:items.length-new24h,
+    checkedAt:now.toISOString(),
+    message:'Se guardan únicamente identificadores anónimos, no nombres ni contenidos de hojas'};
+}
+
 function getDashboard(){
   const now=new Date();
   const props=PropertiesService.getScriptProperties();
   const out={
-    generatedAt:now.toISOString(),
+    generatedAt:now.toISOString(),release:{version:RV_RELEASE,checkedAt:now.toISOString()},
     calendar:{state:'unavailable',message:'No disponible'},
     matrix:{state:'unconfigured',message:'No configurada'},
     training:{state:'unconfigured',message:'No configurada'},
@@ -972,10 +1089,9 @@ function getDashboard(){
   out.recommendations=suggested.sort((a,b)=>b.priority-a.priority)
     .filter((x,i,all)=>all.findIndex(y=>y.domain===x.domain)===i)
     .slice(0,3).map(({priority,...rest})=>rest);
-  out.sourceHealth={
-    available:['matrix','training','clinical','finance'].filter(x=>out[x]?.state==='ok').length,
-    total:4,
-    issues:['matrix','training','clinical','finance'].filter(x=>out[x]?.state!=='ok')
-  };
+  out.sourceHealth=sourceHealth_(out,now);
+  try{out.history=history_(out,props,now);}catch(e){
+    out.history={state:'error',message:'No se pudo actualizar historial'};
+  }
   return out;
 }
