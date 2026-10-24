@@ -211,11 +211,11 @@ function render(d){
    'Comparación pendiente: verificar acceso a MTS y Matrix');
  list('training-issues',tc.items,x=>dateLabel(x.date)+' · '+({boxing:'Boxeo',gym:'Gimnasio',cardio:'Cardio'}[x.type]||'Entrenamiento'));
  const cc=d.comparisons?.clinical||{};
- count('clinical-missing',cc.state==='ok'?cc.missing+cc.conflicts+(cc.possibleDifferent||0):null,(cc.missing||0)+' citas ausentes, '+(cc.conflicts||0)+' conflictos y '+(cc.possibleDifferent||0)+' posibles discrepancias de paciente');
+ count('clinical-missing',cc.state==='ok'?cc.missing+cc.conflicts+(cc.possibleDifferent||0)+(cc.matrixOnly||0):null,(cc.missing||0)+' citas ausentes, '+(cc.conflicts||0)+' conflictos, '+(cc.possibleDifferent||0)+' discrepancias de paciente y '+(cc.matrixOnly||0)+' entradas exclusivas de Matrix');
  set('clinical-compare',cc.state==='ok'?
-   (cc.missing+' sin registro · '+cc.conflicts+' solapamientos · '+(cc.possibleDifferent||0)+' paciente por confirmar (semana '+(c.week||'')+')'):
+   (cc.missing+' sin registro · '+cc.conflicts+' solapamientos · '+(cc.possibleDifferent||0)+' pacientes por confirmar · '+(cc.matrixOnly||0)+' solo en Matrix (semana '+(c.week||'')+')'):
    'Comparación pendiente: verificar pestañas PSICOPRO y Matrix');
- list('clinical-issues',[...(cc.items||[]).map(x=>({...x,reason:'No está en Matrix'})),...(cc.collisionItems||[]).map(x=>({...x,reason:'Matrix tiene otra actividad'})),...(cc.identityItems||[]).map(x=>({...x,reason:'Posible paciente distinto · verificar'}))],
+ list('clinical-issues',[...(cc.items||[]).map(x=>({...x,reason:'No está en Matrix'})),...(cc.collisionItems||[]).map(x=>({...x,reason:'Matrix tiene otra actividad'})),...(cc.identityItems||[]).map(x=>({...x,reason:'Posible paciente distinto · verificar'})),...(cc.matrixOnlyItems||[]).map(x=>({...x,reason:'Solo aparece en Matrix · verificar'}))],
    x=>dateLabel(x.date)+' '+x.hour+' · '+x.reason);
  set('patient-count',typeof c.weekly==='number'?c.weekly+' / 15':'— / 15');
  set('patient-gap',c.state==='ok'?
