@@ -180,11 +180,12 @@ function readTraining_(id,now) {
   let lastProgrammedDate=null;
   for(const row of daily){
     const d=parseDmy_(row[1]);
-    if(!d||d>weekEnd)continue;
+    if(!d)continue;
     const plan=String(row[2]||'');
     if(!isSessionHeader_(plan))continue;
     const sessionDate=iso_(d);
     if(!lastProgrammedDate || sessionDate>lastProgrammedDate)lastProgrammedDate=sessionDate;
+    if(d>weekEnd)continue; // scan entire log for recency, compare only next 14 days
     const done=String(row[3]||'').trim();
     // Cancelled work is not a booking obligation.
     if(/not done|cancel|ill\b|enferm|⛔|abort|drop\b/i.test(done))continue;
@@ -226,9 +227,10 @@ function readClinical_(id,now) {
   const baseline=goals[1]||[];
   const targetRow=goals[2]||[];
   const weekly=/clasificad.*semanal/i.test(String(baseline[1]||''))?money_(baseline[0]):null;
-  const target= /objetivo habitual/i.test(String(targetRow[1]||'')) ? money_(targetRow[0]) : RV_TARGET_WEEKLY;
-  const usable=weekly!==null&&target!==null&&target>0&&weekly>=0;
-  const delta=usable?weekly-target:null;
+  const sheetTarget=/objetivo habitual/i.test(String(targetRow[1]||''))?money_(targetRow[0]):null;
+  const targetMatches=sheetTarget===RV_TARGET_WEEKLY;
+  const usable=weekly!==null&&weekly>=0&&targetMatches;
+  const delta=usable?weekly-RV_TARGET_WEEKLY:null;
   const monday=startMonday_(now);
   if(day_(now)>=6)monday.setDate(monday.getDate()+7);
   const key=weekKey_(monday);
@@ -236,7 +238,8 @@ function readClinical_(id,now) {
   const publicData={
     state:usable?'ok':'partial',weekly:usable?weekly:null,target:RV_TARGET_WEEKLY,
     gap:usable?delta:null,week:key,bookedBlocks:null,
-    message:usable?weekly+' / '+RV_TARGET_WEEKLY+' pacientes semanales · '+(delta<0?'faltan '+Math.abs(delta):delta>0?'sobre objetivo por '+delta:'meta alcanzada'):'No se pudo validar cupos semanales'
+    message:usable?weekly+' / '+RV_TARGET_WEEKLY+' pacientes semanales · '+(delta<0?'faltan '+Math.abs(delta):delta>0?'sobre objetivo por '+delta:'meta alcanzada'):
+      (targetMatches?'No se pudo validar pacientes clasificados':'La meta de la hoja no coincide con 15: revisar antes de comparar')
   };
   if(!tab){publicData.agendaState='missing';publicData.message+=' · Sin agenda de la semana '+key;return {publicData,bookings:[]};}
   // Only time rows A3:F15, not side notes nor patient-objective cells.
