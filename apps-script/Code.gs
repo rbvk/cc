@@ -372,11 +372,13 @@ function readTraining_(id,now) {
   }
   const drgToday=current?{date:current.date,score:current.score,output:current.output,hardStop:current.hardStop}:null;
   const drgLatest=latest?{date:latest.date,score:latest.score,output:latest.output}:null;
+  const recentDrg=drgs.filter(x=>x.iso>=iso_(plusDays_(now,-6))).map(x=>
+    ({date:x.iso,score:x.score,output:x.output,hardStop:x.hardStop}));
   return {publicData:{
       state:'ok',drgToday,drgLatest,
       drgState:drgToday?(drgToday.output==='SIN SALIDA'?'incomplete':'recorded'):'missing',
       completedSessions7d,omittedSessions7d,sessionHeaders7d:recentHeaders.length,
-      adherence,
+      adherence,recentDrg,
       scheduledKinds:plans.length,
       nextWeekScheduled,lastProgrammedDate,
       drgUrl:tabUrl_(id,'drg',metadata),
@@ -590,6 +592,49 @@ function reconcileTraining_(plans,matrix){
   }
   return {total:missing.length,items:missing.slice(0,8)};
 }
+/**
+ * Seven completed local nights, from Matrix Zz: recordings. Midnight hours
+ * are attributed to the PREVIOUS night's date. Missing logs are not 0 hours.
+ * Training readiness comparison is descriptive only (no causal inference).
+ */
+function analyzeSleep_(matrix,training,now){
+  const nights=[],unknown=[];
+  const existing=new Set(matrix.available);
+  for(let offset=7;offset>=1;offset--){
+    const nightDate=plusDays_(now,-offset);
+    const night=iso_(nightDate);
+    const nextDay=plusDays_(nightDate,1);
+    const ready=existing.has(weekKey_(startMonday_(nightDate))) &&
+      existing.has(weekKey_(startMonday_(nextDay)));
+    const hours=matrix.sleepHoursByNight?.[night];
+    if(!ready || !Number.isFinite(hours) || hours<=0){
+      unknown.push(night);
+      continue;
+    }
+    nights.push({date:night,hours,belowTarget:hours<7.5});
+  }
+  const sum=nights.reduce((total,x)=>total+x.hours,0);
+  const avg=nights.length?Math.round(sum/nights.length*10)/10:null;
+  const low=nights.filter(x=>x.belowTarget).length;
+  const drgs=Array.isArray(training?.recentDrg)?training.recentDrg:[];
+  let paired=0,coincidences=0;
+  for(const item of drgs){
+    const priorNight=iso_(plusDays_(parseIso_(item.date),-1));
+    const sleep=nights.find(x=>x.date===priorNight);
+    if(!sleep||item.score===null||item.score===undefined)continue;
+    paired++;
+    if(sleep.belowTarget&&item.score<=6)coincidences++;
+  }
+  return {state:nights.length?'ok':'missing',periodDays:7,
+    targetHours:7.5,observedNights:nights.length,unrecordedNights:unknown.length,
+    averageHours:avg,nightsBelowTarget:low,byNight:nights,
+    pairedDrgDays:paired,lowSleepAndLowDrg:coincidences,
+    interpretation:paired>=3?'Coincidencias descriptivas entre sueño bajo 7,5 h y DRG <=6, sin atribuir causalidad.':
+      'No hay suficientes pares noche/DRG para interpretar una relación.',
+    source:'Sueño real Zz: de Matrix (se excluyen noches sin registro)'
+  };
+}
+
 function parseIso_(iso){
   const parts=String(iso).split('-').map(Number);
   return new Date(parts[0],parts[1]-1,parts[2],12);
@@ -676,6 +721,7 @@ function getDashboard(){
     training:{state:'unconfigured',message:'No configurada'},
     clinical:{state:'unconfigured',message:'No configurada'},
     finance:{state:'unconfigured',message:'No configurada'},
+    sleepTrend:{state:'unavailable',averageHours:null,nightsBelowTarget:null},
     comparisons:{training:{state:'unavailable',total:null,items:[]},
       clinical:{state:'unavailable',missing:null,conflicts:null,possibleDifferent:null,matrixOnly:null,items:[],collisionItems:[],identityItems:[],matrixOnlyItems:[]}},
     nextAction:{title:'Verificar fuentes',reason:'No hay resultados confiables todavía',level:'normal'},
@@ -698,6 +744,7 @@ function getDashboard(){
   if(financeId){try{out.finance=readFinance_(financeId,now,props);
     out.finance.url=out.finance.url||'https://docs.google.com/spreadsheets/d/'+financeId+'/edit';}
     catch(e){out.finance=registerError_();}}
+  if(matrix)out.sleepTrend=analyzeSleep_(matrix,out.training,now);
   if(training&&matrix){
     const reverse=upcomingMatrixWithoutPlan_(matrix,training,now);
     out.comparisons.training=training.plans.length?
