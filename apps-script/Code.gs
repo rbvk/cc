@@ -508,16 +508,26 @@ function readFinance_(id,now,props) {
       ' CLP ('+pct+'%)'};
 }
 function clp_(n){return Math.round(n).toLocaleString('es-CL');}
+function matrixLinkForSlot_(matrix,date,time){
+  const week=weekKey_(startMonday_(parseIso_(date)));
+  const weekday=weekDay_(date);
+  const row=matrix.hourRowsByWeek?.[week]?.[time];
+  const base=matrix.matrixTabInfo?.[week]||null;
+  if(!base||weekday<0||weekday>6)return null;
+  const cell=dayColumn_(weekday)+(row||3);
+  return base+'&range='+encodeURIComponent(row?cell:dayColumn_(weekday)+'3:'+dayColumn_(weekday)+'26');
+}
 function reconcileTraining_(plans,matrix){
   const missing=[];
   const available=new Set(matrix.available);
   for(const plan of plans){
     const d=parseIso_(plan.date);
     const monday=weekKey_(startMonday_(d));
-    if(!available.has(monday))continue; // missing Matrix tab != missing appointment
+    if(!available.has(monday))continue;
     const daySlots=matrix.slots[plan.date]||{};
     const covered=Object.keys(daySlots).some(key=>Boolean(daySlots[key][plan.kind]));
-    if(!covered)missing.push({date:plan.date,type:plan.kind});
+    if(!covered)missing.push({date:plan.date,type:plan.kind,
+      matrixUrl:matrixLinkForSlot_(matrix,plan.date,540)});
   }
   return {total:missing.length,items:missing.slice(0,8)};
 }
@@ -549,14 +559,16 @@ function slotSummary_(slots,limit) {
   const extra=(slots||[]).length-first.length;
   return first.join('; ')+(extra>0?' (+'+extra+' más)':'');
 }
-function reconcileClinical_(bookings,matrix,week){
+function reconcileClinical_(bookings,matrix,week,clinical){
   const missing=[],conflicts=[],possibleDifferent=[],matrixOnly=[];
   const available=new Set(matrix.available);
   for(const booked of bookings){
     const week=weekKey_(startMonday_(parseIso_(booked.date)));
     if(!available.has(week))continue;
     const slot=(matrix.slots[booked.date]||{})[booked.time];
-    const issue={date:booked.date,hour:String(Math.floor(booked.time/60)).padStart(2,'0')+':'+String(booked.time%60).padStart(2,'0')};
+    const issue={date:booked.date,hour:String(Math.floor(booked.time/60)).padStart(2,'0')+':'+String(booked.time%60).padStart(2,'0'),
+      clinicalUrl:booked.clinicalCellUrl||null,
+      matrixUrl:slot?.cellUrl||matrixLinkForSlot_(matrix,booked.date,booked.time)};
     if(slot?.clinical){
       const left=booked.patientTokens||[],right=slot.patientTokens||[];
       // When both have identifiable tokens but no overlap, flag only for review.
@@ -576,9 +588,13 @@ function reconcileClinical_(bookings,matrix,week){
       const slot=matrix.slots[date][key];
       if(!slot?.clinical || agendaKeys.has(date+'|'+key))continue;
       const minutes=Number(key);
+      const weekday=weekDay_(date);
+      const clinicRow=clinical?.clinicRowByTime?.[minutes];
+      const clinicUrl=clinical?.fileId&&clinicRow&&weekday>=0&&weekday<5&&clinical.tab?
+        cellUrl_(clinical.fileId,clinical.tab,dayColumn_(weekday)+clinicRow,clinical.metadata):null;
       matrixOnly.push({date,hour:String(Math.floor(minutes/60)).padStart(2,'0')+':'+String(minutes%60).padStart(2,'0'),
-        // Private owner view. Never commit or log the clinical label.
-        matrixEntry:slot.privateClinicalLabel||'Actividad clínica sin descripción'});
+        matrixEntry:slot.privateClinicalLabel||'Actividad clínica sin descripción',
+        matrixUrl:slot.cellUrl||null,clinicalUrl:clinicUrl});
     }
   }
   return {missing:missing.length,conflicts:conflicts.length,possibleDifferent:possibleDifferent.length,
@@ -635,7 +651,7 @@ function getDashboard(){
   if(clinical&&matrix&&clinical.publicData.agendaState==='ok'){
     const weekAvailable=matrix.available.includes(clinical.publicData.week);
     out.comparisons.clinical=weekAvailable?
-      Object.assign({state:'ok'},reconcileClinical_(clinical.bookings,matrix,clinical.publicData.week)):
+      Object.assign({state:'ok'},reconcileClinical_(clinical.bookings,matrix,clinical.publicData.week,clinical)):
       {state:'partial',missing:null,conflicts:null,items:[],collisionItems:[],message:'No existe pestaña correspondiente de Matrix'};
   }
   const todayDrg=out.training.drgToday;
