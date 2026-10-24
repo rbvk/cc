@@ -1,68 +1,34 @@
-# RV Command Center — GitHub Pages (sin backend)
+# Despliegue de RV Command Center
 
-## Estado actual
+## 1. Portal GitHub Pages
 
-La aplicación estática es `index.html` + `styles.css` + `app.js`.
-El workflow `.github/workflows/pages.yml` publica **solo** estos archivos en GitHub Pages con `CNAME=cc.rodolfovalle.com`.
+Repositorio `rbvk/cc`; dominio `cc.rodolfovalle.com`. GitHub Actions publica únicamente `index.html`, `styles.css`, `app.js` y el registro CNAME. El portal público no tiene acceso a las hojas.
 
-No se necesita Cloud Run ni Redis para utilizar el dashboard en modo enlaces. El código legado en `backend/` **no participa** en esta versión y no se publica.
+En GitHub, revisar **Settings > Pages** y **Actions > Publish RV Command Center**. Para el dominio personalizado debe existir `CNAME cc -> rbvk.github.io` y certificado HTTPS activo.
 
-## Primer uso — inmediato
+## 2. Aplicación privada de Google (configuración única obligatoria)
 
-1. Abrir `https://cc.rodolfovalle.com/` cuando DNS y HTTPS estén activos. Si todavía no responde, revisar **Settings > Pages** en `rbvk/cc`.
-2. Clic en **⚙️ Configurar**.
-3. Pegar los enlaces privados de cuatro hojas: MTS System Matrix, MTS Execution Log, RODOLFO.PSICOPRO, Finance. Guardar.
-4. Acceder a cada hoja mediante **Abrir hoja privada**. Google controla la autorización; **no** hace falta publicarlas.
-5. Añadir tareas no sensibles en el panel de acciones.
+Ver [apps-script/README.md](apps-script/README.md). En resumen:
 
-Los enlaces y tareas se guardan solamente en **este navegador**, mediante `localStorage`. No se sincronizan entre dispositivos. No introducir datos personales de pacientes ni secretos.
+1. Crear proyecto en `https://script.google.com/home/projects/create`.
+2. Copiar `apps-script/Code.gs` y `apps-script/Index.html`.
+3. Mostrar el manifiesto `appsscript.json` y copiar `apps-script/appsscript.json` (incluye Google Sheets API avanzado y ámbitos de solo lectura).
+4. Configurar en **Script Properties** los IDs de las cuatro hojas: `MATRIX_SHEET_ID`, `TRAINING_SHEET_ID`, `CLINICAL_SHEET_ID`, `FINANCE_SHEET_ID`.
+5. Autorizar el script inicialmente con tu cuenta de Google.
+6. **Deploy > New deployment > Web app**: `Execute as = Me`, `Who has access = Only myself`.
+7. Copiar su URL terminada en `/exec`, abrir `https://cc.rodolfovalle.com` y pulsar **Configurar acceso**, pegar y guardar la URL.
 
-## Activar métricas automáticas — opcional
+La URL /exec es una ubicación, **no** una credencial. Solo Google, con la configuración **Only myself**, controla el acceso real. No desplegar como Anyone.
 
-Google OAuth requiere una configuración gratuita de credenciales de OAuth, pero **no** necesita Cloud Run.
+## 3. Pruebas de seguridad y datos
 
-1. En Google Cloud Console, crear o seleccionar un proyecto.
-2. Habilitar **Google Sheets API** y **Google Calendar API**.
-3. Configurar pantalla de consentimiento OAuth (External / Testing) y agregar **solo tu cuenta Google** como test user. No publicar la app OAuth para todos.
-4. Crear **OAuth Client ID > Web application** con Authorized JavaScript origins:
-   - `https://cc.rodolfovalle.com`
-   - Si deseas usar también la dirección de prueba, agrega `https://rbvk.github.io`.
-5. Copiar **solo el Client ID** (no el Client Secret) en ⚙️ Configurar, y opcionalmente tu correo permitido.
-6. Pulsa **Conectar Google** y acepta permisos de solo lectura. No compartas la hoja por enlace público.
+- En incógnito/otra cuenta, debe denegarse el acceso al panel privado.
+- Verificar que las fuentes se leen y muestran estado; un error no se interpreta como cero citas.
+- Comparar recuentos MTS/PSICOPRO con hojas originales; los primeros son **bloques horarios aproximados**, no sesiones confirmadas.
+- Verificar que DRG ABORT histórico no activa alerta hoy.
+- Confirmar que el HTML y la respuesta RPC no contienen nombres, RUT, diagnósticos, títulos de eventos ni filas completas.
+- No publicar ni la aplicación ni ninguna Google Sheet con opción Anyone.
 
-Los permisos solicitados son `spreadsheets.readonly`, `calendar.readonly` y `userinfo.email`. El access token permanece **solo en memoria**, no se guarda en el repositorio, el navegador persistente ni en Sheets. Al recargar debe reconectarse.
+## Estado
 
-Para cada hoja, el rango predeterminado es `A1:T150` (primera pestaña). Si deseas otra pestaña, escribe `'Nombre exacto de pestaña'!A1:U150`. En la interfaz se muestra **cantidad de filas no vacías en el rango**, no un conteo de pacientes o ingresos. Los contenidos nunca se insertan en el HTML ni se transmiten a GitHub.
-
-El Calendar consulta próximos eventos, pero **no muestra nombres ni títulos** para evitar exposición accidental de información clínica.
-
-## Privacidad: límites reales
-
-- GitHub Pages hospeda una **interfaz pública**. Cualquiera puede descargar su HTML, JS y CSS.
-- No existe un login privado real **para la página** sin un sistema autenticado adicional. La comparación opcional de email en navegador es solo un filtro visual, no una política de servidor.
-- Google exige sesión/permiso individual para cada hoja privada. Esto es lo que protege los datos.
-- Un Google OAuth client ID **no es un secreto**; nunca pongas client secrets, credenciales de servicio, API keys privadas o tokens en el repositorio.
-- No copies nombres, RUT, notas, diagnósticos ni contenido de fichas clínicas en tareas del dashboard.
-- Los datos no deben compartirse públicamente en Google Sheets.
-
-## GitHub Pages y DNS
-
-- El repositorio puede ser público para usar Pages con GitHub Free.
-- Settings > Pages > Build and deployment > Source: **GitHub Actions**.
-- Custom domain: `cc.rodolfovalle.com`.
-- En el proveedor DNS: registro **CNAME**, host `cc`, valor `rbvk.github.io` (sin protocolo).
-- Habilitar **Enforce HTTPS** después de emitirse el certificado.
-- Revisar Actions > Publish RV Command Center para confirmar que el workflow termina con success.
-- Configurar el custom domain dentro de Pages; **CNAME por sí solo no lo registra automáticamente**.
-
-## Condiciones de validación
-
-- Dashboard se carga en móvil/escritorio; CSS/JS no devuelven 404.
-- Modo enlaces funciona aun si OAuth no está configurado.
-- Conectar Google requiere consentimiento desde tu dominio autorizado.
-- Las hojas no son públicas y una cuenta sin permisos no puede leerlas.
-- Recarga elimina access token; enlaces locales y tareas permanecen.
-- Nunca se muestran títulos de Calendar ni filas individuales de Sheets.
-- El estado «sin verificar» no se interpreta como cero pacientes ni cero citas.
-
-Si tienes Chrome/Safari bloqueando ventanas emergentes, permite popups para el sitio antes de activar OAuth.
+El portal de GitHub y el código privado están preparados. **La web app de Apps Script aún no se ha desplegado ni probado en tu cuenta**, porque esta conexión GitHub no administra despliegues de Google Apps Script. El nuevo panel empezará a analizar información real después de la autorización inicial.
