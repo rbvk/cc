@@ -957,6 +957,8 @@ function getDashboard(){
   const missingTraining=out.comparisons.training.total;
   const differentClinical=out.comparisons.clinical.possibleDifferent;
   const matrixOnlyClinical=out.comparisons.clinical.matrixOnly;
+  const calendarGaps=out.comparisons.calendar?.calendarMissingMatrix;
+  const matrixCalendarGaps=out.comparisons.calendar?.matrixMissingCalendar;
   if(todayDrg&&(todayDrg.hardStop||/\bABORT\b/i.test(todayDrg.output))){
     out.nextAction={title:'DRG '+todayDrg.output+': detener carga',
       reason:'Evaluación de hoy: '+(todayDrg.score===null?'puntuación pendiente':todayDrg.score+'/10')+
@@ -976,6 +978,12 @@ function getDashboard(){
     out.nextAction={title:'Comprobar identidad en agenda',reason:differentClinical+' citas coinciden en horario, pero podrían tener pacientes distintos en Matrix.',level:'medium'};
   }else if(matrixOnlyClinical>0){
     out.nextAction={title:'Revisar Matrix hacia PSICOPRO',reason:matrixOnlyClinical+' bloques clínicos de Matrix no se detectaron en la agenda compartida.',level:'medium'};
+  }else if(calendarGaps>0){
+    out.nextAction={title:'Registrar compromisos Calendar en Matrix',
+      reason:calendarGaps+' eventos no tienen bloque correspondiente. Revisar las fechas señaladas.',level:'high'};
+  }else if(matrixCalendarGaps>0){
+    out.nextAction={title:'Revisar bloques Matrix sin evento Calendar',
+      reason:matrixCalendarGaps+' compromisos posiblemente carecen de evento Calendar.',level:'medium'};
   }else if(missingTraining>0){
     out.nextAction={title:'Agendar entrenamientos en Matrix',reason:missingTraining+' modalidades programadas en MTS faltan en Matrix.',level:'high'};
   }else if(out.finance.state==='ok'&&out.finance.over>0){
@@ -1003,6 +1011,14 @@ function getDashboard(){
   if(out.finance.state==='stale')out.alerts.push('Finanzas: presupuesto corresponde a otro mes');
   if(out.training.state==='ok'&&!todayDrg)out.alerts.push('DRG: sin evaluación válida hoy');
   if(out.training.state==='ok'&&!out.training.nextWeekScheduled)out.alerts.push('MTS: sin programación activa próxima semana');
+  if(calendarGaps>0)out.alerts.push('Calendar: '+calendarGaps+' eventos no registrados en Matrix');
+  if(matrixCalendarGaps>0)out.alerts.push('Matrix: '+matrixCalendarGaps+' compromisos sin Calendar');
+  if(out.sleepTrend.state==='ok'&&out.sleepTrend.observedNights>=4&&
+    out.sleepTrend.nightsBelowTarget>=3)out.alerts.push(
+      'Sueño: '+out.sleepTrend.nightsBelowTarget+' noches bajo 7 h 30');
+  if(out.training.adherence?.boxing?.planned>=3&&
+    out.training.adherence.boxing.completionPct<70)
+    out.alerts.push('Boxeo: adherencia confirmada <70% últimos 7 días');
 
   // A decision has: evidence, one next action, and the authoritative source.
   // Limit to three different domains; alerts and source cards retain full detail.
@@ -1080,11 +1096,37 @@ function getDashboard(){
         (first?' Mayor diferencia de categoría: '+first.category+' ('+clp_(first.over)+' CLP).':''),
       'Revisar gastos discrecionales, partidas extraordinarias y clasificación antes de ajustar límites.','verificado','finance');
   }
-  if(out.calendar.state==='ok'&&out.calendar.next&&
+  if(out.comparisons.calendar?.state==='ok'&&
+    (calendarGaps>0||matrixCalendarGaps>0)){
+    const first=calendarGaps>0?out.comparisons.calendar.items[0]:
+      out.comparisons.calendar.reverseItems[0];
+    recommend('calendar',86,'high','Conciliar Google Calendar y Matrix',
+      calendarGaps+' eventos solo en Calendar · '+matrixCalendarGaps+
+        ' compromisos solo en Matrix.'+
+        (first?' Primer caso: '+slotDescription_(first)+'.':''),
+      'Abrir el evento y la celda correspondiente; confirmar antes de modificar cualquiera de las dos agendas.',
+      'revisar','calendar');
+  }else if(out.calendar.state==='ok'&&out.calendar.next&&
      out.calendar.next.minutesUntil>=0&&out.calendar.next.minutesUntil<=120){
     recommend('calendar',97,'high','Preparar próximo compromiso',
       'El siguiente evento comienza en menos de dos horas.',
       'Abrir Calendar y preparar la actividad, sin copiar información clínica al panel.','verificado','calendar');
+  }
+  if(out.sleepTrend.state==='ok'&&out.sleepTrend.observedNights>=4&&
+    out.sleepTrend.nightsBelowTarget>=3){
+    recommend('sleep',61,'medium','Revisar patrón de sueño',
+      out.sleepTrend.nightsBelowTarget+' de '+out.sleepTrend.observedNights+
+        ' noches registradas por debajo de 7 h 30; promedio '+out.sleepTrend.averageHours+' h.',
+      'Revisar sueño real y DRG antes de añadir cargas de entrenamiento; no inferir causalidad.',
+      'verificado','matrix');
+  }
+  if(out.finance.state==='ok'&&out.finance.over===0&&
+    out.finance.projection?.state==='ok'&&out.finance.projection.projectedOver>0){
+    recommend('finance',69,'medium','Prevenir exceso de gasto proyectado',
+      'Proyección lineal '+clp_(out.finance.projection.projectedSpent)+
+        ' CLP: '+clp_(out.finance.projection.projectedOver)+' CLP sobre presupuesto.',
+      'Revisar categorías discrecionales; la proyección no incluye cargos extraordinarios.',
+      'estimación','finance');
   }
   out.recommendations=suggested.sort((a,b)=>b.priority-a.priority)
     .filter((x,i,all)=>all.findIndex(y=>y.domain===x.domain)===i)
