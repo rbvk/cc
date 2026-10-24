@@ -5,6 +5,7 @@
  * Authorized scopes: spreadsheets.readonly and calendar.readonly.
  */
 const RV_TZ = 'America/Santiago';
+const RV_RELEASE = '2026.10.24.8';
 const RV_TARGET_WEEKLY = 15;
 const RV_MONTHS = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
 const RV_EN_MONTHS = ['january','february','march','april','may','june','july','august','september','october','november','december'];
@@ -55,6 +56,13 @@ function tabUrl_(id,tab,metadata) {
   return 'https://docs.google.com/spreadsheets/d/'+id+'/edit'+
     (entry&&Number.isSafeInteger(entry.gid)?'#gid='+entry.gid:'');
 }
+function cellUrl_(id,tab,a1,metadata) {
+  const base=tabUrl_(id,tab,metadata);
+  return base+(base.includes('#')?'&':'#')+'range='+encodeURIComponent(a1);
+}
+function dayColumn_(weekday){ return String.fromCharCode(66+weekday); }
+function weekDay_(iso){ return day_(parseIso_(iso))-1; }
+
 // Whitelisted exercise labels only, never raw Matrix cell contents or names.
 function trainingLabels_(cell) {
   const t=String(cell||'').toLowerCase();
@@ -148,8 +156,10 @@ function readCalendar_(now) {
 function readMatrix_(id,now) {
   const metadata=sheetMetadata_(id),tabs=metadata.map(s=>s.title);
   const start=startMonday_(now);
-  const needed=[start,plusDays_(start,7)];
+  const needed=[plusDays_(start,-7),start,plusDays_(start,7)];
   const slots={},descriptions={};
+  const matrixTabInfo={},hourRowsByWeek={};
+  const sleepHoursByNight={};
   const available=[];
   const todayIso=iso_(now);
   let todayCounts={boxing:0,gym:0,cardio:0,clinical:0};
@@ -162,12 +172,16 @@ function readMatrix_(id,now) {
     const tab=matchTab_(tabs,key);
     if(!tab)continue;
     available.push(key);
+    matrixTabInfo[key]=tabUrl_(id,tab,metadata);
+    hourRowsByWeek[key]={};
     const thisWeek=key===weekKey_(start);
     if(thisWeek)currentWeekSeen=true;
     const rows=values_(id,"'"+tab.replace(/'/g,"''")+"'!A3:H26");
-    for(const row of rows){
+    for(let rowIndex=0;rowIndex<rows.length;rowIndex++){
+      const row=rows[rowIndex];
       const time=hour_(row[0]);
       if(time===null)continue;
+      hourRowsByWeek[key][time]=rowIndex+3;
       if(thisWeek)observedHourRows++;
       for(let weekday=0;weekday<7;weekday++){
         const cell=String(row[weekday+1]||'').trim();
@@ -183,6 +197,7 @@ function readMatrix_(id,now) {
         const clinical=!free&&!prep&&/(?:\bpaciente\b|psicopro|psic[oó]log|psicoterapia|terapia|sesi[oó]n cl[ií]nica|consulta cl[ií]nica)/i.test(t);
         const busy=!free&&cell.length>0;
         slots[iso][time]={boxing,gym,cardio,clinical,busy,
+          cellUrl:cellUrl_(id,tab,dayColumn_(weekday)+(rowIndex+3),metadata),
           // Raw text is kept inside the owner-only server response only for
           // genuinely unmatched Matrix clinical appointments.
           privateClinicalLabel:clinical?cell.slice(0,150):null,
@@ -198,6 +213,16 @@ function readMatrix_(id,now) {
             const blockEnd=plusDays_(begin,weekday);
             blockEnd.setHours(Math.floor(time/60)+1,time%60,0,0);
             if(blockEnd.getTime()<=now.getTime())elapsedHours.sleep++;
+          }
+        }
+        // For a completed night, hours before 12:00 belong to the
+        // previous night's sleep; after 12:00 belong to this night's sleep.
+        if(sleep) {
+          const blockEnd=plusDays_(begin,weekday);
+          blockEnd.setHours(Math.floor(time/60)+1,time%60,0,0);
+          if(blockEnd.getTime()<=now.getTime()){
+            const night=iso_(time<720?plusDays_(begin,weekday-1):plusDays_(begin,weekday));
+            sleepHoursByNight[night]=(sleepHoursByNight[night]||0)+1;
           }
         }
         if(iso===todayIso){
@@ -250,7 +275,8 @@ function readMatrix_(id,now) {
       url:nextTab?tabUrl_(id,nextTab,metadata):null,
       nextWeekUrl:nextTab?tabUrl_(id,nextTab,metadata):null,
       message:'Sin pestaña Matrix de la semana '+currentWeek};
-  return {publicData,slots,available};
+  return {publicData,slots,available,matrixTabInfo,hourRowsByWeek,sleepHoursByNight,
+    fileId:id,metadata};
 }
 
 function planTypes_(text) {
@@ -413,23 +439,27 @@ function readClinical_(id,now) {
     const s=String(row[day]||'').trim();
     if(s)freq[s]=(freq[s]||0)+1;
   }
-  const bookings=[];
-  for(const row of rows){
+  const bookings=[],clinicRowByTime={};
+  for(let rowIndex=0;rowIndex<rows.length;rowIndex++){
+    const row=rows[rowIndex];
     const time=hour_(row[0]);
     if(time===null)continue;
+    clinicRowByTime[time]=rowIndex+3;
     for(let weekday=0;weekday<5;weekday++){
       const content=String(row[weekday+1]||'').trim();
       if(isFree_(content))continue;
       // Heuristic for recurring placeholder, not 42 patient appointments.
       if(freq[content]>=6&&!/(?:\bpaciente\b|psicop|confirmad)/i.test(content))continue;
       if(/^(?:nuevo paciente|por confirmar|sin confirmar|bloqueado|no disponible)$/i.test(content))continue;
-      bookings.push({date:iso_(plusDays_(monday,weekday)),time,patientTokens:patientTokens_(content)});
+      bookings.push({date:iso_(plusDays_(monday,weekday)),time,
+        patientTokens:patientTokens_(content),
+        clinicalCellUrl:cellUrl_(id,tab,dayColumn_(weekday)+(rowIndex+3),metadata)});
     }
   }
   publicData.agendaState='ok';
   publicData.bookedBlocks=bookings.length;
   publicData.message+=' · '+bookings.length+' bloques de agenda detectados en semana '+key;
-  return {publicData,bookings};
+  return {publicData,bookings,clinicRowByTime,fileId:id,metadata,tab};
 }
 function readFinance_(id,now,props) {
   const metadata=sheetMetadata_(id),tabs=metadata.map(s=>s.title);
