@@ -75,6 +75,23 @@
     .calendar-list li:first-child{color:#d6ecff}
     @media(max-width:970px){.hours-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
     @media(max-width:590px){:root{font-size:17px}.hours-grid{gap:10px}.hours-grid .card{padding:13px}.hours-grid .metric{font-size:33px}.hours-grid .description{font-size:14px}.hours-grid .card .minor{font-size:12px}.metric{font-size:34px}.recommendation h3{font-size:19px}}
+    .insight-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+    .audit-card{border:1px solid #38506a;border-radius:16px;background:#14243a;padding:19px}
+    .audit-card h3{margin:0 0 10px}
+    .audit-list{list-style:none;padding:0;margin:12px 0}
+    .audit-list li{border-bottom:1px solid #2e435b;padding:11px 0;font-size:15px;line-height:1.55}
+    .audit-list .links{display:flex;gap:14px;flex-wrap:wrap;margin-top:5px}
+    .audit-list a{color:#97d8ff;font-size:14px}
+    .audit-summary{font-size:17px;font-weight:700;line-height:1.55;color:#e1f0ff}
+    .audit-subtitle{font-size:14px;color:#b1c7de;line-height:1.6}
+    .insight-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+    .insight-stat{border:1px solid #30485f;border-radius:10px;padding:12px}
+    .insight-stat b{font-size:22px;display:block;font-variant-numeric:tabular-nums}
+    .insight-stat span{font-size:13px;color:#a9bfd4}
+    .source-state{font-size:14px;line-height:1.5}
+    .source-state strong{color:#d5ebff}
+    .operational{margin-top:22px}
+    @media(max-width:750px){.insight-grid{grid-template-columns:1fr}}
   </style>
 </head>
 <body>
@@ -190,6 +207,73 @@
         <a class="source-link" id="training-log-link" href="https://sheets.google.com" target="_blank" rel="noopener noreferrer">Abrir MTS Execution Log (Daily log) ↗</a>
       </div>
     </article>
+  </section>
+
+  <section aria-labelledby="audit-heading" class="operational">
+    <div class="section-head">
+      <div><p class="eyebrow">CONCILIACIÓN · ACCESO DIRECTO</p><h2 id="audit-heading">🔎 Resolver diferencias entre sistemas</h2></div>
+    </div>
+    <div class="insight-grid">
+      <article class="audit-card">
+        <p class="eyebrow">📅 CALENDAR VS MATRIX</p>
+        <h3>Compromisos y bloques desincronizados</h3>
+        <p id="calendar-compare-summary" class="audit-summary">Consultando agendas…</p>
+        <p class="audit-subtitle">Solo eventos con horario; las coincidencias se revisan antes de modificar.</p>
+        <ul id="calendar-audit-list" class="audit-list"></ul>
+      </article>
+      <article class="audit-card">
+        <p class="eyebrow">🎯 CAPACIDAD CLÍNICA REAL</p>
+        <h3>Pacientes, sesiones y disponibilidad</h3>
+        <div class="insight-stats">
+          <div class="insight-stat"><b id="capacity-patients">—</b><span>Pacientes semanales</span></div>
+          <div class="insight-stat"><b id="capacity-attended">—</b><span>Sesiones atendidas esta semana</span></div>
+          <div class="insight-stat"><b id="capacity-booked">—</b><span>Bloques en agenda operativa</span></div>
+          <div class="insight-stat"><b id="capacity-free">—</b><span>Bloques expresamente libres</span></div>
+        </div>
+        <p id="capacity-note" class="audit-subtitle">Los cupos de pacientes no equivalen a las horas libres.</p>
+      </article>
+      <article class="audit-card">
+        <p class="eyebrow">🥊 ADHERENCIA MTS · 7 DÍAS</p>
+        <h3>Planificado, realizado y omitido</h3>
+        <ul id="adherence-list" class="audit-list"></ul>
+        <p class="audit-subtitle">Cada dominio contabiliza exposiciones; una sesión mixta puede pertenecer a más de un dominio.</p>
+      </article>
+      <article class="audit-card">
+        <p class="eyebrow">💤 SUEÑO REAL · 7 NOCHES</p>
+        <h3 id="sleep-average">Promedio no disponible</h3>
+        <p id="sleep-detail" class="audit-summary">Consultando horas Zz:…</p>
+        <ul id="sleep-nights" class="audit-list"></ul>
+        <p id="sleep-drg" class="audit-subtitle">El análisis sueño / DRG es descriptivo, sin inferir causalidad.</p>
+      </article>
+      <article class="audit-card">
+        <p class="eyebrow">💰 PROYECCIÓN DEL MES</p>
+        <h3 id="budget-projection">Pendiente de calcular</h3>
+        <p id="budget-projection-detail" class="audit-summary"></p>
+        <p class="audit-subtitle">Extrapolación lineal del gasto registrado: no predice transacciones extraordinarias.</p>
+      </article>
+      <article class="audit-card">
+        <p class="eyebrow">🔄 HISTORIAL DE INCIDENCIAS</p>
+        <h3>Problemas nuevos y resueltos</h3>
+        <div class="insight-stats">
+          <div class="insight-stat"><b id="history-new">—</b><span>Nuevos · 24 h</span></div>
+          <div class="insight-stat"><b id="history-resolved">—</b><span>Resueltos · 24 h</span></div>
+          <div class="insight-stat"><b id="history-persistent">—</b><span>Persisten</span></div>
+          <div class="insight-stat"><b id="history-open">—</b><span>Abiertos ahora</span></div>
+        </div>
+        <p id="history-note" class="audit-subtitle">Primera visita: se registra una línea base.</p>
+      </article>
+    </div>
+  </section>
+  <section aria-labelledby="source-heading" class="operational">
+    <div class="section-head">
+      <div><p class="eyebrow">CONFIABILIDAD Y VERSIÓN</p><h2 id="source-heading">🛡️ Estado de las fuentes</h2></div>
+    </div>
+    <div class="card">
+      <p id="source-overall" class="audit-summary">Verificando Matrix, MTS, PSICOPRO, Finanzas y Calendar…</p>
+      <ul id="source-health-list" class="audit-list"></ul>
+      <p id="release-version" class="audit-subtitle">Versión del motor: sin verificar.</p>
+      <p id="release-check" class="audit-subtitle">Comparando con la última versión en GitHub…</p>
+    </div>
   </section>
   <section aria-labelledby="rec-heading">
     <div class="section-head">
