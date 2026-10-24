@@ -56,6 +56,17 @@ function money_(value) {
   const n=Number(s.replace(/[^0-9-]/g,''));
   return Number.isSafeInteger(n)?n:null;
 }
+function patientTokens_(input) {
+  // Compare names internally only. Never return these tokens to the browser.
+  const stop=new Set(['paciente','psicopro','psicologia','psicologo','psicologa',
+    'sesion','clinica','clinico','atencion','consulta','terapia','presencial','online',
+    'nuevo','nueva','trabajo','agendar','agenda','hora','cita','reserva','confirmado',
+    'confirmada','semana','lunes','martes','miercoles','jueves','viernes','de','del',
+    'la','las','el','los','para','con','una','uno','por','and','psico','pro','rodolfo']);
+  return [...new Set(String(input||'').toLowerCase().normalize('NFD')
+    .replace(/[\u0300-\u036f]/g,'').split(/[^a-z]+/)
+    .filter(s=>s.length>=3&&!stop.has(s)))];
+}
 function isFree_(input) {
   const s=String(input||'').trim().toLowerCase();
   return !s||/^(?:libre|disponible|vacante|sin paciente|sin agendar|cancelad[ao]|no agendado|no asignado|—|-|--|null|n\/a|sin datos|free)$/i.test(s);
@@ -114,7 +125,7 @@ function readMatrix_(id,now) {
         const prep=/(?:plan pac|planificar paciente|preparar paciente|notas de pacientes|revisar fichas)/i.test(t);
         const clinical=!free&&!prep&&/(?:\bpaciente\b|psicopro|psic[oó]log|psicoterapia|terapia|sesi[oó]n cl[ií]nica|consulta cl[ií]nica)/i.test(t);
         const busy=!free&&cell.length>0;
-        slots[iso][time]={boxing,gym,cardio,clinical,busy};
+        slots[iso][time]={boxing,gym,cardio,clinical,busy,patientTokens:clinical?patientTokens_(cell):[]};
         if(iso===iso_(now)){
           if(boxing)todayCounts.boxing++;
           if(gym)todayCounts.gym++;
@@ -242,7 +253,7 @@ function readClinical_(id,now) {
       // Heuristic for recurring placeholder, not 42 patient appointments.
       if(freq[content]>=6&&!/(?:\bpaciente\b|psicop|confirmad)/i.test(content))continue;
       if(/^(?:nuevo paciente|por confirmar|sin confirmar|bloqueado|no disponible)$/i.test(content))continue;
-      bookings.push({date:iso_(plusDays_(monday,weekday)),time});
+      bookings.push({date:iso_(plusDays_(monday,weekday)),time,patientTokens:patientTokens_(content)});
     }
   }
   publicData.agendaState='ok';
@@ -291,19 +302,24 @@ function parseIso_(iso){
   return new Date(parts[0],parts[1]-1,parts[2],12);
 }
 function reconcileClinical_(bookings,matrix){
-  const missing=[],conflicts=[];
+  const missing=[],conflicts=[],possibleDifferent=[];
   const available=new Set(matrix.available);
   for(const booked of bookings){
     const week=weekKey_(startMonday_(parseIso_(booked.date)));
     if(!available.has(week))continue;
     const slot=(matrix.slots[booked.date]||{})[booked.time];
-    if(slot?.clinical)continue;
     const issue={date:booked.date,hour:String(Math.floor(booked.time/60)).padStart(2,'0')+':'+String(booked.time%60).padStart(2,'0')};
+    if(slot?.clinical){
+      const left=booked.patientTokens||[],right=slot.patientTokens||[];
+      // When both have identifiable tokens but no overlap, flag only for review.
+      if(left.length&&right.length&&!left.some(x=>right.includes(x)))possibleDifferent.push(issue);
+      continue;
+    }
     if(slot?.busy)conflicts.push(issue);
     else missing.push(issue);
   }
-  return {missing:missing.length,conflicts:conflicts.length,
-    items:missing.slice(0,8),collisionItems:conflicts.slice(0,8)};
+  return {missing:missing.length,conflicts:conflicts.length,possibleDifferent:possibleDifferent.length,
+    items:missing.slice(0,8),collisionItems:conflicts.slice(0,8),identityItems:possibleDifferent.slice(0,8)};
 }
 /**
  * Only RPC endpoint. The private UI receives aggregate metrics and dates/hours,
@@ -320,7 +336,7 @@ function getDashboard(){
     clinical:{state:'unconfigured',message:'No configurada'},
     finance:{state:'unconfigured',message:'No configurada'},
     comparisons:{training:{state:'unavailable',total:null,items:[]},
-      clinical:{state:'unavailable',missing:null,conflicts:null,items:[],collisionItems:[]}},
+      clinical:{state:'unavailable',missing:null,conflicts:null,possibleDifferent:null,items:[],collisionItems:[],identityItems:[]}},
     nextAction:{title:'Verificar fuentes',reason:'No hay resultados confiables todavía',level:'normal'},
     alerts:[]
   };
@@ -352,6 +368,7 @@ function getDashboard(){
   const missingClinical=out.comparisons.clinical.missing;
   const collisionClinical=out.comparisons.clinical.conflicts;
   const missingTraining=out.comparisons.training.total;
+  const differentClinical=out.comparisons.clinical.possibleDifferent;
   if(todayDrg&&(todayDrg.hardStop||/\bABORT\b/i.test(todayDrg.output))){
     out.nextAction={title:'DRG: detener carga',reason:'Hard Stop o ABORT en la evaluación de hoy.',level:'critical'};
   }else if(out.calendar.state==='ok'&&out.calendar.next&&out.calendar.next.minutesUntil<=120&&out.calendar.next.minutesUntil>=0){
@@ -360,6 +377,8 @@ function getDashboard(){
     out.nextAction={title:'Resolver conflicto PSICOPRO / Matrix',reason:collisionClinical+' citas coinciden con otra actividad en Matrix.',level:'high'};
   }else if(missingClinical>0){
     out.nextAction={title:'Agendar pacientes en Matrix',reason:missingClinical+' bloques PSICOPRO no aparecen en Matrix.',level:'high'};
+  }else if(differentClinical>0){
+    out.nextAction={title:'Comprobar identidad en agenda',reason:differentClinical+' citas coinciden en horario, pero podrían tener pacientes distintos en Matrix.',level:'medium'};
   }else if(missingTraining>0){
     out.nextAction={title:'Agendar entrenamientos en Matrix',reason:missingTraining+' sesiones planificadas en MTS faltan en Matrix.',level:'high'};
   }else if(out.finance.state==='ok'&&out.finance.over>0){
@@ -376,9 +395,11 @@ function getDashboard(){
   }
   if(collisionClinical>0)out.alerts.push('PSICOPRO: '+collisionClinical+' posibles solapamientos');
   if(missingClinical>0)out.alerts.push('PSICOPRO: '+missingClinical+' citas ausentes en Matrix');
+  if(differentClinical>0)out.alerts.push('PSICOPRO: '+differentClinical+' posibles discrepancias de paciente');
   if(missingTraining>0)out.alerts.push('MTS: '+missingTraining+' entrenamientos no agendados');
   if(out.clinical.state==='ok'&&out.clinical.gap<0)out.alerts.push('Cupos: faltan '+Math.abs(out.clinical.gap)+' para '+RV_TARGET_WEEKLY);
   if(out.finance.state==='ok'&&out.finance.over>0)out.alerts.push('Finanzas: exceso '+clp_(out.finance.over)+' CLP');
   if(out.training.state==='ok'&&!todayDrg)out.alerts.push('DRG: sin evaluación válida hoy');
+  if(out.training.state==='ok'&&!out.training.nextWeekScheduled)out.alerts.push('MTS: sin programación activa próxima semana');
   return out;
 }
