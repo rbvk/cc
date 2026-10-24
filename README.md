@@ -1,47 +1,31 @@
-# CC — RV Command Center
+# 🧠 RV Command Center
 
-Código del panel privado que reúne alertas operativas de MTS, PSICOPRO, finanzas y Google Calendar.
+Centro de operaciones personal con cuatro fuentes de Google Sheets y Google Calendar.
 
-**Dominio solicitado:** `cc.rodolfovalle.com`.
+## Diseño actual
 
-## Estado de la migración
+| Componente | Ubicación | Privacidad |
+|---|---|---|
+| Portal de entrada | `https://cc.rodolfovalle.com` · GitHub Pages | Público, sin datos privados |
+| Motor de análisis | `apps-script/Code.gs` · Google Apps Script | Acceso **solo propietario** |
+| Dashboard real | `apps-script/Index.html` · Google Apps Script | Acceso **solo propietario** |
+| Datos originales | Tus hojas Google Sheets / Calendar | No se publican ni duplican |
 
-- Código completo importado de la versión 7 publicada del panel, conservando su identidad y reglas.
-- Repositorio privado. La instantánea operativa, los registros originales y las credenciales no se incluyen en Git.
-- Dominio reservado en el servidor actual; falta configurar y verificar los registros descritos en [deploy/DNS.md](deploy/DNS.md).
-- La aplicación requiere servidor, base de datos y almacenamiento, además del cliente web. GitHub aloja el código de este repositorio; el servidor privado existente continúa atendiendo la aplicación. Esto no constituye una migración del alojamiento a GitHub Pages.
+**No hay Cloud Run, API keys, OAuth Client ID ni login de contraseña ficticia.** Apps Script usa la sesión autenticada de tu cuenta Google y sus permisos después de la autorización inicial. La primera autorización puede repetirse si cambian los permisos del proyecto.
 
-GitHub Pages sirve archivos estáticos y no ejecuta el servidor de esta aplicación. No activar Pages con una exportación de los datos operativos: un repositorio privado no vuelve privado un sitio de Pages de una cuenta personal.
+## Cómo activar
 
-## Código y actualización
+Sigue [apps-script/README.md](apps-script/README.md). Necesitas desplegar el proyecto con **Execute as: Me** y **Who has access: Only myself**. Después coloca la URL `/exec` en **⚙️ Configurar acceso** del portal.
 
-- `src/content/dashboard/DashboardContent.jsx`: interfaz del panel.
-- `src/content/dashboard/rv-command.css`: presentación propia.
-- `src/content/shared/rv-logic.mjs`: reglas y cálculos.
-- `src/content/shared/make-snapshot.mjs`: transformación reproducible y anónima.
-- `src/content/shared/RV_REFRESH.md`: fuentes y procedimiento de revisión.
-- `AGENTS.md`: límites de edición y construcción.
-- `.openai/data-app-publication-source.json`: referencia inmutable a los datos de la versión original, sin sus registros.
+**Importante:** GitHub Pages no puede mostrar automáticamente los datos privados de Google Sheets sin una autenticación válida. El portal lleva a una aplicación de Google que sí puede analizarlos. La URL del navegador cambiará al entrar al panel privado.
 
-`src/data.json`, las exportaciones completas, `dist`, dependencias y archivos temporales permanecen excluidos de Git. El código se conserva sin incrustar datos operativos en archivos públicos.
+## Estado verificado
 
-La revisión automática continúa vinculada al panel existente. Copiar el código a GitHub no cambia por sí solo su destino de publicación ni configura una integración de despliegue desde GitHub. Antes de un traslado del servidor, deben migrarse y verificarse autenticación, almacenamiento, presentación y actualización automática.
+- Implementación de GitHub Pages en `main`; workflow `.github/workflows/pages.yml`.
+- Código y manifest para Apps Script preparados, pero **no implementados ni probados en una cuenta Google real**.
+- Análisis disponible en código: calendario 48 h, clasificación horaria MTS, DRG y ejecución reciente, agenda PSICOPRO agregada.
+- **Finanzas:** conexión preparada, definición de KPIs pendiente de identificar la hoja y rangos vigentes.
 
-## Verificación de las reglas
+No colocar nombres de pacientes, historiales clínicos, RUT, credenciales, tokens ni datos financieros personales en GitHub, tareas locales o commits.
 
-Con Node instalado:
-
-```sh
-node --test src/content/shared/rv-logic.test.mjs
-```
-
-Para reconstruir el panel, primero recuperar la instantánea autorizada y seguir `AGENTS.md` y el flujo de Data indicado en `RV_REFRESH.md`. No sustituir los datos por una plantilla vacía ni inventar valores para hacer pasar una compilación.
-
-## Procedencia
-
-- Proyecto original: `appgprj_6ada96f75ed48191854c26b317a88cbe`.
-- Versión publicada recuperada: 7.
-- Commit de origen: `ee3bc760d15992dc6fdeb7d92315be7f771d6169`.
-- Identidad de la aplicación: `dashboard:7f1b1c70-f5b8-4140-8f5b-cfc9aa99cd38`.
-
-Panel operativo durante la transición: <https://rv-command-center.rbastianvalle.chatgpt.site>.
+El código React/Vite heredado `src/` no se publica por el workflow actual y permanece únicamente como histórico.
