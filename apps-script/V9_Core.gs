@@ -187,13 +187,83 @@ function rv9Finish_(inbox,availability){
    start:availability.windows.find(w=>w.minutes>=x.minutes)?.start||null})),
   note:'Tiempos estimados. No desplazar compromisos ni descanso'};
 }
+/** Decision Calibration Log: explicit predictions and observed outcomes. */
+function rv9AllDecisions_(p,now){
+ const items=[];
+ for(const month of rv9Months_(now,6)){
+  const list=rv9Json_(p.getProperty('RV9_DECISIONS_'+month),[]);
+  if(Array.isArray(list))for(const d of list)
+   if(d&&typeof d.id==='string'&&typeof d.type==='string')items.push(d);
+ }
+ return items.sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt))).slice(0,120);
+}
+function rv9DecisionSummary_(records){
+ const resolved=records.filter(x=>x.status==='success'||x.status==='failure');
+ const outcomes=resolved.filter(x=>x.status==='success').length;
+ const meanConfidence=resolved.length?Math.round(resolved.reduce((a,x)=>a+x.confidence,0)/resolved.length):null;
+ return {state:'ok',open:records.filter(x=>x.status==='open').length,
+  completed:resolved.length,successRate:resolved.length>=5?Math.round(outcomes/resolved.length*100):null,
+  averagePredictedConfidence:resolved.length>=5?meanConfidence:null,
+  calibrationAvailable:resolved.length>=10,
+  note:resolved.length>=10?'Comparación descriptiva entre confianza media y resultados; revisar sesgo de selección':
+   'Muestra insuficiente para calibración confiable: se requieren al menos diez decisiones cerradas',
+  items:records.slice(0,24).map(x=>({
+   id:x.id,type:x.type,quantity:x.quantity,confidence:x.confidence,
+   prediction:x.prediction,criterion:x.criterion,
+   createdAt:x.createdAt,status:x.status,resolvedAt:x.resolvedAt||null
+  }))};
+}
+function recordV9Decision(type,quantity,confidence){
+ const pct=Math.round(Number(confidence));
+ if(!Number.isFinite(pct)||pct<5||pct>95)return {state:'invalid',message:'Confianza debe ser de 5% a 95%'};
+ const sim=simulateV9Scenario(type,quantity);
+ if(sim.state!=='ok')return {state:'unavailable',message:'El escenario todavía no se puede evaluar'};
+ return rv9Locked_(()=>{
+  const p=rv9Props_(),now=new Date(),month=rv9Month_(now);
+  const old=rv9Json_(p.getProperty('RV9_DECISIONS_'+month),[]);
+  const list=Array.isArray(old)?old:[];
+  const outcomes=(sim.results||[]).map(x=>x.label+': '+x.value).join(' · ');
+  const prediction=rv9Short_(outcomes,180)||'Cambio operacional a comprobar';
+  const criterion=type==='clinical'?'Revisar pacientes semanales e ingreso neto observado tras cuatro semanas':
+   type==='budget'?'Revisar gasto real al cierre del mes':
+   type==='focus'?'Comprobar entregable realmente finalizado':
+   'Comparar resultado observado con la oportunidad evaluada';
+  const item={id:Utilities.getUuid(),type,quantity:Math.max(1,Math.min(5,Number(quantity)||1)),
+   confidence:pct,createdAt:now.toISOString(),prediction,criterion,status:'open'};
+  list.unshift(item);
+  if(list.length>22||JSON.stringify(list).length>8000)
+   return {state:'full',message:'El registro mensual de decisiones está lleno'};
+  p.setProperty('RV9_DECISIONS_'+month,JSON.stringify(list));
+  return {state:'ok',item,decisions:rv9DecisionSummary_(rv9AllDecisions_(p,now))};
+ });
+}
+function resolveV9Decision(id,outcome){
+ if(!/^[0-9a-f-]{20,50}$/i.test(String(id||''))||!['success','failure','inconclusive'].includes(outcome))
+  return {state:'invalid'};
+ return rv9Locked_(()=>{
+  const p=rv9Props_(),now=new Date();
+  for(const month of rv9Months_(now,6)){
+   const list=rv9Json_(p.getProperty('RV9_DECISIONS_'+month),[]);
+   if(!Array.isArray(list))continue;
+   const item=list.find(x=>x.id===id);
+   if(!item)continue;
+   if(item.status!=='open')return {state:'already_resolved'};
+   item.status=outcome;item.resolvedAt=now.toISOString();
+   p.setProperty('RV9_DECISIONS_'+month,JSON.stringify(list));
+   return {state:'ok',decisions:rv9DecisionSummary_(rv9AllDecisions_(p,now))};
+  }
+  return {state:'not_found'};
+ });
+}
+
 function getV9Dashboard(){
  const now=new Date(),p=rv9Props_(),base=getDashboard();
  const ideas=rv9AllIdeas_(p,now),inbox=rv9Inbox_(ideas),leads=rv9LeadStats_(p,now);
+ const decisions=rv9DecisionSummary_(rv9AllDecisions_(p,now));
  const availability=rv9Available_(p,now),extra=rv9Extra_(p,now);
  const opportunities=rv9Opportunities_(base,extra,inbox,availability);
  return {state:'ok',version:RV9_VERSION,generatedAt:now.toISOString(),timezone:RV_TZ,
-  base,inbox,leads,availability,finishes:rv9Finish_(inbox,availability),
+  base,inbox,leads,decisions,availability,finishes:rv9Finish_(inbox,availability),
   opportunities,extra,arica:rv9Arica_(now),projects:rv9Projects_(p),
   firstAttentions:rv9FirstAttentions_(p,now),
   modules:{capture:true,memory:true,scenario:true,arica:true,opportunity:true,
