@@ -61,15 +61,18 @@ function getDashboard() {
 
   // Explicit priority precedence. Never treat unknown as a clean state.
   if (out.training.state === 'ok' && out.training.latestDrg &&
-      (out.training.latestDrg.hardStop || /ABORT/i.test(out.training.latestDrg.output))) {
+      out.training.drgIsToday && (out.training.latestDrg.hardStop || /ABORT/i.test(out.training.latestDrg.output))) {
     out.nextAction = { title: 'Priorizar recuperación', reason: 'Último DRG: ABORT o Hard Stop. No ejecutar cargas hasta reevaluar.', level: 'critical' };
     out.alerts.push('DRG: bloqueo de entrenamiento detectado');
   } else if (out.calendar.state === 'ok' && out.calendar.next &&
       out.calendar.next.minutesUntil <= 120 && out.calendar.next.minutesUntil >= 0) {
     out.nextAction = { title: 'Preparar próximo compromiso', reason: 'Hay un evento en Calendar en las próximas 2 horas.', level: 'high' };
-  } else if (out.training.state === 'ok' && out.training.latestDrg &&
+  } else if (out.training.state === 'ok' && out.training.latestDrg && out.training.drgIsToday &&
       /CUT/i.test(out.training.latestDrg.output)) {
     out.nextAction = { title: 'Aplicar reducción de carga', reason: 'Último DRG con salida CUT; revisar el plan antes de entrenar.', level: 'medium' };
+  } else if (out.matrix.state === 'ok' && out.matrix.boxingBlocks > 0 &&
+      (!out.training.latestDrg || !out.training.drgIsToday)) {
+    out.nextAction = { title: 'Verificar DRG antes de boxeo', reason: 'MTS muestra boxeo, pero no hay DRG verificado de hoy.', level: 'medium' };
   } else if (out.calendar.state === 'ok' && out.calendar.next) {
     out.nextAction = { title: 'Revisar siguiente compromiso', reason: 'Consulta el horario de tu próximo evento.', level: 'normal' };
   } else if (sources.some(([name]) => out[name].state !== 'ok')) {
@@ -106,14 +109,31 @@ function values_(id, a1) {
   return response.values || [];
 }
 
-function readMatrix_(id) {
-  // Establish connectivity; do NOT infer today's tasks from an unverified layout.
+function readMatrix_(id, now) {
   const r = Sheets.Spreadsheets.get(id, { fields: 'sheets.properties(title),properties.title' });
   const names = (r.sheets || []).map(s => s.properties.title);
+  const day = Number(Utilities.formatDate(now,RV_TZ,'u')); // Monday=1...Sunday=7
+  const weekTab = Utilities.formatDate(monday_(now),RV_TZ,'dd/MM');
+  if (!names.includes(weekTab)) {
+    return {state:'partial',sheetsCount:names.length,message:'MTS accesible; no se encontró semana '+weekTab};
+  }
+  const rows = values_(id,"'"+weekTab+"'!A3:H28");
+  let boxing=0, gym=0, clinical=0, academic=0, firefighter=0;
+  for(const row of rows){
+    const hour=String(row[0]||'').trim();
+    if(!/^\\d{1,2}(?::\\d{1,2})?$/.test(hour))continue;
+    const text=String(row[day]||'').toLowerCase();
+    if(!text || /^(libre|free|descanso|sleep|sueño|—|-)$/.test(text.trim()))continue;
+    if(/boxeo|boxing|sparring|saco|ppm/.test(text))boxing++;
+    if(/gym|pierna|squat|deadlift|push|pull|cardio|z2/.test(text))gym++;
+    if(/paciente|psicop|terapia|sesio|cl[ií]nica/.test(text))clinical++;
+    if(/tesis|paper|doctorado|investigaci[oó]n|p3/.test(text))academic++;
+    if(/bombero|guardia|emergencia/.test(text))firefighter++;
+  }
   return {
-    state: 'ok',
-    sheetsCount: names.length,
-    message: 'Matriz accesible · ' + names.length + ' pestañas. Objetivos diarios: pendiente de mapear.'
+    state:'ok',week:weekTab,boxingBlocks:boxing,gymBlocks:gym,clinicalBlocks:clinical,
+    academicBlocks:academic,firefighterBlocks:firefighter,
+    message:'Hoy · MTS '+weekTab+': '+boxing+' bloques boxeo · '+gym+' gym · '+clinical+' clínica · '+academic+' academia · '+firefighter+' bomberos (bloques horarios, no sesiones)'
   };
 }
 
@@ -161,6 +181,9 @@ function readClinical_(id, now) {
   const info = Sheets.Spreadsheets.get(id, { fields:'sheets.properties(title)' });
   const names = new Set((info.sheets || []).map(s=>s.properties.title));
   const monday = monday_(now);
+  // On Saturday/Sunday, show the next operational week rather than the week ending.
+  const day=Number(Utilities.formatDate(now,RV_TZ,'u'));
+  if (day >= 6) monday.setDate(monday.getDate()+7);
   const tab = Utilities.formatDate(monday,RV_TZ,'dd/MM');
   if (!names.has(tab)) return {state:'partial',message:'Agenda futura no detectada: '+tab};
   const rows = values_(id, "'" + tab + "'!B3:F15");
