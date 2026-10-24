@@ -330,8 +330,8 @@ function parseIso_(iso){
   const parts=String(iso).split('-').map(Number);
   return new Date(parts[0],parts[1]-1,parts[2],12);
 }
-function reconcileClinical_(bookings,matrix){
-  const missing=[],conflicts=[],possibleDifferent=[];
+function reconcileClinical_(bookings,matrix,week){
+  const missing=[],conflicts=[],possibleDifferent=[],matrixOnly=[];
   const available=new Set(matrix.available);
   for(const booked of bookings){
     const week=weekKey_(startMonday_(parseIso_(booked.date)));
@@ -347,8 +347,22 @@ function reconcileClinical_(bookings,matrix){
     if(slot?.busy)conflicts.push(issue);
     else missing.push(issue);
   }
+  // Reverse reconciliation: possible appointment recorded in personal Matrix
+  // but not in the shared PSICOPRO schedule for the SAME week.
+  const agendaKeys=new Set(bookings.map(x=>x.date+'|'+x.time));
+  for(const date of Object.keys(matrix.slots)){
+    const d=parseIso_(date);
+    if(weekKey_(startMonday_(d))!==week || day_(d)>5)continue;
+    for(const key of Object.keys(matrix.slots[date]||{})){
+      const slot=matrix.slots[date][key];
+      if(!slot?.clinical || agendaKeys.has(date+'|'+key))continue;
+      const minutes=Number(key);
+      matrixOnly.push({date,hour:String(Math.floor(minutes/60)).padStart(2,'0')+':'+String(minutes%60).padStart(2,'0')});
+    }
+  }
   return {missing:missing.length,conflicts:conflicts.length,possibleDifferent:possibleDifferent.length,
-    items:missing.slice(0,8),collisionItems:conflicts.slice(0,8),identityItems:possibleDifferent.slice(0,8)};
+    matrixOnly:matrixOnly.length,items:missing.slice(0,8),collisionItems:conflicts.slice(0,8),
+    identityItems:possibleDifferent.slice(0,8),matrixOnlyItems:matrixOnly.slice(0,8)};
 }
 /**
  * Only RPC endpoint. The private UI receives aggregate metrics and dates/hours,
@@ -365,7 +379,7 @@ function getDashboard(){
     clinical:{state:'unconfigured',message:'No configurada'},
     finance:{state:'unconfigured',message:'No configurada'},
     comparisons:{training:{state:'unavailable',total:null,items:[]},
-      clinical:{state:'unavailable',missing:null,conflicts:null,possibleDifferent:null,items:[],collisionItems:[],identityItems:[]}},
+      clinical:{state:'unavailable',missing:null,conflicts:null,possibleDifferent:null,matrixOnly:null,items:[],collisionItems:[],identityItems:[],matrixOnlyItems:[]}},
     nextAction:{title:'Verificar fuentes',reason:'No hay resultados confiables todavía',level:'normal'},
     alerts:[]
   };
@@ -394,7 +408,7 @@ function getDashboard(){
   if(clinical&&matrix&&clinical.publicData.agendaState==='ok'){
     const weekAvailable=matrix.available.includes(clinical.publicData.week);
     out.comparisons.clinical=weekAvailable?
-      Object.assign({state:'ok'},reconcileClinical_(clinical.bookings,matrix)):
+      Object.assign({state:'ok'},reconcileClinical_(clinical.bookings,matrix,clinical.publicData.week)):
       {state:'partial',missing:null,conflicts:null,items:[],collisionItems:[],message:'No existe pestaña correspondiente de Matrix'};
   }
   const todayDrg=out.training.drgToday;
@@ -402,6 +416,7 @@ function getDashboard(){
   const collisionClinical=out.comparisons.clinical.conflicts;
   const missingTraining=out.comparisons.training.total;
   const differentClinical=out.comparisons.clinical.possibleDifferent;
+  const matrixOnlyClinical=out.comparisons.clinical.matrixOnly;
   if(todayDrg&&(todayDrg.hardStop||/\bABORT\b/i.test(todayDrg.output))){
     out.nextAction={title:'DRG: detener carga',reason:'Hard Stop o ABORT en la evaluación de hoy.',level:'critical'};
   }else if(out.calendar.state==='ok'&&out.calendar.next&&out.calendar.next.minutesUntil<=120&&out.calendar.next.minutesUntil>=0){
@@ -412,6 +427,8 @@ function getDashboard(){
     out.nextAction={title:'Agendar pacientes en Matrix',reason:missingClinical+' bloques PSICOPRO no aparecen en Matrix.',level:'high'};
   }else if(differentClinical>0){
     out.nextAction={title:'Comprobar identidad en agenda',reason:differentClinical+' citas coinciden en horario, pero podrían tener pacientes distintos en Matrix.',level:'medium'};
+  }else if(matrixOnlyClinical>0){
+    out.nextAction={title:'Revisar Matrix hacia PSICOPRO',reason:matrixOnlyClinical+' bloques clínicos de Matrix no se detectaron en la agenda compartida.',level:'medium'};
   }else if(missingTraining>0){
     out.nextAction={title:'Agendar entrenamientos en Matrix',reason:missingTraining+' modalidades programadas en MTS faltan en Matrix.',level:'high'};
   }else if(out.finance.state==='ok'&&out.finance.over>0){
@@ -429,6 +446,7 @@ function getDashboard(){
   if(collisionClinical>0)out.alerts.push('PSICOPRO: '+collisionClinical+' posibles solapamientos');
   if(missingClinical>0)out.alerts.push('PSICOPRO: '+missingClinical+' citas ausentes en Matrix');
   if(differentClinical>0)out.alerts.push('PSICOPRO: '+differentClinical+' posibles discrepancias de paciente');
+  if(matrixOnlyClinical>0)out.alerts.push('Matrix: '+matrixOnlyClinical+' bloques clínicos sin respaldo PSICOPRO');
   if(missingTraining>0)out.alerts.push('MTS: '+missingTraining+' modalidades no agendadas');
   if(out.clinical.state==='ok'&&out.clinical.gap<0)out.alerts.push('Cupos: faltan '+Math.abs(out.clinical.gap)+' para '+RV_TARGET_WEEKLY);
   if(out.finance.state==='ok'&&out.finance.over>0)out.alerts.push('Finanzas: exceso '+clp_(out.finance.over)+' CLP');
@@ -473,6 +491,10 @@ function getDashboard(){
     recommend('clinical',78,'medium','Verificar coincidencia de pacientes',
       differentClinical+' coincidencias horarias con nombres posiblemente diferentes.',
       'Revisar identidad en PSICOPRO, sin incluirla en el Command Center.','revisar','clinical');
+  }else if(matrixOnlyClinical>0){
+    recommend('clinical',75,'medium','Verificar reservas Matrix sin PSICOPRO',
+      matrixOnlyClinical+' bloques clínicos aparecen únicamente en Matrix.',
+      'Revisar si son sesiones confirmadas antes de agregarlas a PSICOPRO.','revisar','clinical');
   }else if(out.clinical.state==='ok'&&out.clinical.gap<0){
     recommend('clinical',65,'medium','Revisar cupos semanales',
       out.clinical.weekly+' pacientes clasificados para objetivo de '+RV_TARGET_WEEKLY+'.',
