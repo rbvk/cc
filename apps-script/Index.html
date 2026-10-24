@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+  <style>
+    :root{font:15px/1.5 system-ui,-apple-system,sans-serif;background:#0b1220;color:#f2f6ff;color-scheme:dark}
+    *{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(circle at 50% -15%,#1a3d62,transparent 42%),#0b1220}
+    a{color:#9fd5ff;text-decoration:none}button{cursor:pointer}
+    .wrap{max-width:1100px;margin:auto;padding:28px 20px 55px}
+    .top{display:flex;align-items:center;justify-content:space-between;gap:14px;padding-bottom:24px;border-bottom:1px solid #2a3950;flex-wrap:wrap}
+    .brand{display:flex;align-items:center;gap:12px}.logo{padding:12px;background:linear-gradient(130deg,#80cfff,#7592ff);border-radius:14px;color:#071223;font-weight:900}
+    .eyebrow{letter-spacing:1.6px;font-size:10px;font-weight:800;color:#92aac7}
+    h1{font-size:clamp(24px,4vw,38px);margin:6px 0 12px;letter-spacing:-1.2px}
+    h2{font-size:20px}h3{font-size:17px;margin:0 0 7px}
+    .muted{color:#a8bbd1}.small{font-size:12px}.chip{display:inline-block;border:1px solid #3d6e68;padding:5px 11px;color:#93dec6;background:#193b37;border-radius:50px;font-size:12px}
+    button{border:0;border-radius:11px;background:#9fd5ff;color:#092034;padding:10px 14px;font:600 14px system-ui}
+    button:disabled{opacity:.5}button:focus-visible,a:focus-visible{outline:3px solid #ffcb72;outline-offset:3px}
+    .grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:15px}.card{border:1px solid #35445d;border-radius:17px;padding:20px;background:linear-gradient(170deg,#16273d,#111c2e);min-width:0}
+    .owner{border-color:#397ba0;background:linear-gradient(160deg,#183b58,#102439)}
+    .card p{margin:0;color:#adbed4}.card .eyebrow{margin:0 0 12px}section{margin:28px 0}.links{display:flex;gap:10px;flex-wrap:wrap;margin-top:13px}
+    .links a{background:#23374f;border-radius:8px;padding:8px 11px;display:inline-block;font-size:12px}
+    .alert{border-left:4px solid #ecc17b;padding:12px 16px;background:#2f2924;color:#eed9b6;border-radius:8px;margin-top:18px}
+    .stat{font-size:26px;font-weight:750;color:#d1edff}.status{color:#a7bbd4;font-size:12px}.critical{border-color:#e58d76}.high{border-color:#dcb76d}
+    .footer{border-top:1px solid #283c57;margin-top:28px;padding-top:20px;font-size:12px;color:#9fb3d0}
+    @media(max-width:800px){.grid{grid-template-columns:1fr 1fr}.grid>*:first-child{grid-column:span 2}}
+    @media(max-width:570px){.grid{grid-template-columns:1fr}.grid>*:first-child{grid-column:auto}}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand"><div class="logo">RV</div><div><strong>Command Center</strong><div class="eyebrow">ÁREA PERSONAL · GOOGLE APPS SCRIPT</div></div></div>
+    <div><span class="chip">🔒 Acceso exclusivo</span> <button id="refresh" type="button">↻ Actualizar</button></div>
+  </header>
+  <section>
+    <div class="eyebrow">SISTEMA OPERATIVO PERSONAL</div>
+    <h1>Qué necesita tu atención.</h1>
+    <p class="muted">Datos privados analizados dentro de Google. Sin OAuth en cada apertura y sin publicar tus hojas en GitHub.</p>
+    <div id="info" class="status" role="status" aria-live="polite">Consultando fuentes verificadas…</div>
+    <div id="alerts" class="alert" hidden></div>
+  </section>
+  <section class="grid">
+    <article class="card owner" id="priority-card">
+      <div class="eyebrow">⚡ ACTUAR</div><h2 id="priority">Cargando prioridades…</h2><p id="priority-reason">Consultando tus fuentes privadas.</p>
+    </article>
+    <article class="card">
+      <div class="eyebrow">📅 AGENDA</div><h3>Próximos compromisos</h3>
+      <div class="stat" id="calendar-count">—</div><p id="calendar-message">No consultado</p>
+      <div class="links"><a href="https://calendar.google.com/" target="_blank" rel="noopener noreferrer">Abrir Calendar ↗</a></div>
+    </article>
+    <article class="card">
+      <div class="eyebrow">🥊 MTS / DRG</div><h3 id="drg-state">Sin datos verificados</h3>
+      <p id="training-message">No consultado</p><div class="links" id="training-links"></div>
+    </article>
+    <article class="card">
+      <div class="eyebrow">🧭 MATRIX</div><h3>Planificación general</h3>
+      <p id="matrix-message">No consultado</p><div class="links" id="matrix-links"></div>
+    </article>
+    <article class="card">
+      <div class="eyebrow">🏥 PSICOPRO</div><h3>Agenda clínica (agregada)</h3>
+      <p id="clinical-message">No consultado</p><div class="links" id="clinical-links"></div>
+    </article>
+    <article class="card">
+      <div class="eyebrow">💰 FINANZAS</div><h3>Ingresos y presupuesto</h3>
+      <p id="finance-message">No consultado</p><div class="links" id="finance-links"></div>
+    </article>
+  </section>
+  <div class="footer">🔐 Solo el propietario puede usar esta web app cuando se publica con acceso «Solo yo». No se devuelven identidades de pacientes, notas, diagnósticos ni filas individuales de las hojas.</div>
+</div>
+<script>
+  'use strict';
+  const $=id=>document.getElementById(id);
+  let loading=false;
+  function text(id,val){$(id).textContent=String(val??'No disponible');}
+  function setLink(boxId,obj) {
+    const box=$(boxId);box.replaceChildren();
+    if(!obj || obj.state==='error' || !obj.url) return;
+    const link=document.createElement('a');
+    link.href=obj.url;link.target='_blank';link.rel='noopener noreferrer';
+    link.textContent='Abrir hoja privada ↗';box.appendChild(link);
+  }
+  function render(d) {
+    text('priority',d.nextAction?.title);
+    text('priority-reason',d.nextAction?.reason);
+    $('priority-card').classList.toggle('critical',d.nextAction?.level==='critical');
+    $('priority-card').classList.toggle('high',d.nextAction?.level==='high');
+    text('calendar-count',d.calendar?.state==='ok'?d.calendar.upcoming48h:'—');
+    text('calendar-message',d.calendar?.message);
+    text('training-message',d.training?.message);
+    text('drg-state',d.training?.latestDrg ? ('Último DRG: '+d.training.latestDrg.output+(d.training.drgIsToday?' · HOY':' · histórico')):'DRG no verificado');
+    for(const name of ['matrix','training','clinical','finance']){
+      text(name+'-message',d[name]?.message);
+      setLink(name+'-links',d[name]);
+    }
+    $('alerts').hidden=!d.alerts?.length;
+    $('alerts').textContent=d.alerts?.join(' · ')||'';
+    text('info','Última consulta: '+new Date(d.generatedAt).toLocaleString('es-CL',{timeZone:'America/Santiago'})+' · Datos únicamente agregados');
+  }
+  function fail(){text('info','⚠️ No se pudieron consultar las fuentes. Revisa que Apps Script esté autorizado y que las hojas sigan accesibles.');}
+  function refresh(){
+    if(loading)return;
+    loading=true;$('refresh').disabled=true;
+    google.script.run.withSuccessHandler(data=>{
+      loading=false;$('refresh').disabled=false;render(data);
+    }).withFailureHandler(()=>{
+      loading=false;$('refresh').disabled=false;fail();
+    }).getDashboard();
+  }
+  $('refresh').addEventListener('click',refresh);
+  refresh();
+  setInterval(refresh,5*60*1000);
+</script>
+</body>
+</html>
