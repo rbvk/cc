@@ -156,6 +156,7 @@ function readMatrix_(id,now) {
   const weekHours={boxing:0,gym:0,sleep:0,clinicalMatrix:0};
   let observedHourRows=0;
   let currentWeekSeen=false;
+  const elapsedHours={sleep:0};
   for(const begin of needed){
     const key=weekKey_(begin);
     const tab=matchTab_(tabs,key);
@@ -191,6 +192,13 @@ function readMatrix_(id,now) {
           if(gym)weekHours.gym++;
           if(sleep)weekHours.sleep++;
           if(clinical)weekHours.clinicalMatrix++;
+          // Zz: is an actual sleep record, according to the owner.
+          // A future/ongoing hourly block is not yet a completed hour of sleep.
+          if(sleep){
+            const blockEnd=plusDays_(begin,weekday);
+            blockEnd.setHours(Math.floor(time/60)+1,time%60,0,0);
+            if(blockEnd.getTime()<=now.getTime())elapsedHours.sleep++;
+          }
         }
         if(iso===todayIso){
           if(boxing)todayCounts.boxing++;
@@ -226,11 +234,12 @@ function readMatrix_(id,now) {
       nextWeekTrainingDays:nextWeekTrainingDays.slice(0,7),
       nextWeek:nextWeek,nextWeekReady:!!nextTab,
       weeklyHours:{
-        boxing:weekHours.boxing,gym:weekHours.gym,sleep:weekHours.sleep,
-        clinicalMatrix:weekHours.clinicalMatrix,
+        boxing:weekHours.boxing,gym:weekHours.gym,sleep:elapsedHours.sleep,
+        sleepTotalMarked:weekHours.sleep,clinicalMatrix:weekHours.clinicalMatrix,
         week:currentWeek,hourSlotMinutes:60,
         complete:observedHourRows>=24,
-        source:'Bloques de 1 hora planificados en Matrix; no representan ejecución real'
+        boxingGymSource:'Horas agendadas en Matrix, no asistencia verificada',
+        sleepSource:'Horas Zz: transcurridas y registradas como sueño real'
       },
       url:tabUrl_(id,currentTab,metadata),
       nextWeekUrl:nextTab?tabUrl_(id,nextTab,metadata):null,
@@ -342,7 +351,7 @@ function readClinicalHours_(id,tabs,metadata,now) {
   const week=startMonday_(now),key=weekKey_(week);
   const tab=matchTab_(tabs,key);
   if(!tab)return {state:'missing',week:key,elapsedBookingHours:null,
-    bookedWeekHours:null,verifiedAttendedHours:null,
+    bookedWeekHours:null,attendedHours:null,verifiedAttendedHours:null,
     note:'Sin agenda PSICOPRO de la semana actual'};
   const rows=values_(id,"'"+tab.replace(/'/g,"''")+"'!A3:F15");
   const freq={};
@@ -356,18 +365,20 @@ function readClinicalHours_(id,tabs,metadata,now) {
     for(let weekday=0;weekday<5;weekday++) {
       const cell=String(row[weekday+1]||'').trim();
       if(isFree_(cell)||/^(?:bloquead[oa]|reservado|nuevo paciente|no disponible|por confirmar|sin confirmar|sin agenda|sin asignar)$/i.test(cell))continue;
-      if(freq[cell]>=6&&!/(?:\\bpaciente\\b|psicop|confirmad)/i.test(cell))continue;
+      if(freq[cell]>=6&&!/(?:\bpaciente\b|psicop|confirmad)/i.test(cell))continue;
       booked++;
       const begin=plusDays_(week,weekday);
       begin.setHours(Math.floor(time/60),time%60,0,0);
-      if(begin.getTime()>now.getTime())continue;
+      // Only a completed, past one-hour slot is an attended hour.
+      // PSICOPRO is curated to retain only actually attended patients.
+      if(begin.getTime()+60*60*1000>now.getTime())continue;
       elapsed++;
-      if(/\\b(?:atendid[oa]|realizad[oa]|asisti[oó]|completad[oa])\\b|✅/i.test(cell))markedAttended++;
+      if(/\b(?:atendid[oa]|realizad[oa]|asisti[oó]|completad[oa])\b|✅/i.test(cell))markedAttended++;
     }
   }
   return {state:'ok',week:key,elapsedBookingHours:elapsed,bookedWeekHours:booked,
-    verifiedAttendedHours:markedAttended>0?markedAttended:null,
-    note:'Horas con cita transcurrida según PSICOPRO; asistencia no verificada',
+    attendedHours:elapsed,verifiedAttendedHours:markedAttended>0?markedAttended:null,
+    note:'Horas atendidas esta semana según PSICOPRO depurado (solo citas efectivamente atendidas); cada bloque representa 1 h.',
     url:tabUrl_(id,tab,metadata)};
 }
 function readClinical_(id,now) {
