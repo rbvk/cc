@@ -579,8 +579,10 @@ function getDashboard(){
       'Completar evaluación y aplicar PROCEED, CUT o ABORT antes de la sesión.','verificado','drg');
   }else if(missingTraining>0){
     recommend('training',79,'high','Conciliar MTS con Matrix',
-      missingTraining+' modalidades de entrenamiento no detectadas en la fecha prevista.',
-      'Revisar los días señalados y reservar los bloques que correspondan.','revisar','matrix');
+      missingTraining+' modalidades programadas sin bloque. Fechas: '+
+        (out.comparisons.training.items||[]).slice(0,5).map(x=>
+          slotDescription_(x)+' · '+({boxing:'Boxeo',gym:'Gimnasio',cardio:'Cardio'}[x.type]||'Entrenamiento')).join('; ')+'.',
+      'Revisar los días indicados y reservar únicamente los bloques confirmados.','revisar','matrixNext');
   }else if(out.training.state==='ok'&&!out.training.nextWeekScheduled){
     const cmp=out.comparisons.training;
     const first=cmp.matrixOnlyItems?.[0];
@@ -598,16 +600,20 @@ function getDashboard(){
       'Comprobar esas fechas y horas en PSICOPRO y Matrix (semana '+out.clinical.week+') antes de modificar una reserva.','revisar','clinical');
   }else if(missingClinical>0){
     recommend('clinical',89,'high','Completar agenda privada en Matrix',
-      missingClinical+' posibles citas de PSICOPRO no tienen bloque clínico correspondiente.',
-      'Verificar horario y reflejar solo la ocupación necesaria, sin datos identificatorios.','revisar','matrix');
+      missingClinical+' posibles citas faltan en Matrix: '+
+        slotSummary_(out.comparisons.clinical.items,5)+'.',
+      'Revisar esos bloques en PSICOPRO y en Matrix '+out.clinical.week+
+        '; reflejar solo ocupación horaria, sin nombres.','revisar','matrixNext');
   }else if(differentClinical>0){
     recommend('clinical',78,'medium','Verificar coincidencia de pacientes',
-      differentClinical+' coincidencias horarias con nombres posiblemente diferentes.',
-      'Revisar identidad en PSICOPRO, sin incluirla en el Command Center.','revisar','clinical');
+      differentClinical+' horarios por revisar: '+
+        slotSummary_(out.comparisons.clinical.identityItems,5)+'.',
+      'Comprobar identidad directamente en PSICOPRO, sin copiarla al Command Center.','revisar','clinical');
   }else if(matrixOnlyClinical>0){
     recommend('clinical',75,'medium','Verificar reservas Matrix sin PSICOPRO',
-      matrixOnlyClinical+' bloques clínicos aparecen únicamente en Matrix.',
-      'Revisar si son sesiones confirmadas antes de agregarlas a PSICOPRO.','revisar','clinical');
+      matrixOnlyClinical+' bloques clínicos en Matrix sin cita equivalente: '+
+        slotSummary_(out.comparisons.clinical.matrixOnlyItems,5)+'.',
+      'Revisar si realmente son sesiones confirmadas antes de agregarlas a PSICOPRO.','revisar','clinical');
   }else if(out.clinical.state==='ok'&&out.clinical.gap<0){
     recommend('clinical',65,'medium','Revisar cupos semanales',
       out.clinical.weekly+' pacientes clasificados para objetivo de '+RV_TARGET_WEEKLY+'.',
