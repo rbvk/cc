@@ -17,4 +17,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Run privacy and operational KPI regression tests
-        run: node apps-script/tests/command-center-smoke.mjs
+        run: |
+          node apps-script/tests/command-center-smoke.mjs
+          node apps-script/tests/command-center-v8.mjs
