@@ -1,0 +1,5 @@
+{
+  "version": "2026.10.24.8",
+  "description": "Eight operational audits: precise links, Calendar reconciliation, history, source health, training adherence, real sleep trend, finance forecast, clinical capacity",
+  "deployment": "Copy Code.gs and Index.html into owner-only Apps Script, then deploy new version"
+}
