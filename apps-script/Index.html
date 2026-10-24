@@ -218,14 +218,28 @@ function render(d){
    :('Sin evaluación válida de hoy.'+(t.drgLatest?' Último DRG: '+t.drgLatest.date+' (histórico).':'')));
  set('training-completed',t.state==='ok'?'Filas MTS realizadas, últimos 7 días: '+t.completedRows7d:'Registro no disponible');
  const tc=d.comparisons?.training||{};
- const hasTrainingPlan=t.state==='ok'&&t.scheduledKinds>0;
- count('training-missing',tc.state==='ok'&&hasTrainingPlan?tc.total:null,
-   tc.total+' modalidades por agendar');
- set('training-compare',tc.state==='ok'?
-   (!hasTrainingPlan?'Sin sesiones activas programadas para el período actual o próximo; revisa si existe un nuevo mesociclo.':
-     tc.total>0?'Modalidades planificadas en MTS y no detectadas en Matrix':'Modalidades MTS contrastadas sin faltantes detectados.'):
-   'Comparación pendiente: verificar acceso a MTS y Matrix');
- list('training-issues',tc.items,x=>dateLabel(x.date)+' · '+({boxing:'Boxeo',gym:'Gimnasio',cardio:'Cardio'}[x.type]||'Entrenamiento'));
+ if(tc.state==='no_plan'){
+   set('training-missing','SIN PLAN MTS');
+   $('training-missing').className='metric warn';
+   set('training-compare','Matrix tiene '+(tc.matrixOnlyDays??'—')+
+     ' jornadas con entrenamiento en semana '+(tc.week||'sin fecha')+
+     ', pero MTS Execution Log no contiene sesiones activas equivalentes.'+
+     (tc.lastProgrammedDate?' Última programación: '+dateLabel(tc.lastProgrammedDate)+'.':''));
+   list('training-issues',tc.matrixOnlyItems||[],
+     x=>dateLabel(x.date)+' · '+x.title+' (sin sesión MTS)');
+ }else if(tc.state==='ok'){
+   count('training-missing',tc.total,tc.total+' modalidades por agendar');
+   set('training-compare',tc.total+' modalidades de MTS sin bloque equivalente en Matrix.'+
+     (tc.matrixOnlyDays>0?' Además, '+tc.matrixOnlyDays+' jornadas de Matrix no tienen sesión registrada en MTS.':''));
+   const missing=(tc.items||[]).map(x=>({label:dateLabel(x.date)+' · '+({boxing:'Boxeo',gym:'Gimnasio',cardio:'Cardio'}[x.type]||'Entrenamiento')+' falta en Matrix'}));
+   const unmatched=(tc.matrixOnlyItems||[]).map(x=>({label:dateLabel(x.date)+' · '+x.title+' sin sesión MTS'}));
+   list('training-issues',[...missing,...unmatched].slice(0,8),x=>x.label);
+ }else{
+   set('training-missing','SIN DATOS');
+   $('training-missing').className='metric';
+   set('training-compare',tc.message||'Comparación no verificable. Revisa las pestañas y permisos de MTS y Matrix.');
+   list('training-issues',[],x=>x.label);
+ }
  const cc=d.comparisons?.clinical||{};
  count('clinical-missing',cc.state==='ok'?cc.missing+cc.conflicts+(cc.possibleDifferent||0)+(cc.matrixOnly||0):null,(cc.missing||0)+' citas ausentes, '+(cc.conflicts||0)+' conflictos, '+(cc.possibleDifferent||0)+' discrepancias de paciente y '+(cc.matrixOnly||0)+' entradas exclusivas de Matrix');
  set('clinical-compare',cc.state==='ok'?
@@ -256,9 +270,21 @@ function render(d){
    (f.categoryReconciled===false?'⚠️ Categorías y total no concuerdan':''));
  set('calendar-count',d.calendar?.state==='ok'?d.calendar.upcoming48h:'—');
  set('calendar-message',d.calendar?.message);
+ set('matrix-day-heading',matrix.todayDate?'Plan del '+dateLabel(matrix.todayDate):'Entrenamiento programado hoy');
+ set('matrix-today-title',matrix.todayTitle||'Sin planificación verificada');
  set('matrix-summary',matrix.message);
- set('plan-status',t.state==='ok'?(t.nextWeekScheduled?'MTS próximo período: hay programación':'MTS próximo período: sin sesiones activas programadas'):'MTS futuro: no verificado');
- for(const name of ['matrix','training','clinical','finance'])sourceLink(name+'-link',d[name]);
+ list('matrix-upcoming',matrix.nextTrainingDays||[],x=>dateLabel(x.date)+' · '+x.title);
+ set('plan-status',t.state==='ok'?
+   (t.nextWeekScheduled?'MTS: hay programación para la próxima semana.':
+   'MTS: no hay sesiones activas en la semana siguiente.'+
+   (t.lastProgrammedDate?' Última fecha registrada: '+dateLabel(t.lastProgrammedDate)+'.':'')):
+   'Programación MTS futura: no verificada');
+ sourceLink('matrix-link',{url:matrix.nextWeekUrl||matrix.url});
+ sourceLink('matrix-current-link',{url:matrix.url});
+ sourceLink('drg-link',{url:t.drgUrl});
+ sourceLink('training-log-link',{url:t.dailyLogUrl});
+ sourceLink('clinical-link',c);
+ sourceLink('finance-link',f);
  const alertText=Array.isArray(d.alerts)?d.alerts:[];
  $('alerts').hidden=alertText.length===0;
  set('alerts',alertText.slice(0,4).join(' · ')+(alertText.length>4?' · +'+(alertText.length-4)+' avisos en las tarjetas':''));
