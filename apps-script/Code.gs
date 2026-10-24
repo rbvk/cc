@@ -433,5 +433,76 @@ function getDashboard(){
   if(out.finance.state==='stale')out.alerts.push('Finanzas: presupuesto corresponde a otro mes');
   if(out.training.state==='ok'&&!todayDrg)out.alerts.push('DRG: sin evaluación válida hoy');
   if(out.training.state==='ok'&&!out.training.nextWeekScheduled)out.alerts.push('MTS: sin programación activa próxima semana');
+
+  // A decision has: evidence, one next action, and the authoritative source.
+  // Limit to three different domains; alerts and source cards retain full detail.
+  const suggested=[];
+  const recommend=(domain,priority,level,title,evidence,action,certainty,source)=>{
+    suggested.push({domain,priority,level,title,evidence,action,certainty,source});
+  };
+  if(todayDrg&&(todayDrg.hardStop||/\\bABORT\\b/i.test(todayDrg.output))){
+    recommend('training',100,'critical','Aplicar DRG ABORT / Hard Stop',
+      'Evaluación válida de hoy; no sustituirla por el plan de entrenamiento.',
+      'No ejecutar la carga programada sin reevaluación y decisión de seguridad.', 'verificado','training');
+  }else if(out.training.state==='ok'&&!todayDrg&&out.matrix.state==='ok'&&
+      (out.matrix.today.boxing+out.matrix.today.gym+out.matrix.today.cardio)>0){
+    recommend('training',83,'high','Evaluar DRG antes de entrenar',
+      'Matrix incluye actividad física, pero no hay DRG válido de hoy.',
+      'Completar evaluación y aplicar PROCEED, CUT o ABORT antes de la sesión.','verificado','training');
+  }else if(missingTraining>0){
+    recommend('training',79,'high','Conciliar MTS con Matrix',
+      missingTraining+' modalidades de entrenamiento no detectadas en la fecha prevista.',
+      'Revisar los días señalados y reservar los bloques que correspondan.','revisar','matrix');
+  }else if(out.training.state==='ok'&&!out.training.nextWeekScheduled){
+    recommend('training',72,'medium','Planificar el próximo ciclo MTS',
+      'Sin sesiones activas la semana siguiente. Último día de plan: '+(out.training.lastProgrammedDate||'no disponible')+'.',
+      'Confirmar primero el nuevo plan MTS; después contrastarlo con Matrix.','verificado','training');
+  }
+  if(collisionClinical>0){
+    recommend('clinical',93,'high','Resolver solapamientos PSICOPRO',
+      collisionClinical+' horarios de pacientes coinciden con otra actividad en Matrix.',
+      'Comprobar ambas agendas y corregir solo después de verificar la reserva.','revisar','clinical');
+  }else if(missingClinical>0){
+    recommend('clinical',89,'high','Completar agenda privada en Matrix',
+      missingClinical+' posibles citas de PSICOPRO no tienen bloque clínico correspondiente.',
+      'Verificar horario y reflejar solo la ocupación necesaria, sin datos identificatorios.','revisar','matrix');
+  }else if(differentClinical>0){
+    recommend('clinical',78,'medium','Verificar coincidencia de pacientes',
+      differentClinical+' coincidencias horarias con nombres posiblemente diferentes.',
+      'Revisar identidad en PSICOPRO, sin incluirla en el Command Center.','revisar','clinical');
+  }else if(out.clinical.state==='ok'&&out.clinical.gap<0){
+    recommend('clinical',65,'medium','Revisar cupos semanales',
+      out.clinical.weekly+' pacientes clasificados para objetivo de '+RV_TARGET_WEEKLY+'.',
+      'Examinar disponibilidad real y cupos necesarios, sin confundir pacientes con sesiones.','verificado','clinical');
+  }
+  if(out.finance.state==='partial'&&out.finance.categoryReconciled===false){
+    recommend('finance',91,'high','Reconciliar presupuesto',
+      'Las categorías no suman el mismo total que la hoja.',
+      'Corregir clasificación o fórmulas antes de interpretar la desviación.','verificado','finance');
+  }else if(out.finance.state==='stale'){
+    recommend('finance',77,'medium','Actualizar período financiero',
+      'El mes de la pestaña no coincide con el mes actual.',
+      'Seleccionar o preparar el presupuesto vigente, evitando mostrar cifras históricas como actuales.','verificado','finance');
+  }else if(out.finance.state==='ok'&&out.finance.over>0){
+    const first=out.finance.topOverages?.[0];
+    recommend('finance',73,'medium','Examinar el exceso de presupuesto',
+      'Desviación total: '+clp_(out.finance.over)+' CLP ('+out.finance.pct+'%).'+
+        (first?' Mayor diferencia de categoría: '+first.category+' ('+clp_(first.over)+' CLP).':''),
+      'Revisar gastos discrecionales, partidas extraordinarias y clasificación antes de ajustar límites.','verificado','finance');
+  }
+  if(out.calendar.state==='ok'&&out.calendar.next&&
+     out.calendar.next.minutesUntil>=0&&out.calendar.next.minutesUntil<=120){
+    recommend('calendar',97,'high','Preparar próximo compromiso',
+      'El siguiente evento comienza en menos de dos horas.',
+      'Abrir Calendar y preparar la actividad, sin copiar información clínica al panel.','verificado','calendar');
+  }
+  out.recommendations=suggested.sort((a,b)=>b.priority-a.priority)
+    .filter((x,i,all)=>all.findIndex(y=>y.domain===x.domain)===i)
+    .slice(0,3).map(({priority,...rest})=>rest);
+  out.sourceHealth={
+    available:['matrix','training','clinical','finance'].filter(x=>out[x]?.state==='ok').length,
+    total:4,
+    issues:['matrix','training','clinical','finance'].filter(x=>out[x]?.state!=='ok')
+  };
   return out;
 }
