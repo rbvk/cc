@@ -117,14 +117,29 @@ function clampNumber_(n,min,max){return Math.max(min,Math.min(max,n));}
 function todayMonth_(){return Utilities.formatDate(new Date(),RV_TZ,'yyyy-MM');}
 
 function readCalendar_(now) {
-  const until=plusDays_(now,2);
+  const until=new Date(now.getTime()+48*60*60*1000);
   const calendar=CalendarApp.getDefaultCalendar();
-  const events=calendar.getEvents(now,until).filter(e=>e.getEndTime()>now)
+  const upcoming=calendar.getEvents(now,until).filter(e=>e.getEndTime()>now)
     .sort((a,b)=>a.getStartTime()-b.getStartTime());
-  const next=events[0]||null;
-  return {state:'ok',upcoming48h:events.length,
-    next:next?{start:next.getStartTime().toISOString(),minutesUntil:Math.round((next.getStartTime()-now)/60000)}:null,
-    message:events.length+' eventos próximos 48 h, sin títulos ni participantes'};
+  const first=upcoming[0]||null;
+  // Today's remaining items, including events already in progress.
+  // Titles are returned ONLY by the owner-restricted Apps Script web app.
+  // No descriptions, guest lists or clinical metadata are sent.
+  const remainingToday=calendar.getEventsForDay(now)
+    .filter(e=>e.getEndTime()>now)
+    .sort((a,b)=>a.getStartTime()-b.getStartTime());
+  const nextToday=remainingToday.slice(0,8).map(event=>({
+    title:String(event.getTitle()||'Sin título').trim().slice(0,120),
+    start:event.getStartTime().toISOString(),
+    end:event.getEndTime().toISOString(),
+    allDay:Boolean(event.isAllDayEvent()),
+    ongoing:event.getStartTime().getTime()<now.getTime()
+  }));
+  return {state:'ok',upcoming48h:upcoming.length,
+    next:first?{start:first.getStartTime().toISOString(),minutesUntil:Math.round((first.getStartTime()-now)/60000)}:null,
+    todayDate:iso_(now),todayRemaining:remainingToday.length,
+    todayEvents:nextToday,
+    message:upcoming.length+' eventos próximos 48 h · '+remainingToday.length+' restantes hoy'};
 }
 /**
  * Read current & next Matrix weekly tabs. Return a public aggregate and
@@ -138,28 +153,45 @@ function readMatrix_(id,now) {
   const available=[];
   const todayIso=iso_(now);
   let todayCounts={boxing:0,gym:0,cardio:0,clinical:0};
+  const weekHours={boxing:0,gym:0,sleep:0,clinicalMatrix:0};
+  let observedHourRows=0;
+  let currentWeekSeen=false;
   for(const begin of needed){
     const key=weekKey_(begin);
     const tab=matchTab_(tabs,key);
     if(!tab)continue;
     available.push(key);
+    const thisWeek=key===weekKey_(start);
+    if(thisWeek)currentWeekSeen=true;
     const rows=values_(id,"'"+tab.replace(/'/g,"''")+"'!A3:H26");
     for(const row of rows){
       const time=hour_(row[0]);
       if(time===null)continue;
+      if(thisWeek)observedHourRows++;
       for(let weekday=0;weekday<7;weekday++){
         const cell=String(row[weekday+1]||'').trim();
         const iso=iso_(plusDays_(begin,weekday));
         if(!slots[iso])slots[iso]={};
         const t=cell.toLowerCase();
-        const free=isFree_(cell)||/^(?:sueño|dormir|sleep|descanso|comida|almuerzo|siesta)\s*:?\s*$/i.test(cell);
+        const sleep=/^(?:zz\s*:|z{2,}\b|dormir\b|dormido\b|sleep\b|sueño\b|siesta\b)/i.test(cell);
+        const free=isFree_(cell)||sleep||/^(?:descanso|comida|almuerzo)\s*:?\s*$/i.test(cell);
         const boxing=!free&&/(?:boxeo|boxing|sparring|\bppm\b|saco de box|clase box)/i.test(t);
         const gym=!free&&/(?:\bgym\b|gimnasio|\bsquat\b|\bdeadlift\b|\bbench\b|\bpesas\b|entrenamiento fuerza)/i.test(t);
         const cardio=!free&&/(?:\bz[1-4]\b|cardio|aer[oó]bic|treadmill|cinta|escaladora|stair stepper|bicicleta)/i.test(t);
         const prep=/(?:plan pac|planificar paciente|preparar paciente|notas de pacientes|revisar fichas)/i.test(t);
         const clinical=!free&&!prep&&/(?:\bpaciente\b|psicopro|psic[oó]log|psicoterapia|terapia|sesi[oó]n cl[ií]nica|consulta cl[ií]nica)/i.test(t);
         const busy=!free&&cell.length>0;
-        slots[iso][time]={boxing,gym,cardio,clinical,busy,patientTokens:clinical?patientTokens_(cell):[]};
+        slots[iso][time]={boxing,gym,cardio,clinical,busy,
+          // Raw text is kept inside the owner-only server response only for
+          // genuinely unmatched Matrix clinical appointments.
+          privateClinicalLabel:clinical?cell.slice(0,150):null,
+          patientTokens:clinical?patientTokens_(cell):[]};
+        if(thisWeek){
+          if(boxing)weekHours.boxing++;
+          if(gym)weekHours.gym++;
+          if(sleep)weekHours.sleep++;
+          if(clinical)weekHours.clinicalMatrix++;
+        }
         if(iso===todayIso){
           if(boxing)todayCounts.boxing++;
           if(gym)todayCounts.gym++;
@@ -193,12 +225,19 @@ function readMatrix_(id,now) {
       nextTrainingDays:futureDays.slice(0,4),
       nextWeekTrainingDays:nextWeekTrainingDays.slice(0,7),
       nextWeek:nextWeek,nextWeekReady:!!nextTab,
+      weeklyHours:{
+        boxing:weekHours.boxing,gym:weekHours.gym,sleep:weekHours.sleep,
+        clinicalMatrix:weekHours.clinicalMatrix,
+        week:currentWeek,hourSlotMinutes:60,
+        complete:observedHourRows>=24,
+        source:'Bloques de 1 hora planificados en Matrix; no representan ejecución real'
+      },
       url:tabUrl_(id,currentTab,metadata),
       nextWeekUrl:nextTab?tabUrl_(id,nextTab,metadata):null,
       message:'Hoy: '+todayCounts.boxing+' bloques boxeo · '+todayCounts.gym+' gimnasio · '+todayCounts.cardio+' cardio · '+todayCounts.clinical+' clínica'}
     :{state:'partial',week:currentWeek,today:null,todayDate:todayIso,
       todayTitle:'Sin pestaña Matrix actual',nextTrainingDays:[],nextWeekTrainingDays:[],
-      nextWeek,nextWeekReady:!!nextTab,
+      nextWeek,nextWeekReady:!!nextTab,weeklyHours:null,
       url:nextTab?tabUrl_(id,nextTab,metadata):null,
       nextWeekUrl:nextTab?tabUrl_(id,nextTab,metadata):null,
       message:'Sin pestaña Matrix de la semana '+currentWeek};
@@ -456,7 +495,9 @@ function reconcileClinical_(bookings,matrix,week){
       const slot=matrix.slots[date][key];
       if(!slot?.clinical || agendaKeys.has(date+'|'+key))continue;
       const minutes=Number(key);
-      matrixOnly.push({date,hour:String(Math.floor(minutes/60)).padStart(2,'0')+':'+String(minutes%60).padStart(2,'0')});
+      matrixOnly.push({date,hour:String(Math.floor(minutes/60)).padStart(2,'0')+':'+String(minutes%60).padStart(2,'0'),
+        // Private owner view. Never commit or log the clinical label.
+        matrixEntry:slot.privateClinicalLabel||'Actividad clínica sin descripción'});
     }
   }
   return {missing:missing.length,conflicts:conflicts.length,possibleDifferent:possibleDifferent.length,
@@ -464,8 +505,10 @@ function reconcileClinical_(bookings,matrix,week){
     identityItems:possibleDifferent.slice(0,8),matrixOnlyItems:matrixOnly.slice(0,8)};
 }
 /**
- * Only RPC endpoint. The private UI receives aggregate metrics and dates/hours,
- * never patient names, identifiers, raw spreadsheet rows or Calendar titles.
+ * Only RPC endpoint of the owner-restricted Web App (access=MYSELF).
+ * Contains selected Calendar titles and Matrix-only clinical entries because the
+ * owner explicitly requested them. Never publish this response in GitHub Pages,
+ * shared documents, analytics or logs. Keep deployment access set to Only myself.
  */
 function getDashboard(){
   const now=new Date();
