@@ -31,6 +31,8 @@
     .statrow b{font-variant-numeric:tabular-nums}
     .progress{height:9px;width:100%;background:#2b3d55;border-radius:30px;overflow:hidden;margin:14px 0 5px}.progress span{display:block;height:100%;width:0;background:#89c8fa;border-radius:30px}
     .source-link{display:inline-block;margin-top:15px;color:#9dd6ff;font-size:12px;font-weight:600}
+    .source-actions{display:flex;flex-direction:column;gap:5px}
+    .matrix-training{font-weight:750;font-size:17px;line-height:1.4;color:#dbf0ff;margin:9px 0!important}
     .critical{border-color:#e78372}.critical .eyebrow{color:#ffad99}.attention{border-color:#b99a65}
     .recommend-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;list-style:none;padding:0;margin:0}
     .recommendation{border:1px solid #354a66;border-radius:13px;padding:16px;background:#152439}
@@ -70,7 +72,7 @@
       <div id="drg-output" class="metric">—</div>
       <p id="drg-detail" class="description">Evaluación pendiente</p>
       <p id="training-completed" class="minor"></p>
-      <a class="source-link" id="training-link" href="https://sheets.google.com" target="_blank" rel="noopener noreferrer">Abrir MTS Execution Log ↗</a>
+      <a class="source-link" id="drg-link" href="https://sheets.google.com" target="_blank" rel="noopener noreferrer">Abrir pestaña DRG ↗</a>
     </article>
     <article class="card">
       <p class="eyebrow">🏋️ MTS vs Matrix</p>
@@ -112,9 +114,16 @@
     </article>
     <article class="card">
       <p class="eyebrow">🧭 MTS System Matrix</p>
-      <h3>Programación de hoy</h3>
+      <h3 id="matrix-day-heading">Entrenamiento programado hoy</h3>
+      <p id="matrix-today-title" class="matrix-training">Sin datos</p>
       <p id="matrix-summary" class="description">No consultado</p>
+      <p class="minor">Próximas jornadas en Matrix:</p>
+      <ul id="matrix-upcoming" class="status-list"></ul>
       <p id="plan-status" class="minor">Próxima semana MTS: sin verificar</p>
+      <div class="source-actions">
+        <a class="source-link" id="matrix-current-link" href="https://sheets.google.com" target="_blank" rel="noopener noreferrer">Abrir Matrix semanal ↗</a>
+        <a class="source-link" id="training-log-link" href="https://sheets.google.com" target="_blank" rel="noopener noreferrer">Abrir MTS Execution Log (Daily log) ↗</a>
+      </div>
     </article>
   </section>
   <section aria-labelledby="rec-heading">
@@ -155,12 +164,13 @@ function list(id,items,makeLabel){
 }
 function sourceLink(id,data){
  const link=$(id);
- if(data?.url&&/^https:\/\/docs\.google\.com\/spreadsheets\/d\/[A-Za-z0-9_-]+\/edit$/.test(data.url))link.href=data.url;
+ if(data?.url&&/^https:\/\/docs\.google\.com\/spreadsheets\/d\/[A-Za-z0-9_-]+\/edit(?:#gid=\d+)?$/.test(data.url))link.href=data.url;
 }
 function renderRecommendations(d){
  const parent=$('recommendations');
  parent.replaceChildren();
- const allowed={training:d.training?.url,matrix:d.matrix?.url,
+ const allowed={training:d.training?.dailyLogUrl,drg:d.training?.drgUrl,
+   matrix:d.matrix?.url,matrixNext:d.matrix?.nextWeekUrl,
    clinical:d.clinical?.url,finance:d.finance?.url,calendar:'https://calendar.google.com/'};
  const items=Array.isArray(d.recommendations)?d.recommendations.slice(0,3):[];
  for(let i=0;i<items.length;i++){
@@ -174,8 +184,14 @@ function renderRecommendations(d){
    const next=document.createElement('p');next.className='next';next.textContent='Acción: '+r.action;
    li.append(label,heading,evidence,next);
    const url=allowed[r.source];
-   if(typeof url==='string'&&/^https:\/\/(?:docs\.google\.com\/spreadsheets\/d\/[A-Za-z0-9_-]+\/edit|calendar\.google\.com\/)$/.test(url)){
+   if(typeof url==='string'&&/^https:\/\/(?:docs\.google\.com\/spreadsheets\/d\/[A-Za-z0-9_-]+\/edit(?:#gid=\d+)?|calendar\.google\.com\/)$/.test(url)){
      const link=document.createElement('a');link.href=url;link.target='_blank';link.rel='noopener noreferrer';link.textContent='Abrir fuente original ↗';li.appendChild(link);
+   }
+   if(r.domain==='clinical' && d.matrix?.nextWeekUrl &&
+     /^https:\/\/docs\.google\.com\/spreadsheets\/d\/[A-Za-z0-9_-]+\/edit(?:#gid=\d+)?$/.test(d.matrix.nextWeekUrl)){
+     const secondary=document.createElement('a');secondary.href=d.matrix.nextWeekUrl;
+     secondary.target='_blank';secondary.rel='noopener noreferrer';
+     secondary.textContent='Ver Matrix de la misma semana ↗';secondary.style.marginLeft='12px';li.appendChild(secondary);
    }
    parent.appendChild(li);
  }
