@@ -45,6 +45,36 @@
     #reload-state{min-height:20px}
     @media(max-width:950px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.focus{grid-column:span 2}.recommend-grid{grid-template-columns:1fr}}
     @media(max-width:590px){.wrap{padding:18px 14px 35px}.grid{grid-template-columns:1fr}.focus{grid-column:auto}.card{padding:16px}.header{align-items:flex-start}.chip{font-size:11px}.metric{font-size:28px}}
+
+    /* Legibility-first typography and weekly operations indicators. */
+    :root{font-size:18px;line-height:1.58}
+    h1{font-size:clamp(31px,4.2vw,45px)}
+    h2{font-size:25px}h3{font-size:19px}
+    .eyebrow{font-size:12px;letter-spacing:1.3px}
+    .intro .muted{font-size:17px}
+    .metric{font-size:40px}
+    .focus h2{font-size:28px}
+    .card .description{font-size:16px}
+    .card .minor,.statusline,.footer,.small{font-size:14px}
+    .source-link,.status-list li,.recommendation a{font-size:15px}
+    .statrow{font-size:16px}
+    .recommendation h3{font-size:20px}
+    .recommendation p{font-size:16px}
+    .recommendation .evidence{font-size:14px}
+    .recommendation .eyebrow{font-size:12px}
+    .matrix-training{font-size:20px}
+    .refresh{font-size:16px;padding:11px 15px}
+    .chip{font-size:14px}
+    .hours-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+    .hours-grid .card{padding:18px}
+    .hours-grid .metric{margin:10px 0 5px;font-size:39px}
+    .hours-grid .description{font-size:14px}
+    .hours-grid .card .minor{font-size:13px}
+    .calendar-list{margin-top:12px}
+    .calendar-list li{padding:9px 0;font-size:15px;line-height:1.5;overflow-wrap:anywhere}
+    .calendar-list li:first-child{color:#d6ecff}
+    @media(max-width:970px){.hours-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+    @media(max-width:590px){:root{font-size:17px}.hours-grid{gap:10px}.hours-grid .card{padding:13px}.hours-grid .metric{font-size:33px}.hours-grid .description{font-size:14px}.hours-grid .card .minor{font-size:12px}.metric{font-size:34px}.recommendation h3{font-size:19px}}
   </style>
 </head>
 <body>
@@ -59,6 +89,38 @@
     <p class="muted">Cruza entrenamientos, agenda clínica, DRG y presupuesto. Las alertas se calculan dentro de Google, sin publicar pacientes ni registros privados en GitHub.</p>
     <p id="reload-state" class="statusline" role="status" aria-live="polite">Consultando hojas privadas…</p>
     <div id="alerts" class="alertstrip" hidden aria-live="polite"></div>
+  </section>
+  <section aria-labelledby="hours-heading">
+    <div class="section-head">
+      <div><p class="eyebrow">SEMANA ACTUAL · LUNES A DOMINGO</p><h2 id="hours-heading">⏱️ Horas de esta semana</h2></div>
+      <span id="hours-week" class="small muted">Sincronizando…</span>
+    </div>
+    <div class="hours-grid">
+      <article class="card">
+        <p class="eyebrow">🏥 ATENCIÓN CLÍNICA</p>
+        <div class="metric" id="hours-clinical">—</div>
+        <p class="description">Horas efectivamente atendidas</p>
+        <p class="minor" id="hours-clinical-detail">PSICOPRO · registros transcurridos</p>
+      </article>
+      <article class="card">
+        <p class="eyebrow">🥊 BOXEO</p>
+        <div class="metric" id="hours-boxing">—</div>
+        <p class="description">Horas de boxeo</p>
+        <p class="minor">Bloques agendados en Matrix</p>
+      </article>
+      <article class="card">
+        <p class="eyebrow">🏋️ GIMNASIO</p>
+        <div class="metric" id="hours-gym">—</div>
+        <p class="description">Horas de gimnasio</p>
+        <p class="minor">Bloques agendados en Matrix</p>
+      </article>
+      <article class="card">
+        <p class="eyebrow">💤 SUEÑO REAL</p>
+        <div class="metric" id="hours-sleep">—</div>
+        <p class="description">Horas dormidas</p>
+        <p class="minor">Bloques Zz: ya transcurridos en Matrix</p>
+      </article>
+    </div>
   </section>
   <section class="grid" aria-label="Indicadores y decisiones">
     <article id="focus-card" class="card focus">
@@ -111,6 +173,8 @@
       <p class="eyebrow">📅 Google Calendar</p>
       <div id="calendar-count" class="metric">—</div>
       <p id="calendar-message" class="description">No consultado</p>
+      <h3 id="calendar-today-heading">Próximos eventos de hoy</h3>
+      <ul id="calendar-today" class="status-list calendar-list"><li>Consultando eventos de hoy…</li></ul>
       <a class="source-link" href="https://calendar.google.com/" target="_blank" rel="noopener noreferrer">Abrir Calendar ↗</a>
     </article>
     <article class="card">
@@ -137,7 +201,7 @@
     </ol>
   </section>
   <footer class="footer">
-    🔐 Esta vista debe desplegarse en Google Apps Script con acceso <strong>Only myself</strong>. Solo se muestran recuentos, fechas y horas de diferencias; nunca nombres, RUT, diagnósticos ni notas clínicas. Los cotejos de agenda son candidatos para verificación, no confirmaciones clínicas automáticas.
+    🔐 El panel privado ahora muestra títulos de eventos y descripciones de las entradas clínicas que aparecen únicamente en Matrix. Mantener estrictamente el despliegue Google Apps Script como <strong>«Solo yo»</strong>. No publicar su respuesta en GitHub Pages ni en servicios de analítica.
   </footer>
 </div>
 <script>
@@ -249,7 +313,10 @@ function render(d){
  set('clinical-compare',cc.state==='ok'?
    (cc.missing+' sin registro · '+cc.conflicts+' solapamientos · '+(cc.possibleDifferent||0)+' pacientes por confirmar · '+(cc.matrixOnly||0)+' solo en Matrix (semana '+(c.week||'')+')'):
    'Comparación pendiente: verificar pestañas PSICOPRO y Matrix');
- list('clinical-issues',[...(cc.items||[]).map(x=>({...x,reason:'No está en Matrix'})),...(cc.collisionItems||[]).map(x=>({...x,reason:'Matrix tiene otra actividad'})),...(cc.identityItems||[]).map(x=>({...x,reason:'Posible paciente distinto · verificar'})),...(cc.matrixOnlyItems||[]).map(x=>({...x,reason:'Solo aparece en Matrix · verificar'}))],
+ list('clinical-issues',[...(cc.items||[]).map(x=>({...x,reason:'No está en Matrix'})),
+   ...(cc.collisionItems||[]).map(x=>({...x,reason:'Matrix tiene otra actividad'})),
+   ...(cc.identityItems||[]).map(x=>({...x,reason:'Posible paciente distinto · verificar'})),
+   ...(cc.matrixOnlyItems||[]).map(x=>({...x,reason:'Solo aparece en Matrix: '+(x.matrixEntry||'Actividad clínica sin descripción')}))],
    x=>dateLabel(x.date)+' '+x.hour+' · '+x.reason);
  set('patient-count',typeof c.weekly==='number'?c.weekly+' / 15':'— / 15');
  set('patient-gap',c.state==='ok'?
@@ -274,8 +341,32 @@ function render(d){
    (f.categoryReconciled===false?'⚠️ Categorías y total no concuerdan':''));
  set('calendar-count',d.calendar?.state==='ok'?d.calendar.upcoming48h:'—');
  set('calendar-message',d.calendar?.message);
+ const today=d.calendar?.todayEvents;
+ set('calendar-today-heading',d.calendar?.todayDate?
+   ('Eventos restantes de hoy · '+dateLabel(d.calendar.todayDate)):'Próximos eventos de hoy');
+ if(d.calendar?.state==='ok'){
+   const items=Array.isArray(today)?today:[];
+   list('calendar-today',items.length?items:[{empty:true}],ev=>{
+     if(ev.empty)return 'No quedan eventos para hoy.';
+     const time=ev.allDay?'Todo el día':
+       new Intl.DateTimeFormat('es-CL',{timeZone:'America/Santiago',hour:'2-digit',minute:'2-digit'})
+         .format(new Date(ev.start));
+     return (ev.ongoing?'En curso · ':time+' · ')+(ev.title||'Sin título');
+   });
+ }else{
+   list('calendar-today',[{empty:true}],()=> 'Calendar no disponible. Comprueba la autorización.');
+ }
  set('matrix-day-heading',matrix.todayDate?'Plan del '+dateLabel(matrix.todayDate):'Entrenamiento programado hoy');
  set('matrix-today-title',matrix.todayTitle||'Sin planificación verificada');
+ const weekHours=matrix.weeklyHours;
+ const clinicalHours=c.currentWeekHours;
+ set('hours-week',weekHours?.week||clinicalHours?.week||'Semana no verificada');
+ set('hours-clinical',clinicalHours?.state==='ok'&&
+   typeof clinicalHours.attendedHours==='number'?clinicalHours.attendedHours+' h':'—');
+ set('hours-clinical-detail',clinicalHours?.note||'Agenda PSICOPRO no disponible');
+ set('hours-boxing',weekHours&&typeof weekHours.boxing==='number'?weekHours.boxing+' h':'—');
+ set('hours-gym',weekHours&&typeof weekHours.gym==='number'?weekHours.gym+' h':'—');
+ set('hours-sleep',weekHours&&typeof weekHours.sleep==='number'?weekHours.sleep+' h':'—');
  set('matrix-summary',matrix.message);
  list('matrix-upcoming',matrix.nextTrainingDays||[],x=>dateLabel(x.date)+' · '+x.title);
  set('plan-status',t.state==='ok'?
