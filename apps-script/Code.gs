@@ -332,6 +332,44 @@ function readTraining_(id,now) {
  * Repeated placeholders across six+ cells are ignored (in source: many identical
  * free/unassigned cells). Never expose patient names or original text.
  */
+/**
+ * Past clinical booking blocks from the CURRENT calendar week.
+ * A filled PSICOPRO cell means the hour was booked; it does NOT prove that
+ * clinical attention actually took place. No verified-attendance field was
+ * identified in the source weekly grid, so never label these confirmed hours.
+ */
+function readClinicalHours_(id,tabs,metadata,now) {
+  const week=startMonday_(now),key=weekKey_(week);
+  const tab=matchTab_(tabs,key);
+  if(!tab)return {state:'missing',week:key,elapsedBookingHours:null,
+    bookedWeekHours:null,verifiedAttendedHours:null,
+    note:'Sin agenda PSICOPRO de la semana actual'};
+  const rows=values_(id,"'"+tab.replace(/'/g,"''")+"'!A3:F15");
+  const freq={};
+  for(const row of rows)for(let day=1;day<=5;day++){
+    const cell=String(row[day]||'').trim();
+    if(cell)freq[cell]=(freq[cell]||0)+1;
+  }
+  let booked=0,elapsed=0,markedAttended=0;
+  for(const row of rows) {
+    const time=hour_(row[0]);if(time===null)continue;
+    for(let weekday=0;weekday<5;weekday++) {
+      const cell=String(row[weekday+1]||'').trim();
+      if(isFree_(cell)||/^(?:bloquead[oa]|reservado|nuevo paciente|no disponible|por confirmar|sin confirmar|sin agenda|sin asignar)$/i.test(cell))continue;
+      if(freq[cell]>=6&&!/(?:\\bpaciente\\b|psicop|confirmad)/i.test(cell))continue;
+      booked++;
+      const begin=plusDays_(week,weekday);
+      begin.setHours(Math.floor(time/60),time%60,0,0);
+      if(begin.getTime()>now.getTime())continue;
+      elapsed++;
+      if(/\\b(?:atendid[oa]|realizad[oa]|asisti[oó]|completad[oa])\\b|✅/i.test(cell))markedAttended++;
+    }
+  }
+  return {state:'ok',week:key,elapsedBookingHours:elapsed,bookedWeekHours:booked,
+    verifiedAttendedHours:markedAttended>0?markedAttended:null,
+    note:'Horas con cita transcurrida según PSICOPRO; asistencia no verificada',
+    url:tabUrl_(id,tab,metadata)};
+}
 function readClinical_(id,now) {
   const metadata=sheetMetadata_(id),tabs=metadata.map(s=>s.title);
   const goals=values_(id,"'Objetivos/Paciente'!A1:C4");
@@ -342,6 +380,7 @@ function readClinical_(id,now) {
   const targetMatches=sheetTarget===RV_TARGET_WEEKLY;
   const usable=weekly!==null&&weekly>=0&&targetMatches;
   const delta=usable?weekly-RV_TARGET_WEEKLY:null;
+  const currentWeekHours=readClinicalHours_(id,tabs,metadata,now);
   const monday=startMonday_(now);
   if(day_(now)>=6)monday.setDate(monday.getDate()+7);
   const key=weekKey_(monday);
@@ -349,6 +388,7 @@ function readClinical_(id,now) {
   const publicData={
     state:usable?'ok':'partial',weekly:usable?weekly:null,target:RV_TARGET_WEEKLY,
     gap:usable?delta:null,week:key,bookedBlocks:null,
+    currentWeekHours,
     url:null,goalsUrl:tabUrl_(id,'Objetivos/Paciente',metadata),
     message:usable?weekly+' / '+RV_TARGET_WEEKLY+' pacientes semanales · '+(delta<0?'faltan '+Math.abs(delta):delta>0?'sobre objetivo por '+delta:'meta alcanzada'):
       (targetMatches?'No se pudo validar pacientes clasificados':'La meta de la hoja no coincide con 15: revisar antes de comparar')
