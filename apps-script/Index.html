@@ -389,6 +389,134 @@ function renderRecommendations(d){
  set('source-health',quality?('Fuentes válidas: '+quality.available+'/'+quality.total+
    (quality.issues.length?' · revisar: '+quality.issues.join(', '):'')):'Fuentes: por verificar');
 }
+
+const UI_RELEASE='2026.10.24.8';
+let releaseChecked=false;
+function renderCalendarComparison(d){
+ const result=d.comparisons?.calendar;
+ if(!result||result.state!=='ok'){
+   set('calendar-compare-summary',result?.message||'Comparación no verificable. Revisa Calendar y Matrix.');
+   linkedIssues_('calendar-audit-list',[],x=>x.title);return;
+ }
+ set('calendar-compare-summary',result.calendarMissingMatrix+' eventos solo en Calendar · '+
+   result.matrixMissingCalendar+' compromisos solo en Matrix · '+
+   result.potentialConflicts+' coincidencias de actividad por revisar');
+ const records=[
+   ...(result.items||[]).map(x=>({...x,label:'Falta en Matrix: '+x.title})),
+   ...(result.reverseItems||[]).map(x=>({...x,label:'Falta en Calendar: '+x.activity})),
+   ...(result.conflictItems||[]).map(x=>({...x,label:'Tipo de actividad distinto: '+x.title}))
+ ];
+ linkedIssues_('calendar-audit-list',records,
+   x=>dateLabel(x.date)+' '+x.hour+' · '+x.label);
+}
+function renderCapacity(d){
+ const capacity=d.clinical?.capacity;
+ set('capacity-patients',typeof capacity?.classifiedWeeklyPatients==='number'?
+   capacity.classifiedWeeklyPatients+' / '+capacity.target:'—');
+ set('capacity-attended',typeof capacity?.attendedSessionsThisWeek==='number'?
+   capacity.attendedSessionsThisWeek:'—');
+ set('capacity-booked',typeof capacity?.bookedBlocks==='number'?capacity.bookedBlocks:'—');
+ set('capacity-free',typeof capacity?.explicitlyFreeSlots==='number'?
+   capacity.explicitlyFreeSlots:'—');
+ set('capacity-note',capacity?
+   (capacity.patientsToTarget===null?'No se pudo verificar el objetivo de pacientes.':
+     capacity.patientsToTarget>0?
+       'Faltan '+capacity.patientsToTarget+' pacientes semanales para la meta de '+capacity.target+'.':
+       capacity.patientsAboveTarget>0?
+         'Meta superada por '+capacity.patientsAboveTarget+' pacientes.':'Meta semanal alcanzada.')+
+     ' La semana de agenda operativa es '+capacity.operatingWeek+
+     '. Los bloques libres no equivalen necesariamente a cupos sostenibles.':
+     'Fuente PSICOPRO no disponible.');
+}
+function renderAdherence(d){
+ const a=d.training?.adherence;
+ if(!a){list('adherence-list',[{text:'MTS no disponible'}],x=>x.text);return;}
+ const names={boxing:'🥊 Boxeo',gym:'🏋️ Gimnasio',cardio:'🫀 Cardio'};
+ list('adherence-list',['boxing','gym','cardio'].map(key=>{
+   const v=a[key]||{};
+   return {text:names[key]+': '+(v.planned||0)+' programadas · '+
+     (v.done||0)+' realizadas · '+(v.omitted||0)+' omitidas · '+
+     (v.unverified||0)+' sin verificar · '+
+     (typeof v.completionPct==='number'?v.completionPct+'% confirmadas':'sin porcentaje')};
+ }),x=>x.text);
+}
+function renderSleep(d){
+ const s=d.sleepTrend||{};
+ if(s.state!=='ok'){
+   set('sleep-average','Promedio sin datos suficientes');
+   set('sleep-detail','No hay suficientes noches Zz: verificadas en Matrix.');
+   list('sleep-nights',[],x=>x.title);
+   set('sleep-drg',s.interpretation||'Se excluyen las noches sin registro.');
+   return;
+ }
+ set('sleep-average','Promedio '+s.averageHours+' h por noche registrada');
+ set('sleep-detail',s.nightsBelowTarget+' de '+s.observedNights+
+   ' noches bajo 7 h 30 · '+s.unrecordedNights+' sin registro comparable');
+ list('sleep-nights',s.byNight||[],
+   x=>dateLabel(x.date)+' · '+x.hours+' h'+(x.belowTarget?' · bajo objetivo':''));
+ set('sleep-drg',s.interpretation+
+   (s.pairedDrgDays>=3?' Pares sueño/DRG: '+s.pairedDrgDays+
+     ' · coincidencias de bajo sueño y DRG <=6: '+s.lowSleepAndLowDrg+'.':''));
+}
+function renderForecast(d){
+ const f=d.finance||{},p=f.projection;
+ if(!p||p.state!=='ok'){
+   set('budget-projection','Proyección no disponible');
+   set('budget-projection-detail',p?.message||'Necesita cifras del mes vigente conciliadas y al menos cinco días.');
+   return;
+ }
+ set('budget-projection',clp(p.projectedSpent)+' estimados al cierre');
+ set('budget-projection-detail',p.projectedOver>0?
+   ('Posible exceso: +'+clp(p.projectedOver)+' frente al presupuesto.'):
+   ('Saldo proyectado: '+clp(p.projectedRemaining)+'.'));
+}
+function renderHistoryAndQuality(d){
+ const x=d.history||{};
+ if(x.state==='ok'||x.state==='baseline'){
+   set('history-new',x.new24h);
+   set('history-resolved',x.resolved24h);
+   set('history-persistent',x.persistent);
+   set('history-open',x.open);
+ }else for(const id of ['history-new','history-resolved','history-persistent','history-open'])set(id,'—');
+ set('history-note',x.message||'El historial no está disponible. Comprueba permisos de Script Properties.');
+ const q=d.sourceHealth;
+ set('source-overall',q?'Fuentes operativas: '+q.available+' de '+q.total+
+   (q.issues.length?' · revisar '+q.issues.length:' · sin alertas de cobertura'):
+   'Estado de fuentes no disponible');
+ list('source-health-list',q?.details||[],src=>{
+   const state=src.state==='ok'?'✅':src.state==='warning'?'⚠️':'⛔';
+   return state+' '+src.label+' · '+src.detail;
+ });
+ set('release-version','Motor Apps Script: '+(d.release?.version||'versión sin identificar')+
+   ' · Interfaz: '+UI_RELEASE);
+ checkLatest_(d.release?.version||null);
+}
+async function checkLatest_(serverVersion){
+ if(releaseChecked)return;releaseChecked=true;
+ if(!serverVersion){
+   set('release-check','El motor no informa su versión: actualiza Code.gs y vuelve a implementar.');
+   return;
+ }
+ if(serverVersion!==UI_RELEASE){
+   set('release-check','⚠️ Código e interfaz tienen versiones distintas. Actualiza ambos archivos.');
+   return;
+ }
+ try{
+   const url='https://raw.githubusercontent.com/rbvk/cc/main/apps-script/release.json';
+   const response=await fetch(url,{cache:'no-store'});
+   if(!response.ok)throw Error('not available');
+   const data=await response.json();
+   if(typeof data.version!=='string')throw Error('no version');
+   set('release-check',serverVersion===data.version?
+     '✅ Esta implementación informa la misma versión que GitHub ('+data.version+').':
+     '⚠️ Existe una versión más reciente en GitHub: '+data.version+
+       '. Actualiza Code.gs e Index.html y crea una nueva versión de Apps Script.');
+ }catch(e){
+   set('release-check','No se pudo comparar con GitHub. Versión local: '+serverVersion+
+     '. La fecha real de modificación de las hojas no se consulta.');
+ }
+}
+
 function render(d){
  const a=d.nextAction||{};
  set('priority',a.title||'Revisar fuentes');
@@ -507,6 +635,12 @@ function render(d){
  $('alerts').hidden=alertText.length===0;
  set('alerts',alertText.slice(0,4).join(' · ')+(alertText.length>4?' · +'+(alertText.length-4)+' avisos en las tarjetas':''));
  renderRecommendations(d);
+ renderCalendarComparison(d);
+ renderCapacity(d);
+ renderAdherence(d);
+ renderSleep(d);
+ renderForecast(d);
+ renderHistoryAndQuality(d);
  const last=new Date(d.generatedAt);
  set('reload-state','Actualizado: '+(Number.isNaN(last.getTime())?'sin fecha':last.toLocaleString('es-CL',{timeZone:'America/Santiago'}))+' · Datos agregados y privados');
 }
