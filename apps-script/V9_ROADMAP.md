@@ -91,3 +91,48 @@ Regla: mostrar solamente datos que puedan cambiar una decisión.
 **Protección de V8:** no alterar el código existente ni implementación de Apps Script por crear esta hoja de ruta.  
 **Verificación:** revisar disponibilidad de webcams, permisos de iframe/stream, políticas de fuentes y credenciales antes de implementar.
 
+## 7. Diseño de interfaz, lectura y sistema visual — propuesta V9
+
+**Estado: propuesta de diseño registrada, V8 no se modifica.** La prioridad es legibilidad móvil, velocidad de decisión y densidad informativa adaptativa; nunca añadir emojis como decoración.
+
+### 7.1 Identidad visual y estructura
+- Identidad: **RV Command Center** sobria, profesional, oscura con acentos azul hielo/cian, fondo grafito. Variante clara si el usuario lo solicita. El color se reserva para estados o acciones, no para decorar cada tarjeta.
+- Pantalla de iPhone diseñada primero (mobile-first); desktop expande paneles laterales sin duplicar tarjetas.
+- Navegación primaria móvil propuesta: **Hoy · Oportunidades · Arica · Inteligencia**. Acción flotante global **+ Capturar** para ideas, compromisos y consultas nuevas; requiere menú contextual para evitar confundir acciones. Áreas por dominio (Clínica, MTS, Finanzas, Tesis, Proyectos) dentro de Inteligencia.
+- Home «Hoy»: fecha/hora de Arica, solo próxima decisión, próxima cita con distancia temporal, 2–3 indicadores de máxima relevancia, ventana libre real, tarea terminable y una tarjeta breve Arica Live. Evitar muro de 20 KPIs.
+- Usar *progressive disclosure*: tarjeta resumida -> detalles y evidencia -> enlace a la fuente -> acción revisable. Filtros `Hoy / 7 días / Mes` con unidades visibles; no mezclar horizontes en el mismo número.
+
+### 7.2 Tipografía y accesibilidad
+- Texto base 17–18 px móvil, encabezados de tarjeta 21–24 px, títulos de sección 25–30 px, KPIs 34–42 px; secundaria y pie no por debajo de 13–14 px.
+- Line-height 1,45–1,6; textos en 2–3 líneas como máximo en tarjetas plegadas, con acción clara para expandir; anchos y separación suficientes.
+- Contraste WCAG AA, foco visible, etiquetas accesibles, navegación por teclado, preferencia por movimiento reducido, tamaños dinámicos y control de zoom del navegador.
+- Botones/filas táctiles de al menos 44×44 CSS px; acciones importantes separadas para prevenir pulsaciones accidentales. Tipografía numérica tabular para CLP, horas y KPIs.
+- No mostrar solo un número: formato `12,5 h de boxeo esta semana`, `8/15 pacientes`, `+CLP 54.000 vs presupuesto`. Unidades, período y nivel de certeza siempre visibles.
+
+### 7.3 Emojis semánticos (máximo uno por título de dominio)
+- 📅 Agenda; 🏥 Clínica; 🥊 Boxeo; 🏋️ Fuerza; 🫀 Cardio; 💤 Sueño; 💰 Finanzas; 📈 Captación/SEO; 🎓 Tesis; 🚒 Bomberos; 💻 Proyectos; 🌆 Arica Live; ⚡ Mejor oportunidad; 🧠 Captura/ideas.
+- Una sola aparición del emoji por tarjeta: evitar repetirlo en encabezado, número y botón simultáneamente.
+- Estados por **texto e icono**: `✅ Al día`, `⚠️ Revisar`, `⛔ Crítico`, `○ Sin dato`. Colores no deben transmitir significado sin texto. No abusar de rojo/amarillo.
+- «EN VIVO» solo para video confirmado; `Imagen · hace 12 min`, `Sin señal`, `Dato desactualizado` para otros casos. No usar un punto verde si no se verificó la señal.
+
+### 7.4 Patrones útiles de lectura
+1. **Línea de tiempo del día** en lugar de nueve eventos independientes; indicador «ahora», tiempo hasta siguiente evento y ventanas libres reales.
+2. **KPI con contexto:** valor grande, comparación relevante, horizonte, fuente y hora de actualización. La variación precisa más importante que un gráfico decorativo.
+3. **Alertas agrupadas** por decisión, prioridad y tipo; enlazar la celda concreta. Evitar duplicados entre Home, Inteligencia y notificaciones.
+4. **Más detalles bajo demanda**: título breve, evidencia, origen, incertidumbre y «Ver en fuente»; información personal/clinica en panel privado y solo cuando sea pertinente.
+5. **Tarjeta Arica Live** compacta: hora, temperatura, viento/UV, estado de alertas y fotografía verificada con fecha de captura; la galería completa vive en sección Arica.
+6. **Tarjeta Opportunity Engine**: `Oportunidad -> impacto -> tiempo -> riesgo -> acción`, comparador `actual vs propuesta` con consentimiento antes de ejecutar.
+7. **Captura rápida**: entrada única, aceptar voz por dictado del teclado, reconocimiento de duplicados antes de registrar, sin 12 campos obligatorios.
+8. **Modos de densidad:** `Compacto` para revisión en 15 segundos, `Detallado` para auditoría. Preferencia local no sensible.
+
+### 7.5 Estados y degradación segura
+- Cada tarjeta admite `Cargando / Actual / Desactualizado / No disponible / Requiere conexión`; conservar último dato conocido **solo** con fecha claramente visible y sin hacerlo pasar por actual.
+- No rellenar la pantalla de rayas `—` sin causa; mostrar razón y única acción de recuperación.
+- No publicar fuentes clínicas ni credenciales en GitHub Pages; UI privada en Apps Script con acceso propietario.
+- Validación de diseño: pruebas móviles de 320–430 px, iPhone Safari, fuente ampliada 200 %, teclado, alto contraste, carga progresiva y enlaces a rango. Medir si se identifican las 3 decisiones del día en menos de 15 s sin recorrer toda la página.
+
+### 7.6 Orden recomendado antes de implementación
+1. Definir **componentes** (tarjeta KPI, línea de tiempo, alerta, oportunidad, webcam con frescura, lista de tareas) y jerarquía.
+2. Construir una vista conceptual `Hoy` estática con datos sintéticos y probar legibilidad en iPhone.
+3. Elegir el modelo de navegación definitivo, luego aplicar a V9; mantener intacto el HTML de V8.
+4. Validar usuarios y accesibilidad antes de introducir animaciones, gráficos complejos o nuevas paletas.
