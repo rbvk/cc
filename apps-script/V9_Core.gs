@@ -195,8 +195,7 @@ function getV9Dashboard(){
  return {state:'ok',version:RV9_VERSION,generatedAt:now.toISOString(),timezone:RV_TZ,
   base,inbox,leads,availability,finishes:rv9Finish_(inbox,availability),
   opportunities,extra,arica:rv9Arica_(now),projects:rv9Projects_(p),
-  firstAttentions:{state:'not_verified',count:null,
-   note:'Sin marcador validado de primera atención en PSICOPRO; no inferir conversión'},
+  firstAttentions:rv9FirstAttentions_(p,now),
   modules:{capture:true,memory:true,scenario:true,arica:true,opportunity:true,
    sourceReadOnly:true,clinicalWrite:false}};
 }
