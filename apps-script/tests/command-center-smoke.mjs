@@ -91,7 +91,7 @@ assert.ok(result.matrix.nextWeekTrainingDays.some(x=>x.title==='Clase boxeo + Pu
 assert.ok(result.training.drgUrl.endsWith('#gid=1815262331'));
 assert.ok(result.training.dailyLogUrl.endsWith('#gid=24711586'));
 assert.equal(result.training.completedSessions7d,0);
-assert.equal(result.training.omittedSessions7d,1);
+assert.equal(result.training.omittedSessions7d,0); // future (25 Oct) is not in the trailing seven days
 assert.equal(result.finance.categoryReconciled,true);
 assert.equal(result.finance.over,292415);
 assert.equal(result.finance.topOverages[0].over,150675);
