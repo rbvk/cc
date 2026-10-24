@@ -155,10 +155,10 @@ function render(d){
  const tc=d.comparisons?.training||{};
  const hasTrainingPlan=t.state==='ok'&&t.scheduledKinds>0;
  count('training-missing',tc.state==='ok'&&hasTrainingPlan?tc.total:null,
-   tc.total+' entrenamientos por agendar');
+   tc.total+' modalidades por agendar');
  set('training-compare',tc.state==='ok'?
    (!hasTrainingPlan?'Sin sesiones activas programadas para el período actual o próximo; revisa si existe un nuevo mesociclo.':
-     tc.total>0?'Planificados en MTS y no detectados en Matrix':'Sesiones planificadas contrastadas sin faltantes detectados.'):
+     tc.total>0?'Modalidades planificadas en MTS y no detectadas en Matrix':'Modalidades MTS contrastadas sin faltantes detectados.'):
    'Comparación pendiente: verificar acceso a MTS y Matrix');
  list('training-issues',tc.items,x=>dateLabel(x.date)+' · '+({boxing:'Boxeo',gym:'Gimnasio',cardio:'Cardio'}[x.type]||'Entrenamiento'));
  const cc=d.comparisons?.clinical||{};
