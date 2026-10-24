@@ -17,6 +17,7 @@ let tasks = [];
 let accessToken = null;
 let email = "";
 let events = [];
+let calendarAvailable = null;
 let sheetStats = {};
 let oauthClient = null;
 let lastUpdated = null;
@@ -137,9 +138,9 @@ function renderPriority() {
   const now = Date.now();
   const next = events.filter(e => eventStart(e) && eventStart(e).getTime() >= now).sort((a, b) => eventStart(a) - eventStart(b))[0];
   const nextDate = next ? eventStart(next) : null;
-  $("next-event").textContent = nextDate ? formatDate(nextDate, { weekday: "short", hour: "2-digit", minute: "2-digit" }) : (accessToken ? "Sin eventos próximos" : "No verificado");
+  $("next-event").textContent = calendarAvailable === false && accessToken ? "Calendar no disponible" : nextDate ? formatDate(nextDate, { weekday: "short", hour: "2-digit", minute: "2-digit" }) : (accessToken ? "Sin eventos próximos" : "No verificado");
   $("event-detail").textContent = accessToken
-    ? (nextDate ? "Próximo bloque de agenda. Ocultamos los títulos por privacidad." : "No se encontraron próximos eventos o Calendar no está disponible.")
+    ? (calendarAvailable === false ? "No se pudo consultar Calendar. Verifica permisos de Google." : nextDate ? "Próximo bloque de agenda. Ocultamos los títulos por privacidad." : "Sin próximos eventos en la ventana de consulta.")
     : "Autoriza Google para consultar tu agenda sin mostrar nombres de pacientes.";
   const task = tasks.find(t => !t.done);
   let heading = "Abrir tus sistemas";
@@ -285,6 +286,7 @@ function revokeAccess() {
   accessToken = null;
   email = "";
   events = [];
+  calendarAvailable = null;
   sheetStats = {};
   lastUpdated = null;
   if (oldToken && window.google?.accounts?.oauth2?.revoke) {
@@ -302,10 +304,12 @@ async function refreshAll() {
   const now = new Date();
   const until = new Date(now.getTime() + 36 * 60 * 60 * 1000);
   const calendarUrl = "https://www.googleapis.com/calendar/v3/calendars/primary/events?singleEvents=true&orderBy=startTime&maxResults=50&timeMin=" + encodeURIComponent(now.toISOString()) + "&timeMax=" + encodeURIComponent(until.toISOString()) + "&fields=" + encodeURIComponent("items(start,end),timeZone");
+  let expired = false;
   const promises = [googleFetch(calendarUrl).then(result => {
+    calendarAvailable = true;
     events = Array.isArray(result.items) ? result.items : [];
     return true;
-  }).catch(() => { events = []; return false; })];
+  }).catch(e => { calendarAvailable = false; events = []; if (e.message.includes("401")) expired = true; return false; })];
   for (const key of SOURCE_KEYS) {
     const source = config.sources[key];
     const id = idFromUrl(source.url);
@@ -316,10 +320,17 @@ async function refreshAll() {
       const count = rows.filter(row => Array.isArray(row) && row.some(cell => String(cell ?? "").trim() !== "")).length;
       sheetStats[key] = { ok: true, count, range: source.range };
     }).catch(e => {
+      if (e.message.includes("401")) expired = true;
       sheetStats[key] = { error: e.message.includes("403") ? "Sin permiso de lectura" : e.message.includes("400") ? "Revisa pestaña o rango" : "No se pudo leer esta hoja" };
     }));
   }
   await Promise.all(promises);
+  if (expired) {
+    revokeAccess();
+    $("refresh").disabled = false;
+    toast("La autorización de Google venció. Conéctate nuevamente.");
+    return;
+  }
   $("refresh").disabled = false;
   lastUpdated = new Date();
   renderLinks();
