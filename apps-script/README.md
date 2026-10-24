@@ -51,6 +51,8 @@ Los ID de archivos no otorgan acceso por sí mismos; únicamente los permisos ex
 
 El motor, la interfaz privada y el manifiesto están preparados en GitHub; **aún deben copiarse, autorizarse y desplegarse desde una cuenta Google**. Las pruebas en esta conversación han usado lecturas de hojas por conector y ejecución del código con servicios simulados; no sustituyen una prueba dentro de Apps Script.
 
+**Reconciliación bidireccional:** también identifica bloques clínicos de Matrix ausentes en PSICOPRO. La comparación cubre la misma semana y días laborales; cada diferencia se presenta solo con fecha y hora, como **candidato para revisar**, nunca como una reserva confirmada. El sistema no modifica ni copia pacientes entre hojas.
+
 ## Recomendaciones automáticas y confiabilidad
 
 El motor entrega **hasta tres recomendaciones**, priorizadas por gravedad y distribuidas entre dominios para evitar que decenas de avisos clínicos oculten DRG o finanzas. Cada recomendación incluye evidencia, acción, estado «verificado» o «revisar», y un enlace a la fuente original. No se hacen cambios en las hojas automáticamente.
