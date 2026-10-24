@@ -136,6 +136,15 @@ function readCalendar_(now) {
   const remainingToday=calendar.getEventsForDay(now)
     .filter(e=>e.getEndTime()>now)
     .sort((a,b)=>a.getStartTime()-b.getStartTime());
+  const auditEvents=calendar.getEvents(now,plusDays_(now,8))
+    .filter(event=>!event.isAllDayEvent()&&event.getEndTime()>now)
+    .sort((a,b)=>a.getStartTime()-b.getStartTime()).slice(0,100)
+    .map(event=>({
+      title:String(event.getTitle()||'Evento sin título').trim().slice(0,110),
+      date:iso_(event.getStartTime()),
+      time:hour_(Utilities.formatDate(event.getStartTime(),RV_TZ,'HH:mm')),
+      start:event.getStartTime().toISOString()
+    })).filter(event=>event.time!==null);
   const nextToday=remainingToday.slice(0,8).map(event=>({
     title:String(event.getTitle()||'Sin título').trim().slice(0,120),
     start:event.getStartTime().toISOString(),
@@ -146,7 +155,7 @@ function readCalendar_(now) {
   return {state:'ok',upcoming48h:upcoming.length,
     next:first?{start:first.getStartTime().toISOString(),minutesUntil:Math.round((first.getStartTime()-now)/60000)}:null,
     todayDate:iso_(now),todayRemaining:remainingToday.length,
-    todayEvents:nextToday,
+    todayEvents:nextToday,auditEvents,
     message:upcoming.length+' eventos próximos 48 h · '+remainingToday.length+' restantes hoy'};
 }
 /**
@@ -201,7 +210,8 @@ function readMatrix_(id,now) {
           // Raw text is kept inside the owner-only server response only for
           // genuinely unmatched Matrix clinical appointments.
           privateClinicalLabel:clinical?cell.slice(0,150):null,
-          patientTokens:clinical?patientTokens_(cell):[]};
+          patientTokens:clinical?patientTokens_(cell):[],
+          calendarCandidate:!free&&/(?:reuni[oó]n|compromiso|cita m[eé]dica|consulta m[eé]dica|agenda calendar|evento calendar|cl[ií]nica confirmada|paciente|psicopro)/i.test(cell)};
         if(thisWeek){
           if(boxing)weekHours.boxing++;
           if(gym)weekHours.gym++;
@@ -635,6 +645,65 @@ function analyzeSleep_(matrix,training,now){
   };
 }
 
+/**
+ * Calendar versus Matrix, scoped to timed upcoming events and explicit
+ * external-commitment entries in Matrix. No automatic changes to either source.
+ * Calendar titles are owner-only data; they are not written to logs.
+ */
+function calendarDayLink_(date) {
+  const [year,month,day]=String(date).split('-').map(Number);
+  return 'https://calendar.google.com/calendar/u/0/r/day/'+year+'/'+month+'/'+day;
+}
+function reconcileCalendar_(events,matrix,now) {
+  if(!matrix)return {state:'unavailable',calendarMissingMatrix:null,
+    matrixMissingCalendar:null,potentialConflicts:null,items:[],reverseItems:[],conflictItems:[]};
+  const available=new Set(matrix.available);
+  const missing=[],reverse=[],conflicts=[];
+  const seenCalendars=new Set();
+  for(const event of events||[]) {
+    const week=weekKey_(startMonday_(parseIso_(event.date)));
+    if(!available.has(week))continue; // A missing Matrix tab is a source issue.
+    const slot=(matrix.slots[event.date]||{})[Math.floor(event.time/60)*60];
+    const item={date:event.date,hour:String(Math.floor(event.time/60)).padStart(2,'0')+':'+
+      String(event.time%60).padStart(2,'0'),
+      title:event.title,calendarUrl:calendarDayLink_(event.date),
+      matrixUrl:matrixLinkForSlot_(matrix,event.date,Math.floor(event.time/60)*60)};
+    if(!slot?.busy)missing.push(item);
+    else {
+      // Only contradict the slot when both sources explicitly identify
+      // incompatible activity domains. Otherwise it is provisionally covered.
+      const t=event.title.toLowerCase();
+      const kind=/boxeo|boxing|sparring/i.test(t)?'boxing':
+        /gym|gimnasio|pesas/i.test(t)?'gym':
+        /paciente|consulta psic|psicoterapia|sesion psic/i.test(t)?'clinical':null;
+      if(kind&&!slot[kind])conflicts.push(item);
+    }
+    seenCalendars.add(event.date+'|'+Math.floor(event.time/60)*60);
+  }
+  const end=iso_(plusDays_(now,7)),today=iso_(now);
+  for(const date of Object.keys(matrix.slots)) {
+    if(date<today||date>end)continue;
+    if(!available.has(weekKey_(startMonday_(parseIso_(date)))))continue;
+    for(const [minute,slot] of Object.entries(matrix.slots[date])){
+      if(!slot.calendarCandidate)continue;
+      const actual=Number(minute),key=date+'|'+actual;
+      if(seenCalendars.has(key))continue;
+      const hasTimedCalendar=(events||[]).some(event=>event.date===date&&
+        Math.floor(event.time/60)*60===actual);
+      if(hasTimedCalendar)continue;
+      reverse.push({date,hour:String(Math.floor(actual/60)).padStart(2,'0')+':'+
+        String(actual%60).padStart(2,'0'),
+        activity:slot.clinical?'Atención clínica':'Compromiso en Matrix',
+        matrixUrl:slot.cellUrl||null,calendarUrl:calendarDayLink_(date)});
+    }
+  }
+  return {state:'ok',calendarMissingMatrix:missing.length,
+    matrixMissingCalendar:reverse.length,potentialConflicts:conflicts.length,
+    items:missing.slice(0,8),reverseItems:reverse.slice(0,8),
+    conflictItems:conflicts.slice(0,8),
+    caveat:'Comparación heurística por día, hora y tipo; revisar antes de editar'};
+}
+
 function parseIso_(iso){
   const parts=String(iso).split('-').map(Number);
   return new Date(parts[0],parts[1]-1,parts[2],12);
@@ -722,7 +791,8 @@ function getDashboard(){
     clinical:{state:'unconfigured',message:'No configurada'},
     finance:{state:'unconfigured',message:'No configurada'},
     sleepTrend:{state:'unavailable',averageHours:null,nightsBelowTarget:null},
-    comparisons:{training:{state:'unavailable',total:null,items:[]},
+    comparisons:{calendar:{state:'unavailable',calendarMissingMatrix:null,matrixMissingCalendar:null,potentialConflicts:null,items:[],reverseItems:[],conflictItems:[]},
+      training:{state:'unavailable',total:null,items:[]},
       clinical:{state:'unavailable',missing:null,conflicts:null,possibleDifferent:null,matrixOnly:null,items:[],collisionItems:[],identityItems:[],matrixOnlyItems:[]}},
     nextAction:{title:'Verificar fuentes',reason:'No hay resultados confiables todavía',level:'normal'},
     alerts:[]
@@ -745,6 +815,10 @@ function getDashboard(){
     out.finance.url=out.finance.url||'https://docs.google.com/spreadsheets/d/'+financeId+'/edit';}
     catch(e){out.finance=registerError_();}}
   if(matrix)out.sleepTrend=analyzeSleep_(matrix,out.training,now);
+  if(out.calendar.state==='ok'&&matrix){
+    out.comparisons.calendar=reconcileCalendar_(out.calendar.auditEvents,matrix,now);
+  }
+  if(out.calendar.auditEvents)delete out.calendar.auditEvents;
   if(training&&matrix){
     const reverse=upcomingMatrixWithoutPlan_(matrix,training,now);
     out.comparisons.training=training.plans.length?
