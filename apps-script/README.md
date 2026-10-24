@@ -50,3 +50,28 @@ Los ID de archivos no otorgan acceso por sí mismos; únicamente los permisos ex
 ## Estado de despliegue
 
 El motor, la interfaz privada y el manifiesto están preparados en GitHub; **aún deben copiarse, autorizarse y desplegarse desde una cuenta Google**. Las pruebas en esta conversación han usado lecturas de hojas por conector y ejecución del código con servicios simulados; no sustituyen una prueba dentro de Apps Script.
+
+## Recomendaciones automáticas y confiabilidad
+
+El motor entrega **hasta tres recomendaciones**, priorizadas por gravedad y distribuidas entre dominios para evitar que decenas de avisos clínicos oculten DRG o finanzas. Cada recomendación incluye evidencia, acción, estado «verificado» o «revisar», y un enlace a la fuente original. No se hacen cambios en las hojas automáticamente.
+
+- **DRG ABORT / Hard Stop hoy:** prioridad máxima. No usar una evaluación histórica para bloquear la actividad actual.
+- **PSICOPRO vs Matrix:** compara día/hora y, internamente, coincidencia aproximada del nombre. Los nombres y tokens nunca se envían al navegador; las diferencias requieren comprobación manual.
+- **MTS vs Matrix:** solo evalúa modalidades con sesión activa planificada. Si no hay planificación, devuelve **sin plan**, no «cero faltantes». Informa la última fecha programada disponible.
+- **Finanzas:** concilia el total con sus categorías. Muestra las tres mayores desviaciones por categoría y el importe gastado en partidas sin presupuesto asignado. Un presupuesto de otro mes se marca **desactualizado**.
+- **PSICOPRO:** controla que la meta de `Objetivos/Paciente` sea exactamente **15**, distinguiendo **pacientes clasificados semanalmente** de bloques horarios de agenda. Si la fuente usa otro objetivo, el KPI queda pendiente de verificación.
+- **Estado de las fuentes:** `4/4` indica que el cálculo de las cuatro fuentes produjo un estado utilizable, **no** que todos los registros sean recientes o correctos.
+
+El dashboard refresca al abrirse y **cada cinco minutos mientras está abierto**. No envía correos, avisos push ni tareas en segundo plano cuando está cerrado. Una alerta externa recurrente requeriría un trigger de Apps Script y permisos adicionales, y conviene evitar duplicarla con otras revisiones nocturnas existentes.
+
+### Cambios y despliegue
+
+**Los commits de GitHub NO actualizan automáticamente la Web App privada de Apps Script.** Después de cambios en `apps-script/Code.gs` o `apps-script/Index.html`, copia las versiones nuevas en tu proyecto y utiliza **Deploy > Manage deployments > Edit > New version > Deploy**. La URL `/exec` puede mantenerse sin cambios. Antes de dar por válido el nuevo motor, prueba con otra cuenta que `Only myself` siga bloqueando el acceso.
+
+La validación automatizada del código fuente está en `apps-script/tests/command-center-smoke.mjs` y se ejecuta al modificar los archivos de Apps Script, mediante `.github/workflows/validate-command-center.yml`. También puedes ejecutarla con:
+
+```bash
+node apps-script/tests/command-center-smoke.mjs
+```
+
+Usa exclusivamente datos de prueba inventados, no información personal ni de pacientes.
