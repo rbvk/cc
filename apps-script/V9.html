@@ -195,8 +195,16 @@
     <label for="scenario-count" class="label">Magnitud del escenario (1–5)</label>
     <select id="scenario-count" aria-label="Cantidad simulada"><option>1</option><option selected>2</option><option>3</option><option>4</option><option>5</option></select>
     <div class="buttons" style="margin:14px 0"><button class="button" id="scenario-calculate" type="button">Calcular alternativa</button></div>
+    <label for="decision-confidence" class="label">Tu nivel de confianza en la predicción</label>
+    <select id="decision-confidence"><option value="25">25% · Baja</option><option value="50" selected>50% · Media</option><option value="70">70% · Moderada</option><option value="85">85% · Alta</option></select>
+    <div class="buttons" style="margin:12px 0"><button class="button secondary" id="scenario-save" type="button">🎯 Guardar hipótesis para comprobarla después</button></div>
     <div id="scenario-results" class="smalltext"></div>
     <p class="minor">Simular no modifica PSICOPRO, Finanzas, Calendar ni Matrix.</p>
+   </article>
+   <article class="card s12">
+     <h3>🎯 Registro de decisiones y resultados</h3>
+     <p id="decisions-summary" class="minor">Sin hipótesis registradas.</p>
+     <ul id="decisions-list" class="softlist"></ul>
    </article>
   </div>
  </section>
@@ -466,8 +474,48 @@ function renderOpportunities(v){
   const actions=make('div','buttons');
   const done=make('button','button ghost small','✓ Terminado'),drop=make('button','button ghost small','Descartar');
   done.onclick=()=>setTaskStatus(task.id,'done');drop.onclick=()=>setTaskStatus(task.id,'drop');
-  actions.append(done,drop);li.append(title,sub,actions);ideas.append(li);
+  const schedule=make('button','button ghost small','📅 Preparar Calendar');
+  schedule.onclick=()=>draftCalendar(task);
+  actions.append(done,drop,schedule);li.append(title,sub,actions);ideas.append(li);
  });
+ renderDecisions(v.decisions);
+}
+function draftCalendar(task){
+ const w=STATE?.availability?.windows?.find(x=>x.minutes>=task.minutes);
+ if(!w){text('load-line','No hay hueco comprobable para preparar este bloque.');return;}
+ const start=Number(w.start.slice(0,2))*60+Number(w.start.slice(3,5));
+ const end=start+Math.min(w.minutes,Math.ceil(task.minutes/15)*15);
+ const fmt=n=>String(Math.floor(n/60)).padStart(2,'0')+String(n%60).padStart(2,'0')+'00';
+ const date=w.date.replace(/-/g,'');
+ const url='https://calendar.google.com/calendar/u/0/r/eventedit?text='+encodeURIComponent('Bloque de trabajo')+
+  '&dates='+date+'T'+fmt(start)+'/'+date+'T'+fmt(end)+'&ctz=America%2FSantiago';
+ window.open(url,'_blank','noopener,noreferrer');
+ text('load-line','Calendar abrió un borrador: revísalo y guárdalo manualmente. No se creó ningún evento desde el CC.');
+}
+function renderDecisions(data){
+ const d=data||{open:0,completed:0,items:[]},root=$('decisions-list');clear(root);
+ text('decisions-summary','Hipótesis abiertas: '+(d.open||0)+' · Evaluadas: '+(d.completed||0)+
+  (d.calibrationAvailable?' · confianza media '+d.averagePredictedConfidence+'% vs éxito '+d.successRate+'%':'. '+(d.note||'')));
+ if(!d.items?.length)root.append(make('li','minor','Sin experimentos todavía. Simula una oportunidad y registra la hipótesis.'));
+ (d.items||[]).slice(0,12).forEach(item=>{
+  const li=make('li');li.append(make('div','strong smalltext',item.type+' · confianza '+item.confidence+'% · '+item.status),
+   make('div','minor',item.prediction),make('div','minor','Evaluación: '+item.criterion));
+  if(item.status==='open'){
+   const actions=make('div','buttons');
+   for(const [state,label] of [['success','✅ Lograda'],['failure','❌ Fallida'],['inconclusive','○ Inconclusa']]){
+    const b=make('button','button ghost small',label);
+    b.onclick=()=>resolveDecision(item.id,state);actions.append(b);
+   }
+   li.append(actions);
+  }
+  root.append(li);
+ });
+}
+function resolveDecision(id,result){
+ google.script.run.withSuccessHandler(x=>{
+  if(x.state==='ok'&&STATE){STATE.decisions=x.decisions;renderDecisions(x.decisions)}
+  else text('load-line','No se pudo registrar el resultado.');
+ }).withFailureHandler(()=>text('load-line','Error al registrar resultado')).resolveV9Decision(id,result);
 }
 function openScenario(o){
  CURRENT_SCENARIO=o;const panel=$('scenario-panel');panel.hidden=false;
@@ -475,6 +523,18 @@ function openScenario(o){
  panel.scrollIntoView({behavior:'smooth',block:'start'});
 }
 $('scenario-close').onclick=()=>{$('scenario-panel').hidden=true;CURRENT_SCENARIO=null};
+$('scenario-save').onclick=()=>{
+ if(!CURRENT_SCENARIO)return;
+ const button=$('scenario-save');button.disabled=true;
+ google.script.run.withSuccessHandler(x=>{
+  button.disabled=false;
+  if(x.state==='ok'&&STATE){
+   STATE.decisions=x.decisions;renderDecisions(x.decisions);
+   text('scenario-results','✅ Hipótesis registrada. Compara el resultado cuando corresponda.');
+  }else text('scenario-results',x.message||'No se pudo registrar la hipótesis.');
+ }).withFailureHandler(()=>{button.disabled=false;text('scenario-results','Error al registrar hipótesis.');})
+ .recordV9Decision(CURRENT_SCENARIO.scenario,Number($('scenario-count').value),Number($('decision-confidence').value));
+};
 $('scenario-calculate').onclick=()=>{
  if(!CURRENT_SCENARIO)return;
  const button=$('scenario-calculate');button.disabled=true;text('scenario-results','Calculando…');
