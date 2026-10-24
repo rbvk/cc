@@ -1,5 +1,24 @@
 {
-  "version": "2026.10.24.8",
-  "description": "Eight operational audits: precise links, Calendar reconciliation, history, source health, training adherence, real sleep trend, finance forecast, clinical capacity",
-  "deployment": "Copy Code.gs and Index.html into owner-only Apps Script, then deploy new version"
+  "version": "2026.10.24.9",
+  "description": "RV CC V9 · Owner-only memory, anonymous WhatsApp capture, daily intelligence, opportunities, scenario simulation, Arica model forecasts, 29 licensed image references",
+  "deployment": "Upload Code.gs, Index.html, V9_Core.gs, V9_Intelligence.gs, V9.html and appsscript.json to the existing owner-only Apps Script project; choose a new deployment version.",
+  "serverFiles": [
+    "Code.gs",
+    "V9_Core.gs",
+    "V9_Intelligence.gs",
+    "Index.html",
+    "V9.html",
+    "appsscript.json"
+  ],
+  "rollback": "?view=v8",
+  "status": "code_committed_not_private_apps_script_deployed",
+  "requiresNewAuthorization": [
+    "https://www.googleapis.com/auth/script.external_request"
+  ],
+  "knownLimitations": [
+    "First attendance requires explicit PSICOPRO marker",
+    "Public webcams not verified as streaming",
+    "Open-Meteo free endpoint non-commercial terms",
+    "29 images use licensed remote host URLs; no local image binaries deployed"
+  ]
 }
