@@ -348,6 +348,24 @@ function linkedIssues_(id,items,labeler){
      a.rel='noopener noreferrer';a.textContent=label+' ↗';links.appendChild(a);
    }
    if(links.childNodes.length)li.appendChild(links);
+   if(item.hasPrivateDetail&&typeof google!=='undefined'&&google.script?.run){
+     const reveal=document.createElement('button');
+     reveal.type='button';reveal.className='refresh';reveal.style.marginTop='8px';
+     reveal.textContent='🔒 Mostrar descripción de Matrix';
+     reveal.addEventListener('click',()=>{
+       reveal.disabled=true;reveal.textContent='Consultando descripción privada…';
+       google.script.run.withSuccessHandler(result=>{
+         reveal.disabled=false;
+         if(result?.state==='ok'){
+           summary.textContent=labeler(item)+' · '+result.description;
+           reveal.hidden=true;
+         }else reveal.textContent='No disponible · reintentar';
+       }).withFailureHandler(()=>{
+         reveal.disabled=false;reveal.textContent='No disponible · reintentar';
+       }).getMatrixOnlyClinicalDetail(item.date,item.hour);
+     });
+     li.appendChild(reveal);
+   }
    parent.appendChild(li);
  }
 }
@@ -566,7 +584,7 @@ function render(d){
  linkedIssues_('clinical-issues',[...(cc.items||[]).map(x=>({...x,reason:'No está en Matrix'})),
    ...(cc.collisionItems||[]).map(x=>({...x,reason:'Matrix tiene otra actividad'})),
    ...(cc.identityItems||[]).map(x=>({...x,reason:'Posible paciente distinto · verificar'})),
-   ...(cc.matrixOnlyItems||[]).map(x=>({...x,reason:'Solo aparece en Matrix: '+(x.matrixEntry||'Actividad clínica sin descripción')}))],
+   ...(cc.matrixOnlyItems||[]).map(x=>({...x,reason:'Solo aparece en Matrix · ver descripción privada'}))],
    x=>dateLabel(x.date)+' '+x.hour+' · '+x.reason);
  set('patient-count',typeof c.weekly==='number'?c.weekly+' / 15':'— / 15');
  set('patient-gap',c.state==='ok'?
