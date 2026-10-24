@@ -94,6 +94,7 @@
       <p id="patient-gap" class="description">Meta semanal: 15 cupos ocupados</p>
       <div class="progress" role="progressbar" aria-label="Progreso cupos pacientes" aria-valuemin="0" aria-valuemax="15" aria-valuenow="0"><span id="patient-progress"></span></div>
       <p id="patient-source" class="minor">Fuente: Objetivos/Paciente</p>
+      <a class="source-link" id="clinical-goals-link" href="https://sheets.google.com" target="_blank" rel="noopener noreferrer">Abrir objetivos de pacientes ↗</a>
     </article>
     <article class="card">
       <p class="eyebrow">💰 Presupuesto mensual</p>
@@ -171,7 +172,8 @@ function renderRecommendations(d){
  parent.replaceChildren();
  const allowed={training:d.training?.dailyLogUrl,drg:d.training?.drgUrl,
    matrix:d.matrix?.url,matrixNext:d.matrix?.nextWeekUrl,
-   clinical:d.clinical?.url,finance:d.finance?.url,calendar:'https://calendar.google.com/'};
+   clinical:d.clinical?.url,clinicalGoals:d.clinical?.goalsUrl,
+   finance:d.finance?.url,calendar:'https://calendar.google.com/'};
  const items=Array.isArray(d.recommendations)?d.recommendations.slice(0,3):[];
  for(let i=0;i<items.length;i++){
    const r=items[i];
@@ -286,6 +288,7 @@ function render(d){
  sourceLink('drg-link',{url:t.drgUrl});
  sourceLink('training-log-link',{url:t.dailyLogUrl});
  sourceLink('clinical-link',c);
+ sourceLink('clinical-goals-link',{url:c.goalsUrl});
  sourceLink('finance-link',f);
  const alertText=Array.isArray(d.alerts)?d.alerts:[];
  $('alerts').hidden=alertText.length===0;
