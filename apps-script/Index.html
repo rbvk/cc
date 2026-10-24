@@ -216,7 +216,9 @@ function render(d){
  $('drg-output').className='metric'+(drg?.hardStop||/ABORT/i.test(drg?.output||'')?' error':drg?'':' warn');
  set('drg-detail',drg?('Hoy · puntuación '+(drg.score===null?'pendiente':drg.score)+(drg.hardStop?' · HARD STOP':''))
    :('Sin evaluación válida de hoy.'+(t.drgLatest?' Último DRG: '+t.drgLatest.date+' (histórico).':'')));
- set('training-completed',t.state==='ok'?'Filas MTS realizadas, últimos 7 días: '+t.completedRows7d:'Registro no disponible');
+ set('training-completed',t.state==='ok'?
+   ('Sesiones MTS últimos 7 días: '+t.completedSessions7d+' realizadas de '+t.sessionHeaders7d+
+    ' programadas · '+t.omittedSessions7d+' omitidas.'):'Registro no disponible');
  const tc=d.comparisons?.training||{};
  if(tc.state==='no_plan'){
    set('training-missing','SIN PLAN MTS');
