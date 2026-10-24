@@ -1,61 +1,52 @@
-# RV Command Center — Panel privado con Google Apps Script
+# 🧠 RV Command Center — análisis privado, sin OAuth recurrente
 
-## Objetivo
+**GitHub Pages (`cc.rodolfovalle.com`) publica únicamente el portal.** Los datos reales se procesan dentro de una Web App de Google Apps Script, desplegada por el propietario como **Execute as: Me / Who has access: Only myself**.
 
-**Leer y analizar Google Sheets privados**, sin OAuth personalizado en cada visita, sin Cloud Run y sin publicar los datos en GitHub Pages.
+La sesión de Google permite acceder sin crear un OAuth Client ID ni autorizar cada apertura; la primera autorización del script sigue siendo necesaria. El navegador pasa a la URL segura `script.google.com/.../exec`. GitHub Pages no puede ofrecer el mismo análisis privado solo con una contraseña local.
 
-Este código crea un panel real con acceso controlado **por la sesión Google del propietario**, usando un Google Apps Script Web App desplegado como:
-- **Execute as:** Me (USER_DEPLOYING)
-- **Who has access:** Only myself (MYSELF)
+## Controles implementados
 
-**Nunca** desplegar como Anyone / Anyone with Google Account. Un despliegue público que ejecuta como el propietario puede exponer información privada.
+| Control | Fuente 1 | Fuente 2 | Acción |
+|---|---|---|---|
+| 🥊 Entrenamientos planificados pero no agendados | MTS Execution Log, `Daily log` | MTS System Matrix, pestañas semanales | Comparar **fecha + dominio** (boxeo, gym, cardio). Excluir sesiones explícitamente canceladas. No declarar todo conforme si no hay plan MTS futuro |
+| 🏥 Citas PSICOPRO no reflejadas en Matrix | PSICOPRO, agenda semanal | MTS System Matrix, misma semana | Comparar **fecha + hora**; diferenciar ausencias, posibles solapamientos y posibles discrepancias de identidad. Solo fechas/horas y recuentos en pantalla, no nombres |
+| 🥊 DRG diario | MTS Execution Log, pestaña `drg` | Fecha local America/Santiago | Ver evaluación del día (puntuación, output, hard stop). **Nunca aplicar un ABORT histórico como señal de hoy** |
+| 💰 Desviación presupuestaria | Hoja financiera, pestaña del mes | Total presupuesto (columna B) y gasto real (columna C) | Diferencia real - presupuesto, exceso en CLP y %. Marcar cifras de un mes anterior como desactualizadas |
+| 🎯 Cupos semanales | PSICOPRO, `Objetivos/Paciente` | Meta de **15** | Comparar clasificados semanales contra la meta. Distinguir faltantes, objetivo y superávit |
 
-El sitio `cc.rodolfovalle.com` en GitHub Pages continúa siendo una página pública. **No puede mostrar información privada de Apps Script sin autenticarse ante Google**. La opción simple es usarlo como lanzador hacia la URL segura `script.google.com/.../exec`. No se puede mantener el dominio en la barra de direcciones y prescindir simultáneamente de un backend y un proveedor de autenticación.
+Calendario adicional: muestra número de eventos próximos 48 h y horario de próximo compromiso sin revelar títulos.
 
-## Instalación inicial (una vez)
+**Limitaciones explícitas:** las celdas libres repetidas se identifican por su frecuencia. Las diferencias de paciente se determinan por coincidencias de tokens normalizados y pueden ser falsos positivos. Las alertas son **candidatos a revisar**, no modificaciones de agenda. Si falta un mesociclo o una pestaña, el estado debe ser "sin datos comparables", no "0 errores".
 
-1. Entrar a **https://script.google.com/home/projects/create** con la cuenta propietaria de las cuatro hojas.
-2. Sustituir el contenido de `Code.gs` por `apps-script/Code.gs` de este repositorio.
-3. Crear un archivo HTML llamado **Index** y pegar `apps-script/Index.html`.
-4. En **Project Settings**, habilitar **Show "appsscript.json" manifest file in editor**, abrir `appsscript.json` y pegar su versión de `apps-script/appsscript.json`. Así se habilita el servicio avanzado **Google Sheets API**, con permiso de **solo lectura**. Si se usa el proyecto Cloud predeterminado de Apps Script, la API se habilita al añadir el servicio.
-5. En **Project Settings > Script Properties**, añadir:
-   - `MATRIX_SHEET_ID`: ID de Google Sheet MTS System Matrix.
-   - `TRAINING_SHEET_ID`: ID de Google Sheet MTS M9 Execution Log.
-   - `CLINICAL_SHEET_ID`: ID de Google Sheet RODOLFO.PSICOPRO.
-   - `FINANCE_SHEET_ID`: ID de la hoja financiera operativa elegida; no asumir que un presupuesto antiguo es el actual.
+## Configuración inicial única
+
+1. Abre [script.google.com/home/projects/create](https://script.google.com/home/projects/create) con tu cuenta propietaria de Calendar y de las cuatro hojas.
+2. En `Code.gs`, pega el contenido completo de [Code.gs](Code.gs).
+3. Crea un archivo HTML llamado exactamente `Index` y pega [Index.html](Index.html).
+4. En Project Settings, habilita el manifiesto. Pega el archivo [appsscript.json](appsscript.json). El manifiesto habilita el servicio avanzado Sheets (v4) y permisos estrictamente **solo lectura** a Calendar y Sheets.
+5. En Project Settings → Script Properties, agrega estas variables:
+   - `MATRIX_SHEET_ID`: tu hoja MTS System Matrix
+   - `TRAINING_SHEET_ID`: tu hoja MTS Execution Log vigente
+   - `CLINICAL_SHEET_ID`: tu hoja compartida RODOLFO.PSICOPRO
+   - `FINANCE_SHEET_ID`: tu hoja financiera operativa y **actual**, con pestaña de presupuesto
+   - `FINANCE_BUDGET_TAB` (opcional): pestaña de presupuesto, por defecto `Pre Oct`. Cambiar si el mes operativo se traslada a otra pestaña.
    
-   El ID se encuentra en la URL de cada hoja, entre `/d/` y `/edit`. **No agregar estos IDs al repositorio público**, aunque por sí solos no conceden permisos.
-6. Guardar. Seleccionar función **getDashboard** y ejecutar una vez para conceder permisos solicitados. Revisar que la autorización incluya únicamente la lectura de Sheets y Calendar.
-7. **Deploy > New deployment > Web app**. Ejecutar como **Me**; acceso **Only myself**. Copiar URL `/exec` de la web app.
-8. Abrir la URL, verificar datos agregados y guardar el enlace en favoritos. Google solicitará inicio de sesión solo cuando tu sesión lo requiera; la autorización de los servicios no se repite cada vez que abres el dashboard, salvo cambios de permisos/revocación.
-9. Para que `cc.rodolfovalle.com` sea el punto de entrada, configurar un botón **Entrar al panel privado** que navegue a esta URL. No usar un `iframe` público ni pegar resultados de datos privados en GitHub.
+   Cada ID es el tramo de la URL entre `/d/` y `/edit`. No pongas IDs ni credenciales en el frontend público.
+6. Guarda el script, ejecuta `getDashboard` en el editor una vez y acepta los permisos de lectura solicitados.
+7. Deploy → New deployment → Web app → **Execute as: Me** y **Who has access: Only myself**. Copia la URL completa acabada en `/exec`.
+8. En `cc.rodolfovalle.com`, pulsa **Configurar acceso** y guarda esa URL. Después usa **Entrar al panel privado**.
 
-## Qué analiza (MVP)
+Los ID de archivos no otorgan acceso por sí mismos; únicamente los permisos existentes de Google permiten la lectura.
 
-- **Google Calendar:** eventos durante las próximas 48 horas, primera hora de evento; no se envían títulos ni descripciones al cliente.
-- **MTS System Matrix:** localiza la pestaña de la semana en formato `dd/MM`, selecciona la columna del día (B–H), agrupa bloques horarios por boxeo, gym, clínica, academia y bomberos. Reporta **bloques, no sesiones**; la coincidencia de palabras es aproximada.
-- **MTS Execution Log:** lee columnas **A:F** de `Daily log` y **A:L** de `drg`. Cuenta registros terminados en últimos 7 días, muestra última salida DRG sin datos sensibles. **ABORT/CUT solo cambia la prioridad si el DRG es de hoy**, nunca con una salida histórica.
-- **RODOLFO.PSICOPRO:** cuenta celdas anotadas en B3:F15 de la pestaña semanal (próxima semana en fin de semana). No muestra nombres ni datos de pacientes. **No equivale a número validado de sesiones**, pues el formato real puede contener notas y estados.
-- **Finanzas:** verifica que la hoja configurada sea legible. El ingreso neto, gasto y margen quedan **pendientes de mapeo de celdas**; no se inventan cálculos.
+## Reglas de seguridad
 
-Una falla de permiso en una fuente no impide abrir el resto del dashboard. No se registran en GitHub ni se publican los datos consultados.
+- **Nunca** usar `Anyone` o `Anyone with Google account` cuando la Web App se ejecuta como el propietario.
+- No mostrar nombres, RUT, notas, diagnósticos, títulos de eventos ni filas completas.
+- No registrar contenidos privados en logs, commits, Analytics o un sitio estático.
+- No guardar access tokens en `localStorage` ni en el repositorio.
+- Probar en incógnito y desde otra cuenta: debe impedirse el acceso a la Web App.
+- Comparar resultados agregados con los datos originales antes de tomar decisiones operativas importantes.
 
-## Seguridad
+## Estado de despliegue
 
-- La seguridad depende de la opción **Only myself** impuesta por Google, no de un formulario de contraseña en JavaScript.
-- La autorización de Apps Script se concede una vez y puede requerirse de nuevo por cambios de alcance, revocación o cambios de sesión.
-- Los datos se consultan en el servidor de Google y solo se envían indicadores agregados al navegador del propietario.
-- No exponer nunca contenido de pacientes, nombres, RUT, notas, fichas, diagnósticos ni sesiones individuales en el frontend o registros de ejecución.
-- El código `backend/` de Cloud Run y el login OAuth del frontend previo no forman parte de esta implementación segura. Deben retirarse del despliegue público solo una vez que el acceso privado esté funcionando.
-- Script Properties no es una bóveda de credenciales; aquí contiene IDs, no contraseñas ni tokens.
-
-## Validación necesaria
-
-1. Abrir web app con la cuenta propietaria: debe permitir lectura.
-2. Abrir en navegador incógnito y con otra cuenta: debe **denegar acceso** antes de ejecutar código.
-3. Confirmar que un evento clínico no revela nombres en HTML, DevTools ni respuesta RPC.
-4. Verificar fecha / zona horaria y DRG actual vs histórico.
-5. Comparar manualmente los recuentos de MTS y PSICOPRO contra sus pestañas fuente.
-6. Si cambia la estructura de las hojas, actualizar los rangos antes de confiar en los KPIs.
-
-**Estado actual:** código preparado en GitHub, pero **aún no desplegado ni autorizado en una cuenta Google Apps Script**. No afirmar que la web app funciona hasta superar la verificación.
+El motor, la interfaz privada y el manifiesto están preparados en GitHub; **aún deben copiarse, autorizarse y desplegarse desde una cuenta Google**. Las pruebas en esta conversación han usado lecturas de hojas por conector y ejecución del código con servicios simulados; no sustituyen una prueba dentro de Apps Script.
