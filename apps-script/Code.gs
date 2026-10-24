@@ -10,9 +10,12 @@ const RV_TARGET_WEEKLY = 15;
 const RV_MONTHS = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
 const RV_EN_MONTHS = ['january','february','march','april','may','june','july','august','september','october','november','december'];
 
-function doGet() {
-  return HtmlService.createHtmlOutputFromFile('Index')
-    .setTitle('RV Command Center — privado')
+function doGet(e) {
+  // V9 is the private default. ?view=v8 allows owner-only rollback while
+  // preserving the last known-good dashboard without changing its code.
+  const legacy=e&&e.parameter&&e.parameter.view==='v8';
+  return HtmlService.createHtmlOutputFromFile(legacy?'Index':'V9')
+    .setTitle(legacy?'RV Command Center — V8 privado':'RV Command Center — V9 privado')
     .addMetaTag('viewport','width=device-width,initial-scale=1');
 }
 function iso_(d) { return Utilities.formatDate(d,RV_TZ,'yyyy-MM-dd'); }
