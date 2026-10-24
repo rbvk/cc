@@ -83,4 +83,15 @@ assert.equal(call('captureV9Idea','Terminar manuscrito de tesis en 45 min').stat
 assert.equal(call('setV9TaskStatus',idea.item.id,'done').inbox.open,0);
 const sim=call('simulateV9Scenario','clinical',2);
 assert.equal(sim.applied,false);assert.equal(sim.results.find(x=>/neto potencial/i.test(x.label)).value,168000);
-console.log('PASS: V9 private scopes, 29 photo references, model Arica, capture, leads, undo, opportunities and scenarios');
+const recorded=call('recordV9Decision','clinical',2,70);
+assert.equal(recorded.state,'ok');
+assert.equal(recorded.decisions.open,1);
+assert.equal(recorded.item.confidence,70);
+const verified=call('resolveV9Decision',recorded.item.id,'success');
+assert.equal(verified.state,'ok');
+assert.equal(verified.decisions.open,0);
+assert.equal(verified.decisions.completed,1);
+assert.equal(call('resolveV9Decision',recorded.item.id,'success').state,'already_resolved');
+assert.equal(call('recordV9Decision','clinical',2,101).state,'invalid');
+
+console.log('PASS: V9 private scopes, 29 photo references, model Arica, capture, leads, undo, opportunities, simulations and calibrated decisions');
