@@ -311,9 +311,45 @@ function list(id,items,makeLabel){
    const li=document.createElement('li');li.textContent=makeLabel(item);ul.appendChild(li);
  }
 }
+function safeSourceUrl_(url){
+ if(typeof url!=='string')return false;
+ try{
+   const u=new URL(url);
+   if(u.protocol!=='https:'||u.username||u.password)return false;
+   if(u.hostname==='docs.google.com'&&
+      /^\/spreadsheets\/d\/[A-Za-z0-9_-]+\/edit$/.test(u.pathname)&&!u.search){
+     return !u.hash||/^#gid=\d+(?:&range=[A-Za-z0-9%:]+)?$/.test(u.hash);
+   }
+   if(u.hostname==='calendar.google.com'&&!u.hash&&!u.search)
+     return /^\/calendar\/u\/0\/r\/day\/\d{4}\/\d{1,2}\/\d{1,2}$/.test(u.pathname)||
+       u.pathname==='/';
+   return false;
+ }catch(e){return false}
+}
 function sourceLink(id,data){
  const link=$(id);
- if(data?.url&&/^https:\/\/docs\.google\.com\/spreadsheets\/d\/[A-Za-z0-9_-]+\/edit(?:#gid=\d+)?$/.test(data.url))link.href=data.url;
+ if(data?.url&&safeSourceUrl_(data.url))link.href=data.url;
+}
+function linkedIssues_(id,items,labeler){
+ const parent=$(id);parent.replaceChildren();
+ const collection=Array.isArray(items)?items:[];
+ if(!collection.length){
+   const empty=document.createElement('li');empty.textContent='Sin diferencias verificadas para mostrar.';
+   parent.appendChild(empty);return;
+ }
+ for(const item of collection.slice(0,12)){
+   const li=document.createElement('li'),summary=document.createElement('div');
+   summary.textContent=labeler(item);li.appendChild(summary);
+   const links=document.createElement('div');links.className='links';
+   for(const [href,label] of [[item.clinicalUrl,'Celda PSICOPRO'],
+     [item.matrixUrl,'Celda Matrix'],[item.calendarUrl,'Día en Calendar']]){
+     if(!safeSourceUrl_(href))continue;
+     const a=document.createElement('a');a.href=href;a.target='_blank';
+     a.rel='noopener noreferrer';a.textContent=label+' ↗';links.appendChild(a);
+   }
+   if(links.childNodes.length)li.appendChild(links);
+   parent.appendChild(li);
+ }
 }
 function renderRecommendations(d){
  const parent=$('recommendations');
@@ -334,11 +370,10 @@ function renderRecommendations(d){
    const next=document.createElement('p');next.className='next';next.textContent='Acción: '+r.action;
    li.append(label,heading,evidence,next);
    const url=allowed[r.source];
-   if(typeof url==='string'&&/^https:\/\/(?:docs\.google\.com\/spreadsheets\/d\/[A-Za-z0-9_-]+\/edit(?:#gid=\d+)?|calendar\.google\.com\/)$/.test(url)){
+   if(typeof url==='string'&&safeSourceUrl_(url).test(url)){
      const link=document.createElement('a');link.href=url;link.target='_blank';link.rel='noopener noreferrer';link.textContent='Abrir fuente original ↗';li.appendChild(link);
    }
-   if(r.domain==='clinical' && d.matrix?.nextWeekUrl &&
-     /^https:\/\/docs\.google\.com\/spreadsheets\/d\/[A-Za-z0-9_-]+\/edit(?:#gid=\d+)?$/.test(d.matrix.nextWeekUrl)){
+   if(r.domain==='clinical' && d.matrix?.nextWeekUrl && safeSourceUrl_(d.matrix.nextWeekUrl)){
      const secondary=document.createElement('a');secondary.href=d.matrix.nextWeekUrl;
      secondary.target='_blank';secondary.rel='noopener noreferrer';
      secondary.textContent='Ver Matrix de la misma semana ↗';secondary.style.marginLeft='12px';li.appendChild(secondary);
@@ -377,27 +412,30 @@ function render(d){
      ' jornadas con entrenamiento en semana '+(tc.week||'sin fecha')+
      ', pero MTS Execution Log no contiene sesiones activas equivalentes.'+
      (tc.lastProgrammedDate?' Última programación: '+dateLabel(tc.lastProgrammedDate)+'.':''));
-   list('training-issues',tc.matrixOnlyItems||[],
+   linkedIssues_('training-issues',(tc.matrixOnlyItems||[]).map(x=>({...x,
+     matrixUrl:d.matrix?.nextWeekUrl})),
      x=>dateLabel(x.date)+' · '+x.title+' (sin sesión MTS)');
  }else if(tc.state==='ok'){
    count('training-missing',tc.total,tc.total+' modalidades por agendar');
    set('training-compare',tc.total+' modalidades de MTS sin bloque equivalente en Matrix.'+
      (tc.matrixOnlyDays>0?' Además, '+tc.matrixOnlyDays+' jornadas de Matrix no tienen sesión registrada en MTS.':''));
-   const missing=(tc.items||[]).map(x=>({label:dateLabel(x.date)+' · '+({boxing:'Boxeo',gym:'Gimnasio',cardio:'Cardio'}[x.type]||'Entrenamiento')+' falta en Matrix'}));
-   const unmatched=(tc.matrixOnlyItems||[]).map(x=>({label:dateLabel(x.date)+' · '+x.title+' sin sesión MTS'}));
-   list('training-issues',[...missing,...unmatched].slice(0,8),x=>x.label);
+   const missing=(tc.items||[]).map(x=>({...x,label:dateLabel(x.date)+' · '+
+     ({boxing:'Boxeo',gym:'Gimnasio',cardio:'Cardio'}[x.type]||'Entrenamiento')+' falta en Matrix'}));
+   const unmatched=(tc.matrixOnlyItems||[]).map(x=>({...x,matrixUrl:d.matrix?.nextWeekUrl,
+     label:dateLabel(x.date)+' · '+x.title+' sin sesión MTS'}));
+   linkedIssues_('training-issues',[...missing,...unmatched].slice(0,8),x=>x.label);
  }else{
    set('training-missing','SIN DATOS');
    $('training-missing').className='metric';
    set('training-compare',tc.message||'Comparación no verificable. Revisa las pestañas y permisos de MTS y Matrix.');
-   list('training-issues',[],x=>x.label);
+   linkedIssues_('training-issues',[],x=>x.label);
  }
  const cc=d.comparisons?.clinical||{};
  count('clinical-missing',cc.state==='ok'?cc.missing+cc.conflicts+(cc.possibleDifferent||0)+(cc.matrixOnly||0):null,(cc.missing||0)+' citas ausentes, '+(cc.conflicts||0)+' conflictos, '+(cc.possibleDifferent||0)+' discrepancias de paciente y '+(cc.matrixOnly||0)+' entradas exclusivas de Matrix');
  set('clinical-compare',cc.state==='ok'?
    (cc.missing+' sin registro · '+cc.conflicts+' solapamientos · '+(cc.possibleDifferent||0)+' pacientes por confirmar · '+(cc.matrixOnly||0)+' solo en Matrix (semana '+(c.week||'')+')'):
    'Comparación pendiente: verificar pestañas PSICOPRO y Matrix');
- list('clinical-issues',[...(cc.items||[]).map(x=>({...x,reason:'No está en Matrix'})),
+ linkedIssues_('clinical-issues',[...(cc.items||[]).map(x=>({...x,reason:'No está en Matrix'})),
    ...(cc.collisionItems||[]).map(x=>({...x,reason:'Matrix tiene otra actividad'})),
    ...(cc.identityItems||[]).map(x=>({...x,reason:'Posible paciente distinto · verificar'})),
    ...(cc.matrixOnlyItems||[]).map(x=>({...x,reason:'Solo aparece en Matrix: '+(x.matrixEntry||'Actividad clínica sin descripción')}))],
