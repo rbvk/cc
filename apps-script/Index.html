@@ -4,112 +4,204 @@
   <base target="_top">
   <meta charset="utf-8">
   <style>
-    :root{font:15px/1.5 system-ui,-apple-system,sans-serif;background:#0b1220;color:#f2f6ff;color-scheme:dark}
-    *{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(circle at 50% -15%,#1a3d62,transparent 42%),#0b1220}
-    a{color:#9fd5ff;text-decoration:none}button{cursor:pointer}
-    .wrap{max-width:1100px;margin:auto;padding:28px 20px 55px}
-    .top{display:flex;align-items:center;justify-content:space-between;gap:14px;padding-bottom:24px;border-bottom:1px solid #2a3950;flex-wrap:wrap}
-    .brand{display:flex;align-items:center;gap:12px}.logo{padding:12px;background:linear-gradient(130deg,#80cfff,#7592ff);border-radius:14px;color:#071223;font-weight:900}
-    .eyebrow{letter-spacing:1.6px;font-size:10px;font-weight:800;color:#92aac7}
-    h1{font-size:clamp(24px,4vw,38px);margin:6px 0 12px;letter-spacing:-1.2px}
-    h2{font-size:20px}h3{font-size:17px;margin:0 0 7px}
-    .muted{color:#a8bbd1}.small{font-size:12px}.chip{display:inline-block;border:1px solid #3d6e68;padding:5px 11px;color:#93dec6;background:#193b37;border-radius:50px;font-size:12px}
-    button{border:0;border-radius:11px;background:#9fd5ff;color:#092034;padding:10px 14px;font:600 14px system-ui}
-    button:disabled{opacity:.5}button:focus-visible,a:focus-visible{outline:3px solid #ffcb72;outline-offset:3px}
-    .grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:15px}.card{border:1px solid #35445d;border-radius:17px;padding:20px;background:linear-gradient(170deg,#16273d,#111c2e);min-width:0}
-    .owner{border-color:#397ba0;background:linear-gradient(160deg,#183b58,#102439)}
-    .card p{margin:0;color:#adbed4}.card .eyebrow{margin:0 0 12px}section{margin:28px 0}.links{display:flex;gap:10px;flex-wrap:wrap;margin-top:13px}
-    .links a{background:#23374f;border-radius:8px;padding:8px 11px;display:inline-block;font-size:12px}
-    .alert{border-left:4px solid #ecc17b;padding:12px 16px;background:#2f2924;color:#eed9b6;border-radius:8px;margin-top:18px}
-    .stat{font-size:26px;font-weight:750;color:#d1edff}.status{color:#a7bbd4;font-size:12px}.critical{border-color:#e58d76}.high{border-color:#dcb76d}
-    .footer{border-top:1px solid #283c57;margin-top:28px;padding-top:20px;font-size:12px;color:#9fb3d0}
-    @media(max-width:800px){.grid{grid-template-columns:1fr 1fr}.grid>*:first-child{grid-column:span 2}}
-    @media(max-width:570px){.grid{grid-template-columns:1fr}.grid>*:first-child{grid-column:auto}}
+    :root{font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;color:#eff5ff;background:#0b1322;color-scheme:dark}
+    *{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(circle at 45% -15%,#1a3f61 0,transparent 42%),#0b1322}
+    h1,h2,h3,p{margin-top:0}h1{font-size:clamp(27px,4vw,38px);letter-spacing:-1px;margin:5px 0 12px;line-height:1.1}h2{font-size:20px;letter-spacing:-.4px}h3{font-size:16px}
+    a{color:#9dd6ff;text-decoration:none}a:hover{text-decoration:underline}button{font:600 14px system-ui;cursor:pointer}
+    button:focus-visible,a:focus-visible{outline:3px solid #f9c86e;outline-offset:3px}
+    .wrap{max-width:1180px;margin:auto;padding:24px 22px 44px}
+    .header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;padding-bottom:19px;border-bottom:1px solid #30435a}
+    .brand{display:flex;align-items:center;gap:11px}.logo{border-radius:12px;padding:13px 10px;background:linear-gradient(140deg,#83d5ff,#818afa);color:#061320;font-weight:900;font-size:18px}
+    .eyebrow{letter-spacing:1.6px;text-transform:uppercase;font-size:10px;font-weight:750;color:#99afca;margin:0 0 7px}
+    .muted{color:#a9bad1}.small{font-size:12px}.chip{border:1px solid #3e726b;color:#a6e6d2;background:#18392f;padding:7px 10px;border-radius:25px;font-size:12px;white-space:nowrap}
+    .refresh{background:#9dd6ff;color:#0a1b2b;border:0;padding:10px 14px;border-radius:10px}
+    .refresh:disabled{opacity:.6;cursor:wait}
+    .intro{margin:26px 0 24px}.intro .muted{max-width:780px}.statusline{font-size:12px;color:#9ab0c9;margin-top:13px}
+    .grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.card{background:linear-gradient(165deg,#16263d,#101c30);border:1px solid #344a67;border-radius:16px;padding:19px;min-width:0}
+    .focus{grid-column:span 2;background:linear-gradient(145deg,#183b57,#101e32);border-color:#5a91bb}.focus h2{font-size:23px;margin:2px 0 8px}
+    .metric{font-size:31px;font-weight:800;letter-spacing:-.9px;line-height:1.15;margin:5px 0 8px;font-variant-numeric:tabular-nums}
+    .metric.warn{color:#ffcc80}.metric.good{color:#a6e3c3}.metric.error{color:#f4a799}
+    .card .description{color:#b0c2d7;font-size:13px;line-height:1.6;overflow-wrap:anywhere}
+    .card .minor{font-size:12px;color:#94a9c5;margin-top:9px}
+    .section-head{display:flex;justify-content:space-between;gap:12px;align-items:end;margin:27px 0 13px}.section-head h2{margin:0}
+    .alertstrip{border-left:4px solid #eebc7d;background:#2a2930;border-radius:9px;padding:13px 15px;color:#ffe6bf;margin:16px 0}
+    .status-list{padding:0;margin:10px 0 0;list-style:none;display:flex;flex-direction:column;gap:5px}
+    .status-list li{border-bottom:1px solid #304059;padding:6px 0;color:#bbd0e8;font-size:12px}
+    .statrow{display:flex;justify-content:space-between;gap:9px;padding:6px 0;border-bottom:1px solid #2c3c55;font-size:13px}
+    .statrow b{font-variant-numeric:tabular-nums}
+    .progress{height:9px;width:100%;background:#2b3d55;border-radius:30px;overflow:hidden;margin:14px 0 5px}.progress span{display:block;height:100%;width:0;background:#89c8fa;border-radius:30px}
+    .source-link{display:inline-block;margin-top:15px;color:#9dd6ff;font-size:12px;font-weight:600}
+    .critical{border-color:#e78372}.critical .eyebrow{color:#ffad99}.attention{border-color:#b99a65}
+    .footer{margin-top:30px;border-top:1px solid #2b3b50;padding-top:20px;font-size:12px;color:#99adc7}
+    #reload-state{min-height:20px}
+    @media(max-width:950px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.focus{grid-column:span 2}}
+    @media(max-width:590px){.wrap{padding:18px 14px 35px}.grid{grid-template-columns:1fr}.focus{grid-column:auto}.card{padding:16px}.header{align-items:flex-start}.chip{font-size:11px}.metric{font-size:28px}}
   </style>
 </head>
 <body>
 <div class="wrap">
-  <header class="top">
-    <div class="brand"><div class="logo">RV</div><div><strong>Command Center</strong><div class="eyebrow">ÁREA PERSONAL · GOOGLE APPS SCRIPT</div></div></div>
-    <div><span class="chip">🔒 Acceso exclusivo</span> <button id="refresh" type="button">↻ Actualizar</button></div>
+  <header class="header">
+    <div class="brand"><span class="logo">RV</span><div><strong>Command Center</strong><div class="eyebrow">OPERATIONS · PRIVATE</div></div></div>
+    <div><span class="chip">🔒 Solo propietario</span> <button type="button" id="refresh" class="refresh">↻ Actualizar datos</button></div>
   </header>
-  <section>
-    <div class="eyebrow">SISTEMA OPERATIVO PERSONAL</div>
+  <section class="intro">
+    <div class="eyebrow">Tus cuatro sistemas, una revisión</div>
     <h1>Qué necesita tu atención.</h1>
-    <p class="muted">Datos privados analizados dentro de Google. Sin OAuth en cada apertura y sin publicar tus hojas en GitHub.</p>
-    <div id="info" class="status" role="status" aria-live="polite">Consultando fuentes verificadas…</div>
-    <div id="alerts" class="alert" hidden></div>
+    <p class="muted">Cruza entrenamientos, agenda clínica, DRG y presupuesto. Las alertas se calculan dentro de Google, sin publicar pacientes ni registros privados en GitHub.</p>
+    <p id="reload-state" class="statusline" role="status" aria-live="polite">Consultando hojas privadas…</p>
+    <div id="alerts" class="alertstrip" hidden aria-live="polite"></div>
   </section>
-  <section class="grid">
-    <article class="card owner" id="priority-card">
-      <div class="eyebrow">⚡ ACTUAR</div><h2 id="priority">Cargando prioridades…</h2><p id="priority-reason">Consultando tus fuentes privadas.</p>
+  <section class="grid" aria-label="Indicadores y decisiones">
+    <article id="focus-card" class="card focus">
+      <p class="eyebrow">⚡ Próxima decisión</p>
+      <h2 id="priority">Consultando prioridades…</h2>
+      <p id="priority-reason" class="description">Revisando comparaciones.</p>
+      <p class="minor">Prioridades verificadas; nunca se interpreta la falta de datos como ausencia de pendientes.</p>
     </article>
     <article class="card">
-      <div class="eyebrow">📅 AGENDA</div><h3>Próximos compromisos</h3>
-      <div class="stat" id="calendar-count">—</div><p id="calendar-message">No consultado</p>
-      <div class="links"><a href="https://calendar.google.com/" target="_blank" rel="noopener noreferrer">Abrir Calendar ↗</a></div>
+      <p class="eyebrow">🥊 DRG diario</p>
+      <div id="drg-output" class="metric">—</div>
+      <p id="drg-detail" class="description">Evaluación pendiente</p>
+      <p id="training-completed" class="minor"></p>
+      <a class="source-link" id="training-link" href="https://sheets.google.com" target="_blank" rel="noopener noreferrer">Abrir MTS Execution Log ↗</a>
     </article>
     <article class="card">
-      <div class="eyebrow">🥊 MTS / DRG</div><h3 id="drg-state">Sin datos verificados</h3>
-      <p id="training-message">No consultado</p><div class="links" id="training-links"></div>
+      <p class="eyebrow">🏋️ MTS vs Matrix</p>
+      <div id="training-missing" class="metric">—</div>
+      <p id="training-compare" class="description">Comparando sesiones programadas con la agenda</p>
+      <ul id="training-issues" class="status-list"></ul>
+      <a class="source-link" id="matrix-link" href="https://sheets.google.com" target="_blank" rel="noopener noreferrer">Abrir Matrix ↗</a>
     </article>
     <article class="card">
-      <div class="eyebrow">🧭 MATRIX</div><h3>Planificación general</h3>
-      <p id="matrix-message">No consultado</p><div class="links" id="matrix-links"></div>
+      <p class="eyebrow">🏥 PSICOPRO vs Matrix</p>
+      <div id="clinical-missing" class="metric">—</div>
+      <p id="clinical-compare" class="description">Comparando citas por día y hora</p>
+      <ul id="clinical-issues" class="status-list"></ul>
+      <a class="source-link" id="clinical-link" href="https://sheets.google.com" target="_blank" rel="noopener noreferrer">Abrir PSICOPRO ↗</a>
     </article>
     <article class="card">
-      <div class="eyebrow">🏥 PSICOPRO</div><h3>Agenda clínica (agregada)</h3>
-      <p id="clinical-message">No consultado</p><div class="links" id="clinical-links"></div>
+      <p class="eyebrow">🎯 Pacientes semanales</p>
+      <div id="patient-count" class="metric">— / 15</div>
+      <p id="patient-gap" class="description">Meta semanal: 15 cupos ocupados</p>
+      <div class="progress" role="progressbar" aria-label="Progreso cupos pacientes" aria-valuemin="0" aria-valuemax="15" aria-valuenow="0"><span id="patient-progress"></span></div>
+      <p id="patient-source" class="minor">Fuente: Objetivos/Paciente</p>
     </article>
     <article class="card">
-      <div class="eyebrow">💰 FINANZAS</div><h3>Ingresos y presupuesto</h3>
-      <p id="finance-message">No consultado</p><div class="links" id="finance-links"></div>
+      <p class="eyebrow">💰 Presupuesto mensual</p>
+      <div id="budget-variance" class="metric">—</div>
+      <p id="budget-message" class="description">Sin cifras verificadas</p>
+      <div class="statrow"><span>Presupuestado</span><b id="budget-plan">—</b></div>
+      <div class="statrow"><span>Gastado</span><b id="budget-actual">—</b></div>
+      <p id="budget-period" class="minor"></p>
+      <a class="source-link" id="finance-link" href="https://sheets.google.com" target="_blank" rel="noopener noreferrer">Abrir Finanzas ↗</a>
+    </article>
+    <article class="card">
+      <p class="eyebrow">📅 Google Calendar</p>
+      <div id="calendar-count" class="metric">—</div>
+      <p id="calendar-message" class="description">No consultado</p>
+      <a class="source-link" href="https://calendar.google.com/" target="_blank" rel="noopener noreferrer">Abrir Calendar ↗</a>
+    </article>
+    <article class="card">
+      <p class="eyebrow">🧭 MTS System Matrix</p>
+      <h3>Programación de hoy</h3>
+      <p id="matrix-summary" class="description">No consultado</p>
+      <p id="plan-status" class="minor">Próxima semana MTS: sin verificar</p>
     </article>
   </section>
-  <div class="footer">🔐 Solo el propietario puede usar esta web app cuando se publica con acceso «Solo yo». No se devuelven identidades de pacientes, notas, diagnósticos ni filas individuales de las hojas.</div>
+  <footer class="footer">
+    🔐 Esta vista debe desplegarse en Google Apps Script con acceso <strong>Only myself</strong>. Solo se muestran recuentos, fechas y horas de diferencias; nunca nombres, RUT, diagnósticos ni notas clínicas. Los cotejos de agenda son candidatos para verificación, no confirmaciones clínicas automáticas.
+  </footer>
 </div>
 <script>
-  'use strict';
-  const $=id=>document.getElementById(id);
-  let loading=false;
-  function text(id,val){$(id).textContent=String(val??'No disponible');}
-  function setLink(boxId,obj) {
-    const box=$(boxId);box.replaceChildren();
-    if(!obj || obj.state==='error' || !obj.url) return;
-    const link=document.createElement('a');
-    link.href=obj.url;link.target='_blank';link.rel='noopener noreferrer';
-    link.textContent='Abrir hoja privada ↗';box.appendChild(link);
-  }
-  function render(d) {
-    text('priority',d.nextAction?.title);
-    text('priority-reason',d.nextAction?.reason);
-    $('priority-card').classList.toggle('critical',d.nextAction?.level==='critical');
-    $('priority-card').classList.toggle('high',d.nextAction?.level==='high');
-    text('calendar-count',d.calendar?.state==='ok'?d.calendar.upcoming48h:'—');
-    text('calendar-message',d.calendar?.message);
-    text('training-message',d.training?.message);
-    text('drg-state',d.training?.latestDrg ? ('Último DRG: '+d.training.latestDrg.output+(d.training.drgIsToday?' · HOY':' · histórico')):'DRG no verificado');
-    for(const name of ['matrix','training','clinical','finance']){
-      text(name+'-message',d[name]?.message);
-      setLink(name+'-links',d[name]);
-    }
-    $('alerts').hidden=!d.alerts?.length;
-    $('alerts').textContent=d.alerts?.join(' · ')||'';
-    text('info','Última consulta: '+new Date(d.generatedAt).toLocaleString('es-CL',{timeZone:'America/Santiago'})+' · Datos únicamente agregados');
-  }
-  function fail(){text('info','⚠️ No se pudieron consultar las fuentes. Revisa que Apps Script esté autorizado y que las hojas sigan accesibles.');}
-  function refresh(){
-    if(loading)return;
-    loading=true;$('refresh').disabled=true;
-    google.script.run.withSuccessHandler(data=>{
-      loading=false;$('refresh').disabled=false;render(data);
-    }).withFailureHandler(()=>{
-      loading=false;$('refresh').disabled=false;fail();
-    }).getDashboard();
-  }
-  $('refresh').addEventListener('click',refresh);
-  refresh();
-  setInterval(refresh,5*60*1000);
+'use strict';
+const $=id=>document.getElementById(id);
+let loading=false;
+const clp=value=>Number.isFinite(value)?new Intl.NumberFormat('es-CL',{style:'currency',currency:'CLP',maximumFractionDigits:0}).format(value):'—';
+function set(id,v){$(id).textContent=v===null||v===undefined?'No disponible':String(v);}
+function count(id,n,label){
+ const el=$(id);el.textContent=typeof n==='number'?n:'—';
+ el.classList.toggle('warn',typeof n==='number'&&n>0);
+ el.classList.toggle('good',n===0);
+ if(label)el.setAttribute('aria-label',label);
+}
+function dateLabel(iso){
+ if(!/^\d{4}-\d{2}-\d{2}$/.test(String(iso)))return 'Fecha no disponible';
+ const d=new Date(iso+'T12:00:00Z');
+ return new Intl.DateTimeFormat('es-CL',{timeZone:'America/Santiago',weekday:'short',day:'2-digit',month:'2-digit'}).format(d);
+}
+function list(id,items,makeLabel){
+ const ul=$(id);ul.replaceChildren();
+ for(const item of (items||[])){
+   const li=document.createElement('li');li.textContent=makeLabel(item);ul.appendChild(li);
+ }
+}
+function sourceLink(id,data){
+ const link=$(id);
+ if(data?.url&&/^https:\/\/docs\.google\.com\/spreadsheets\/d\/[A-Za-z0-9_-]+\/edit$/.test(data.url))link.href=data.url;
+}
+function render(d){
+ const a=d.nextAction||{};
+ set('priority',a.title||'Revisar fuentes');
+ set('priority-reason',a.reason||'Sin prioridad verificada');
+ $('focus-card').classList.toggle('critical',a.level==='critical');
+ $('focus-card').classList.toggle('attention',a.level==='high');
+ const t=d.training||{},c=d.clinical||{},f=d.finance||{},matrix=d.matrix||{};
+ const drg=t.drgToday;
+ set('drg-output',drg?.output||'SIN REGISTRO');
+ $('drg-output').className='metric'+(drg?.hardStop||/ABORT/i.test(drg?.output||'')?' error':drg?'':' warn');
+ set('drg-detail',drg?('Hoy · puntuación '+(drg.score===null?'pendiente':drg.score)+(drg.hardStop?' · HARD STOP':''))
+   :('Sin evaluación válida de hoy.'+(t.drgLatest?' Último DRG: '+t.drgLatest.date+' (histórico).':'')));
+ set('training-completed',t.state==='ok'?'Filas MTS realizadas, últimos 7 días: '+t.completedRows7d:'Registro no disponible');
+ const tc=d.comparisons?.training||{};
+ count('training-missing',tc.total,tc.total+' entrenamientos por agendar');
+ set('training-compare',tc.state==='ok'?
+   (tc.total>0?'Planificados en MTS y no detectados en Matrix':'No se encontraron entrenamientos planificados sin bloque en Matrix'):
+   'Comparación pendiente: verificar acceso a MTS y Matrix');
+ list('training-issues',tc.items,x=>dateLabel(x.date)+' · '+({boxing:'Boxeo',gym:'Gimnasio',cardio:'Cardio'}[x.type]||'Entrenamiento'));
+ const cc=d.comparisons?.clinical||{};
+ count('clinical-missing',cc.state==='ok'?cc.missing+cc.conflicts:null,(cc.missing||0)+' citas ausentes y '+(cc.conflicts||0)+' conflictos');
+ set('clinical-compare',cc.state==='ok'?
+   (cc.missing+' sin registro · '+cc.conflicts+' posibles solapamientos (semana '+(c.week||'')+')'):
+   'Comparación pendiente: verificar pestañas PSICOPRO y Matrix');
+ list('clinical-issues',[...(cc.items||[]).map(x=>({...x,reason:'No está en Matrix'})),...(cc.collisionItems||[]).map(x=>({...x,reason:'Matrix tiene otra actividad'}))],
+   x=>dateLabel(x.date)+' '+x.hour+' · '+x.reason);
+ set('patient-count',typeof c.weekly==='number'?c.weekly+' / 15':'— / 15');
+ set('patient-gap',c.state==='ok'?
+   (c.gap<0?'Faltan '+Math.abs(c.gap)+' para llegar a 15':c.gap>0?'Superas la meta por '+c.gap:'Meta semanal alcanzada'):
+   'Sin recuento validado en Objetivos/Paciente');
+ const progress=Math.max(0,Math.min(100,(Number(c.weekly)||0)/15*100));
+ $('patient-progress').style.width=progress+'%';
+ $('patient-progress').parentElement.setAttribute('aria-valuenow',String(Math.max(0,Math.min(15,Number(c.weekly)||0))));
+ $('patient-count').className='metric'+(c.state!=='ok'?'':c.gap<0?' warn':' good');
+ set('patient-source',c.state==='ok'?'Clasificados semanales · Meta: 15':'Fuente aún no verificada');
+ const amount=f.state==='ok'||f.state==='stale';
+ set('budget-variance',amount?(f.difference>0?'+'+clp(f.over):f.difference<0?'-'+clp(f.remaining):clp(0)):'—');
+ $('budget-variance').className='metric'+(amount&&f.over>0?' error':amount?' good':'');
+ set('budget-message',amount?(f.over>0?'Por sobre el presupuesto '+Math.abs(f.pct)+'%':f.remaining>0?'Saldo presupuestario disponible':'Gasto igual al presupuesto'):'Sin presupuesto o gasto validados');
+ set('budget-plan',amount?clp(f.budget):'—');
+ set('budget-actual',amount?clp(f.spent):'—');
+ set('budget-period',f.month?(f.month+(f.state==='stale'?' · DATOS DESACTUALIZADOS':'')):'Sin período confirmado');
+ set('calendar-count',d.calendar?.state==='ok'?d.calendar.upcoming48h:'—');
+ set('calendar-message',d.calendar?.message);
+ set('matrix-summary',matrix.message);
+ set('plan-status',t.state==='ok'?(t.nextWeekScheduled?'MTS próximo período: hay programación':'MTS próximo período: sin sesiones activas programadas'):'MTS futuro: no verificado');
+ for(const name of ['matrix','training','clinical','finance'])sourceLink(name+'-link',d[name]);
+ const alertText=Array.isArray(d.alerts)?d.alerts:[];
+ $('alerts').hidden=alertText.length===0;
+ set('alerts',alertText.join(' · '));
+ const last=new Date(d.generatedAt);
+ set('reload-state','Actualizado: '+(Number.isNaN(last.getTime())?'sin fecha':last.toLocaleString('es-CL',{timeZone:'America/Santiago'}))+' · Datos agregados y privados');
+}
+function fail(err){set('reload-state','⚠️ Consulta fallida. Revisa la autorización de Google y los permisos de tus hojas.');}
+function refresh(){
+ if(loading)return;loading=true;$('refresh').disabled=true;
+ google.script.run.withSuccessHandler(d=>{loading=false;$('refresh').disabled=false;render(d);})
+ .withFailureHandler(e=>{loading=false;$('refresh').disabled=false;fail(e);})
+ .getDashboard();
+}
+$('refresh').addEventListener('click',refresh);
+refresh();
+setInterval(refresh,5*60*1000);
 </script>
 </body>
 </html>
