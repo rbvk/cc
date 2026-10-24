@@ -283,7 +283,7 @@ function planTypes_(text) {
   const t=String(text||'').toLowerCase();
   const found=[];
   if(/🥊|\bboxeo\b|\bboxing\b|\bsparring\b|\bkpi\b|\bppm\b|\bdensity\b|\bspeed\b/.test(t))found.push('boxing');
-  if(/🏋|\bgym\b|\blegs\b|\bpull\b|\bpush\b|\bsquat\b|\bdeadlift\b|\bbench\b|\bstrength\b|\bfuerza\b/.test(t))found.push('gym');
+  if(/🏋|\bgym\b|\blegs\b|\bpull\b|\bpush\b|\bsquat\b|\bdeadlift\b|\bbench\b|\bstrength\b|\bfuerza\b|\bposterior\b|\banterior\b|\bpress\b/.test(t))found.push('gym');
   if(/\bz2\b|\bz3\b|cardio|aerobic|aeróbic|\bstair\b|\btreadmill\b/.test(t))found.push('cardio');
   return found;
 }
@@ -343,17 +343,40 @@ function readTraining_(id,now) {
     const d=parseDmy_(row[1]);
     return d&&iso_(d)>=from&&iso_(d)<=todayIso&&isSessionHeader_(row[2]);
   });
-  const isComplete=status=>/^(?:done|completed|completad[ao]|realizad[ao]|hecho|✅)(?:\b|\s)/i.test(String(status||'').trim())&&
-    !/not done|no realizado/i.test(String(status||''));
-  const completedSessions7d=recentHeaders.filter(row=>isComplete(row[3])).length;
-  const omittedSessions7d=recentHeaders.filter(row=>
-    /not done|cancel|ill\b|enferm|⛔|abort|drop\b/i.test(String(row[3]||''))).length;
+  const statusType=raw=>{
+    const state=String(raw||'').trim();
+    if(/not done|no realizado|cancel|\bill\b|enferm|⛔|abort|\bdrop\b|omiti|❌/i.test(state))return 'omitted';
+    if(/(?:^|\s)(?:done|completed|completad[ao]|realizad[ao]|hecho)(?:$|\s)|✅/i.test(state))return 'done';
+    return 'unknown';
+  };
+  const adherence={windowDays:7,from:iso_(plusDays_(now,-6)),to:todayIso,
+    boxing:{planned:0,done:0,omitted:0,unverified:0},
+    gym:{planned:0,done:0,omitted:0,unverified:0},
+    cardio:{planned:0,done:0,omitted:0,unverified:0}};
+  let completedSessions7d=0,omittedSessions7d=0;
+  for(const row of recentHeaders){
+    const state=statusType(row[3]);
+    if(state==='done')completedSessions7d++;
+    else if(state==='omitted')omittedSessions7d++;
+    const firstLine=String(row[2]||'').split('\n')[0];
+    for(const domain of planTypes_(firstLine)){
+      adherence[domain].planned++;
+      if(state==='done')adherence[domain].done++;
+      else if(state==='omitted')adherence[domain].omitted++;
+      else adherence[domain].unverified++;
+    }
+  }
+  for(const domain of ['boxing','gym','cardio']){
+    const item=adherence[domain];
+    item.completionPct=item.planned?Math.round(item.done*100/item.planned):null;
+  }
   const drgToday=current?{date:current.date,score:current.score,output:current.output,hardStop:current.hardStop}:null;
   const drgLatest=latest?{date:latest.date,score:latest.score,output:latest.output}:null;
   return {publicData:{
       state:'ok',drgToday,drgLatest,
       drgState:drgToday?(drgToday.output==='SIN SALIDA'?'incomplete':'recorded'):'missing',
       completedSessions7d,omittedSessions7d,sessionHeaders7d:recentHeaders.length,
+      adherence,
       scheduledKinds:plans.length,
       nextWeekScheduled,lastProgrammedDate,
       drgUrl:tabUrl_(id,'drg',metadata),
