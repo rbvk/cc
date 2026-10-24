@@ -136,3 +136,37 @@ Regla: mostrar solamente datos que puedan cambiar una decisión.
 2. Construir una vista conceptual `Hoy` estática con datos sintéticos y probar legibilidad en iPhone.
 3. Elegir el modelo de navegación definitivo, luego aplicar a V9; mantener intacto el HTML de V8.
 4. Validar usuarios y accesibilidad antes de introducir animaciones, gráficos complejos o nuevas paletas.
+
+## 8. Biblioteca fotográfica con licencias y uso profesional — APROBADA PARA DISEÑO V9
+
+**Meta cuantitativa: 29 fotografías distintas identificadas; 11 de Arica en Wikimedia Commons y 18 temáticas en Pexels.** Inventario verificable: [V9_PHOTO_CATALOG.json](V9_PHOTO_CATALOG.json). Las fuentes son **páginas de obras concretas** (no términos de búsqueda genéricos); cada registro indica autor, licencia, enlace, texto alternativo, área, función y formato.
+
+**Estado real del trabajo:** catálogo y política de uso seleccionados para V9. **Ningún archivo binario fue descargado ni se ha insertado una fotografía en V8 o en la Web App**. En la fase de implementación, descargar, optimizar, integrar, comprobar derechos y probar cada imagen. No afirmar que las 29 están ya visibles en producción.
+
+### 8.1 Distribución editorial, no decoración
+- **Inicio «Hoy»: máximo 1–2 fotografías** (una tarjeta Arica Live opcional y una oportunidad contextual si es relevante). Priorizar información, títulos, KPIs y botones; jamás un fondo fotográfico detrás de datos clínicos o cifras.
+- **Arica Live:** 11 fotografías locales con evidencias de lugar como Morro, centro, Plaza Colón, Aduana, litoral, ferrocarril y Chinchorro. Galería accesible desde una sola tarjeta, no mosaico permanente. Fotografías de archivo etiquetadas **«Foto de archivo»**, nunca **«EN VIVO»**.
+- **Inteligencia clínica:** 3 fotografías de espacios vacíos ilustrativos, sin pacientes ni confusión con imágenes reales de CasaPsicoPro.
+- **Boxeo:** 4 fotografías contextuales sobre guantes, manoplas, sparring y material; nunca presentarlas como imágenes de entrenamientos del usuario o del inventario real de BOXINGCI.
+- **Fuerza/cardio:** 2 fotografías contextuales; KPI real siempre proviene de MTS.
+- **Tesis:** 2 fotografías de libros y estudio para entregables/progreso.
+- **GitHub/proyectos:** 3 fotografías de desarrollo para proyectos y Finish Something Today.
+- **Finanzas, sueño, bomberos y captura:** 1 fotografía de cada categoría.
+- **Merchandising BOXINGCI:** usar solo fotos reales de productos del usuario; **no reemplazar con stock**.
+
+### 8.2 Reglas jurídicas y de crédito
+- **Pexels:** su licencia permite uso comercial gratuito y modificaciones sin atribución obligatoria; preferir crédito voluntario. No revender imágenes sin editar, insinuar respaldo de personas representadas ni convertir fotos de stock en identidad marcaria.
+- **Wikimedia Commons:** cada archivo tiene licencia propia CC BY/CC BY-SA. Aplicar reconocimiento del autor, enlace a la obra y licencia, indicar modificaciones; observar el requisito ShareAlike en derivados.
+- Registro permanente de fuente, autor, licencia, fecha de descarga, ruta local, modificaciones y URL de licencia. No reutilizar una foto por el solo hecho de aparecer en Google Images.
+- No usar fotografías de terceros para aparentar imágenes actuales, instalaciones propias, pacientes reales, equipo de BOXINGCI real o material de cámaras públicas.
+- Cumplir requisitos de privacidad/imagen de personas, especialmente si son identificables o el contexto se interpreta como clínico.
+
+### 8.3 Reglas de diseño y rendimiento
+- Recorte editorial `object-fit: cover` preservando sujeto y horizonte; 16:9 para hero local, 3:2 para galería, 4:3 para tarjetas y retrato 2:3 solo cuando aporta. No estirar fotos.
+- Tratamiento cromático uniforme, contraste y espacio negativo; fotografía como **evidencia o contexto**, no como sustituto de gráficos de datos. Pies breves con crédito y fecha si son lugares que cambiaron.
+- Al construir V9: descargar desde la fuente legal, servir versiones AVIF/WebP optimizadas, `srcset` 320/640/960, dimensiones explícitas, carga diferida fuera del primer viewport, fallback neutral y revisiones de accesibilidad con alt específico.
+- Pesos orientativos: tarjetas <160–240 KB e imagen principal <350 KB, ajustable a calidad. No cargar las 29 en la portada. Vista «Arica» solo carga imágenes al abrir galería.
+- Verificar que cada URL exacta y licencia sigue vigente, que el archivo visual tiene suficiente resolución y que no hay fotografías duplicadas/sobrepuestas antes de descargar o publicar. **El catálogo no sustituye esta comprobación final**.
+
+**Criterio de aceptación V9:** 29 fotos distintas asignadas a secciones pertinentes, 100% con fuente/licencia/crédito verificables, 0 fotos de archivo tratadas como contenido en vivo, 0 binarios en el HTML principal, portada ligera, y 100% de imágenes con alt útil o marcadas decorativas si no aportan significado.
+
