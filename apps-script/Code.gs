@@ -45,9 +45,43 @@ function values_(id,a1) {
   const result=Sheets.Spreadsheets.Values.get(id,a1,{valueRenderOption:'FORMATTED_VALUE',majorDimension:'ROWS'});
   return result.values||[];
 }
-function titles_(id) {
-  const data=Sheets.Spreadsheets.get(id,{fields:'sheets.properties(title)'});
-  return (data.sheets||[]).map(s=>s.properties.title);
+function sheetMetadata_(id) {
+  const data=Sheets.Spreadsheets.get(id,{fields:'sheets.properties(title,sheetId)'});
+  return (data.sheets||[]).map(s=>({title:String(s.properties?.title||''),gid:s.properties?.sheetId}));
+}
+function titles_(id) { return sheetMetadata_(id).map(s=>s.title); }
+function tabUrl_(id,tab,metadata) {
+  const entry=(metadata||sheetMetadata_(id)).find(s=>s.title===tab);
+  return 'https://docs.google.com/spreadsheets/d/'+id+'/edit'+
+    (entry&&Number.isSafeInteger(entry.gid)?'#gid='+entry.gid:'');
+}
+// Whitelisted exercise labels only, never raw Matrix cell contents or names.
+function trainingLabels_(cell) {
+  const t=String(cell||'').toLowerCase();
+  const labels=[];
+  if(/boxeo|boxing|sparring|\bppm\b|saco de box/.test(t)){
+    if(/\bsparring\b/.test(t))labels.push('Sparring');
+    else if(/\bclase\b/.test(t))labels.push('Clase boxeo');
+    else if(/\bfree\b|\blibre\b/.test(t))labels.push('Boxeo libre');
+    else labels.push('Boxeo');
+  }
+  if(/deadlift|peso muerto/.test(t))labels.push('Deadlift');
+  else if(/squat|sentadilla|\blegs\b|piernas/.test(t))labels.push('Squat / piernas');
+  else if(/\bpull\b|espalda|remo/.test(t))labels.push('Pull / espalda');
+  else if(/\bpush\b|pecho|tricep/.test(t))labels.push('Push / pecho');
+  else if(/\bcore\b/.test(t))labels.push('Core');
+  else if(/mobility|movilidad/.test(t))labels.push('Movilidad');
+  else if(/\bgym\b|gimnasio|\bpesas\b/.test(t))labels.push('Gimnasio');
+  if(/\bz2\b/.test(t))labels.push('Z2');
+  else if(/\bz3\b/.test(t))labels.push('Z3');
+  else if(/cardio|aer[oó]bic|treadmill|escaladora/.test(t))labels.push('Cardio');
+  return labels;
+}
+function slotDescription_(entry){
+  const date=parseIso_(entry.date);
+  const weekday=['domingo','lunes','martes','miércoles','jueves','viernes','sábado'][date.getDay()];
+  const m=entry.date.match(/\d{4}-(\d{2})-(\d{2})/);
+  return weekday+' '+m[2]+'/'+m[1]+(entry.hour?' '+entry.hour:'');
 }
 function money_(value) {
   if(typeof value==='number')return Number.isFinite(value)?Math.round(value):null;
@@ -97,11 +131,12 @@ function readCalendar_(now) {
  * ephemeral INTERNAL enum-only slot map: no appointment text leaves server.
  */
 function readMatrix_(id,now) {
-  const tabs=titles_(id);
+  const metadata=sheetMetadata_(id),tabs=metadata.map(s=>s.title);
   const start=startMonday_(now);
   const needed=[start,plusDays_(start,7)];
-  const slots={};
+  const slots={},descriptions={};
   const available=[];
+  const todayIso=iso_(now);
   let todayCounts={boxing:0,gym:0,cardio:0,clinical:0};
   for(const begin of needed){
     const key=weekKey_(begin);
@@ -121,27 +156,55 @@ function readMatrix_(id,now) {
         const boxing=!free&&/(?:boxeo|boxing|sparring|\bppm\b|saco de box|clase box)/i.test(t);
         const gym=!free&&/(?:\bgym\b|gimnasio|\bsquat\b|\bdeadlift\b|\bbench\b|\bpesas\b|entrenamiento fuerza)/i.test(t);
         const cardio=!free&&/(?:\bz[1-4]\b|cardio|aer[oó]bic|treadmill|cinta|escaladora|stair stepper|bicicleta)/i.test(t);
-        // Generic "plan paciente" is clinical administration, NOT an appointment.
         const prep=/(?:plan pac|planificar paciente|preparar paciente|notas de pacientes|revisar fichas)/i.test(t);
         const clinical=!free&&!prep&&/(?:\bpaciente\b|psicopro|psic[oó]log|psicoterapia|terapia|sesi[oó]n cl[ií]nica|consulta cl[ií]nica)/i.test(t);
         const busy=!free&&cell.length>0;
         slots[iso][time]={boxing,gym,cardio,clinical,busy,patientTokens:clinical?patientTokens_(cell):[]};
-        if(iso===iso_(now)){
+        if(iso===todayIso){
           if(boxing)todayCounts.boxing++;
           if(gym)todayCounts.gym++;
           if(cardio)todayCounts.cardio++;
           if(clinical)todayCounts.clinical++;
         }
+        if(!free){
+          const tags=trainingLabels_(cell);
+          if(tags.length){
+            if(!descriptions[iso])descriptions[iso]={labels:[],types:[]};
+            for(const tag of tags)if(!descriptions[iso].labels.includes(tag))descriptions[iso].labels.push(tag);
+            for(const type of ['boxing','gym','cardio'])
+              if(({boxing,gym,cardio})[type]&&!descriptions[iso].types.includes(type))
+                descriptions[iso].types.push(type);
+          }
+        }
       }
     }
   }
-  const currentWeek=weekKey_(start);
-  const publicData=available.includes(currentWeek)
-    ?{state:'ok',week:currentWeek,today:todayCounts,
+  const currentWeek=weekKey_(start),nextWeek=weekKey_(plusDays_(start,7));
+  const currentTab=matchTab_(tabs,currentWeek);
+  const nextTab=matchTab_(tabs,nextWeek);
+  const todayActivities=descriptions[todayIso]?.labels||[];
+  const futureDays=Object.keys(descriptions).filter(d=>d>todayIso)
+    .sort().map(date=>({date,title:descriptions[date].labels.join(' + '),types:descriptions[date].types}));
+  const nextWeekTrainingDays=futureDays.filter(item=>item.date>=iso_(plusDays_(start,7))&&
+    item.date<=iso_(plusDays_(start,13))&&item.types.length);
+  const publicData=currentTab
+    ?{state:'ok',week:currentWeek,today:todayCounts,todayDate:todayIso,
+      todayTitle:todayActivities.length?todayActivities.join(' + '):'Sin entrenamiento explícito',
+      nextTrainingDays:futureDays.slice(0,4),
+      nextWeekTrainingDays:nextWeekTrainingDays.slice(0,7),
+      nextWeek:nextWeek,nextWeekReady:!!nextTab,
+      url:tabUrl_(id,currentTab,metadata),
+      nextWeekUrl:nextTab?tabUrl_(id,nextTab,metadata):null,
       message:'Hoy: '+todayCounts.boxing+' bloques boxeo · '+todayCounts.gym+' gimnasio · '+todayCounts.cardio+' cardio · '+todayCounts.clinical+' clínica'}
-    :{state:'partial',week:currentWeek,today:null,message:'Sin pestaña Matrix de la semana '+currentWeek};
+    :{state:'partial',week:currentWeek,today:null,todayDate:todayIso,
+      todayTitle:'Sin pestaña Matrix actual',nextTrainingDays:[],nextWeekTrainingDays:[],
+      nextWeek,nextWeekReady:!!nextTab,
+      url:nextTab?tabUrl_(id,nextTab,metadata):null,
+      nextWeekUrl:nextTab?tabUrl_(id,nextTab,metadata):null,
+      message:'Sin pestaña Matrix de la semana '+currentWeek};
   return {publicData,slots,available};
 }
+
 function planTypes_(text) {
   const t=String(text||'').toLowerCase();
   const found=[];
@@ -156,6 +219,7 @@ function isSessionHeader_(text) {
   return /^[^\w]{0,5}\s*(?:MON|TUE|WED|THU|FRI|SAT|SUN)\b/i.test(first);
 }
 function readTraining_(id,now) {
+  const metadata=sheetMetadata_(id);
   const daily=values_(id,"'Daily log'!A2:D1200");
   const drg=values_(id,"'drg'!A2:L800");
   const todayIso=iso_(now);
@@ -212,6 +276,8 @@ function readTraining_(id,now) {
       drgState:drgToday?(drgToday.output==='SIN SALIDA'?'incomplete':'recorded'):'missing',
       completedRows7d:doneCount,scheduledKinds:plans.length,
       nextWeekScheduled,lastProgrammedDate,
+      drgUrl:tabUrl_(id,'drg',metadata),
+      dailyLogUrl:tabUrl_(id,'Daily log',metadata),
       message:drgToday?'DRG hoy: '+drgToday.output+' · puntuación '+(drgToday.score===null?'pendiente':drgToday.score):
         'Sin DRG válido de hoy. Último registro: '+(latest?latest.date:'no disponible')
     },plans};
@@ -222,7 +288,7 @@ function readTraining_(id,now) {
  * free/unassigned cells). Never expose patient names or original text.
  */
 function readClinical_(id,now) {
-  const tabs=titles_(id);
+  const metadata=sheetMetadata_(id),tabs=metadata.map(s=>s.title);
   const goals=values_(id,"'Objetivos/Paciente'!A1:C4");
   const baseline=goals[1]||[];
   const targetRow=goals[2]||[];
@@ -238,10 +304,12 @@ function readClinical_(id,now) {
   const publicData={
     state:usable?'ok':'partial',weekly:usable?weekly:null,target:RV_TARGET_WEEKLY,
     gap:usable?delta:null,week:key,bookedBlocks:null,
+    url:null,goalsUrl:tabUrl_(id,'Objetivos/Paciente',metadata),
     message:usable?weekly+' / '+RV_TARGET_WEEKLY+' pacientes semanales · '+(delta<0?'faltan '+Math.abs(delta):delta>0?'sobre objetivo por '+delta:'meta alcanzada'):
       (targetMatches?'No se pudo validar pacientes clasificados':'La meta de la hoja no coincide con 15: revisar antes de comparar')
   };
   if(!tab){publicData.agendaState='missing';publicData.message+=' · Sin agenda de la semana '+key;return {publicData,bookings:[]};}
+  publicData.url=tabUrl_(id,tab,metadata);
   // Only time rows A3:F15, not side notes nor patient-objective cells.
   const rows=values_(id,"'"+tab.replace(/'/g,"''")+"'!A3:F15");
   const freq={};
@@ -268,7 +336,7 @@ function readClinical_(id,now) {
   return {publicData,bookings};
 }
 function readFinance_(id,now,props) {
-  const tabs=titles_(id);
+  const metadata=sheetMetadata_(id),tabs=metadata.map(s=>s.title);
   const preferred=props.getProperty('FINANCE_BUDGET_TAB')||'Pre Oct';
   const tab=tabs.includes(preferred)?preferred:(tabs.includes('Presupuesto')?'Presupuesto':null);
   if(!tab)return {state:'partial',message:'No existe pestaña presupuestaria configurada'};
@@ -306,6 +374,7 @@ function readFinance_(id,now,props) {
   const pct=Number((100*diff/budget).toFixed(1));
   const current=sourceMonth===Utilities.formatDate(now,RV_TZ,'yyyy-MM');
   return {state:!reconciled?'partial':current?'ok':'stale',month:sourceMonth,
+    url:tabUrl_(id,tab,metadata),
     budget,spent,difference:diff,over,remaining,pct,
     categoryReconciled:reconciled,topOverages,unbudgetedCount:unbudgeted.length,unbudgetedAmount,
     message:!reconciled?'Totales y categorías no concuerdan: verificar fórmula o rango':
