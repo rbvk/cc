@@ -1,7 +1,7 @@
 {
   "version": "v9-proposed-photo-library-1",
   "date": "2026-10-24",
-  "status": "Curated rights-described source pages for future V9. No photo binary has been downloaded or deployed.",
+  "status": "29 photographs are referenced and embedded as remote provider images in V9.html, with alt, attribution and fallback. Source assets have not been downloaded as local binaries; final live image/rights review remains necessary.",
   "policy": {
     "goal": "At least 24 distinct photos throughout V9, not all on Home",
     "homepageMaximumPhotos": 2,
@@ -14,7 +14,8 @@
     "optimization": "At V9 build: download from source; optimize local AVIF/WebP with responsive srcset; prefer max 160-240KB/card, <=350KB/banner; loading lazy except hero, avoid CLS, include alt",
     "derivatives": "Apply required attribution and compatible share-alike on derivatives of CC BY-SA files.",
     "selection": "Asset link refers to exact source photograph with photographer; no implied endorsement or affiliation.",
-    "preview": "Use exact provider photo pages in this catalog. Do not use constructed hotlink URLs; at implementation download properly from each listed source and store optimized responsive assets."
+    "preview": "Use exact provider photo pages in this catalog. Do not use constructed hotlink URLs; at implementation download properly from each listed source and store optimized responsive assets.",
+    "delivery": "Remote image URLs generated from exact source catalogue; test rendering, source license and attribution before considering production media verified."
   },
   "count": 29,
   "byProvider": {
@@ -38,7 +39,7 @@
       "aspect_ratio": "16:9",
       "source_license_checked": true,
       "asset_downloaded": false,
-      "featured": false
+      "featured": true
     },
     {
       "id": "AR-02",
@@ -92,7 +93,7 @@
       "aspect_ratio": "16:9",
       "source_license_checked": true,
       "asset_downloaded": false,
-      "featured": false
+      "featured": true
     },
     {
       "id": "AR-05",
@@ -398,7 +399,7 @@
       "aspect_ratio": "3:2",
       "source_license_checked": true,
       "asset_downloaded": false,
-      "featured": false
+      "featured": true
     },
     {
       "id": "TH-02",
@@ -452,7 +453,7 @@
       "aspect_ratio": "3:2",
       "source_license_checked": true,
       "asset_downloaded": false,
-      "featured": false
+      "featured": true
     },
     {
       "id": "PR-03",
