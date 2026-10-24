@@ -1,6 +1,6 @@
 # RV Command Center V9 — Roadmap / Diseño aprobado
 
-**Estado:** ESPECIFICACIÓN PARA V9, NO IMPLEMENTADO. V8 se conserva en producción hasta validación.  
+**Estado actualizado 24-10-2026:** V9 IMPLEMENTADO EN CÓDIGO Y PRUEBAS de GitHub; Web App privada todavía NO desplegada en el proyecto Apps Script del propietario. V8 sigue disponible mediante ?view=v8 una vez se carguen los nuevos archivos.  
 **Fecha de diseño:** 24-10-2026. **Zona horaria:** America/Santiago.  
 **Propósito:** ampliar las capacidades del usuario mediante decisiones con evidencia, oportunidades verificables y ejecución supervisada, no simplemente añadir más contadores.
 
@@ -170,3 +170,14 @@ Regla: mostrar solamente datos que puedan cambiar una decisión.
 
 **Criterio de aceptación V9:** 29 fotos distintas asignadas a secciones pertinentes, 100% con fuente/licencia/crédito verificables, 0 fotos de archivo tratadas como contenido en vivo, 0 binarios en el HTML principal, portada ligera, y 100% de imágenes con alt útil o marcadas decorativas si no aportan significado.
 
+
+## 9. Estado real de entrega del código V9
+
+- **Implementado en GitHub:** V9_Core.gs (captación, memoria, agenda potencial, tareas y log de predicciones), V9_Intelligence.gs (fuentes Arica, inventario, rendimiento, servicios, escenarios y oportunidades), V9.html (cuatro pantallas, captura, hipótesis y galería remota de 29 fotografías), test command-center-v9.mjs y release.json versión 2026.10.24.9.
+- **Vista previa GitHub Pages:** preview-v9.html con datos ficticios, sin acceso a hojas, mensajes o cuentas privadas. La publicación Pages se prueba aparte de la app propietaria.
+- **No desplegado automáticamente:** se deben cargar V9_Core.gs, V9_Intelligence.gs y V9.html además de Code.gs e Index.html en el Google Apps Script propietario, guardar appsscript.json, autorizar external_request y publicar nueva versión manteniendo acceso Solo yo.
+- **Diferimientos comprobables:** la tasa exacta de conversión individual no existe por decisión de captación mínima; primeras atenciones solo con marcador explícito en PSICOPRO; CCTV municipal no es público; webcams no se etiquetan activas; Open-Meteo gratuita requiere revisar condiciones para usos comerciales; no se modifican Calendar ni Sheets automáticamente; integración de Gmail y contenido Docs requiere autorización y delimitación de fuentes; las 29 imágenes se solicitan a servidores de origen, no se descargan a binarios del repo.
+- **Motor de ejecución supervisado realmente disponible:** cerrar/descartar pendientes en su almacén privado y abrir un borrador genérico de Calendar; el usuario guarda el evento en Google Calendar, no se escribe nada por detrás.
+- **Calibración de decisiones:** el motor ahora registra hipótesis por mes con confianza explícita y su resultado; no transforma este porcentaje en una probabilidad estadística comprobada sin historial suficiente.
+
+**Regla de cierre:** no declarar V9 operativo en /exec hasta verificar permisos, carga y flujo con fuentes reales en una instalación Google Apps Script autenticada.
