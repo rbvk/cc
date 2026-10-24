@@ -380,7 +380,7 @@ function getDashboard(){
   }else if(differentClinical>0){
     out.nextAction={title:'Comprobar identidad en agenda',reason:differentClinical+' citas coinciden en horario, pero podrían tener pacientes distintos en Matrix.',level:'medium'};
   }else if(missingTraining>0){
-    out.nextAction={title:'Agendar entrenamientos en Matrix',reason:missingTraining+' sesiones planificadas en MTS faltan en Matrix.',level:'high'};
+    out.nextAction={title:'Agendar entrenamientos en Matrix',reason:missingTraining+' modalidades programadas en MTS faltan en Matrix.',level:'high'};
   }else if(out.finance.state==='ok'&&out.finance.over>0){
     out.nextAction={title:'Revisar exceso de presupuesto',reason:'Gasto mensual sobre presupuesto por '+clp_(out.finance.over)+' CLP.',level:'medium'};
   }else if(out.clinical.state==='ok'&&out.clinical.gap<0){
@@ -396,7 +396,7 @@ function getDashboard(){
   if(collisionClinical>0)out.alerts.push('PSICOPRO: '+collisionClinical+' posibles solapamientos');
   if(missingClinical>0)out.alerts.push('PSICOPRO: '+missingClinical+' citas ausentes en Matrix');
   if(differentClinical>0)out.alerts.push('PSICOPRO: '+differentClinical+' posibles discrepancias de paciente');
-  if(missingTraining>0)out.alerts.push('MTS: '+missingTraining+' entrenamientos no agendados');
+  if(missingTraining>0)out.alerts.push('MTS: '+missingTraining+' modalidades no agendadas');
   if(out.clinical.state==='ok'&&out.clinical.gap<0)out.alerts.push('Cupos: faltan '+Math.abs(out.clinical.gap)+' para '+RV_TARGET_WEEKLY);
   if(out.finance.state==='ok'&&out.finance.over>0)out.alerts.push('Finanzas: exceso '+clp_(out.finance.over)+' CLP');
   if(out.training.state==='ok'&&!todayDrg)out.alerts.push('DRG: sin evaluación válida hoy');
