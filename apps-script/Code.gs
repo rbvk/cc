@@ -211,7 +211,7 @@ function readMatrix_(id,now) {
           // genuinely unmatched Matrix clinical appointments.
           privateClinicalLabel:clinical?cell.slice(0,150):null,
           patientTokens:clinical?patientTokens_(cell):[],
-          calendarCandidate:!free&&/(?:reuni[oó]n|compromiso|cita m[eé]dica|consulta m[eé]dica|agenda calendar|evento calendar|cl[ií]nica confirmada|paciente|psicopro)/i.test(cell)};
+          calendarCandidate:!free&&/(?:reuni[oó]n|compromiso|cita m[eé]dica|consulta m[eé]dica|agenda calendar|evento calendar|presentaci[oó]n|viaje reservado|evento externo)/i.test(cell)};
         if(thisWeek){
           if(boxing)weekHours.boxing++;
           if(gym)weekHours.gym++;
