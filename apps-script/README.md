@@ -14,9 +14,28 @@ La sesión de Google permite acceder sin crear un OAuth Client ID ni autorizar c
 | 💰 Desviación presupuestaria | Hoja financiera, pestaña del mes | Total presupuesto (columna B) y gasto real (columna C) | Diferencia real - presupuesto, exceso en CLP y %. Marcar cifras de un mes anterior como desactualizadas |
 | 🎯 Cupos semanales | PSICOPRO, `Objetivos/Paciente` | Meta de **15** | Comparar clasificados semanales contra la meta. Distinguir faltantes, objetivo y superávit |
 
-Calendario adicional: muestra número de eventos próximos 48 h y horario de próximo compromiso sin revelar títulos.
+Calendario adicional: muestra los eventos restantes del día con sus títulos **solo en la Web App privada** y comprueba la coordinación con Matrix.
 
 **Limitaciones explícitas:** las celdas libres repetidas se identifican por su frecuencia. Las diferencias de paciente se determinan por coincidencias de tokens normalizados y pueden ser falsos positivos. Las alertas son **candidatos a revisar**, no modificaciones de agenda. Si falta un mesociclo o una pestaña, el estado debe ser "sin datos comparables", no "0 errores".
+
+## RV Command Center v8 — ocho mejoras operativas
+
+1. **Ir a la celda exacta del problema.** Los conflictos PSICOPRO/Matrix y las discrepancias con Calendar muestran enlaces directos a la celda (`#gid=…&range=…`) o al día de Calendar. Si Matrix contiene una actividad clínica ausente de PSICOPRO, el botón **Mostrar descripción de Matrix** solicita el texto por un RPC privado y solo al pulsarlo.
+2. **Calendar vs Matrix, bidireccional.** Consulta eventos próximos con hora e identifica los ausentes en Matrix, posibles incompatibilidades de actividad y compromisos explícitos de Matrix que parecen requerir Calendar. No se considera error que falte la pestaña semanal: se señala como falta de cobertura. **No se duplican** los bloques clínicos rutinarios ya controlados por PSICOPRO.
+3. **Historial mínimo.** Script Properties guarda únicamente códigos anónimos de alertas abiertas y resueltas; presenta nuevas, resueltas y persistentes durante 24 horas. La primera ejecución registra línea base. Si una fuente falla, **no** considera las alertas como resueltas.
+4. **Salud de fuentes y versión.** Señala si existe Matrix de la semana, si MTS tiene plan próximo, si PSICOPRO tiene agenda, si la hoja financiera corresponde al mes y si Calendar responde. Compara la versión del motor e interfaz con el archivo público `release.json`. **No es un timestamp de edición de Drive**: no se necesita permiso Drive adicional.
+5. **Adherencia MTS en siete días.** Calcula sesiones/exposiciones planificadas, completadas, omitidas y no verificadas, separadas en boxeo, gimnasio y cardio. Una sesión mixta puede contar en varios dominios; el porcentaje es **finalización confirmada** sobre lo programado, no rendimiento ni cumplimiento presumido.
+6. **Sueño Zz de siete noches.** Agrupa el sueño real por noche, asignando la madrugada a la noche anterior; calcula promedio, noches bajo 7 h 30 y registros ausentes. Si existen suficientes pares, reporta coincidencias con DRG **sin inferir causalidad**.
+7. **Proyección presupuestaria.** Con totales de mes actual conciliados y al menos cinco días transcurridos, estima gasto final con extrapolación lineal del gasto hasta la fecha. No predice pagos futuros ni reemplaza el presupuesto.
+8. **Capacidad clínica.** Distingue pacientes semanales activos (meta 15), sesiones ya atendidas según PSICOPRO depurado, bloques de la agenda operativa y celdas marcadas explícitamente `Libre`. **Una hora libre no equivale a un cupo estable para un nuevo paciente.**
+
+### Privacidad y activación de v8
+
+- Google Apps Script debe continuar desplegado **Ejecutar como: Yo / Acceso: Solo yo**. La página de GitHub Pages no obtiene permisos sobre las hojas.
+- Los textos de eventos del día se ven en el panel privado, pero no se guardan en el historial ni en GitHub. Las descripciones clínicas aparecen únicamente tras pulsar el botón de detalle.
+- Los cambios de GitHub **no se trasladan automáticamente** a tu proyecto Apps Script. Reemplaza `Code.gs` e `Index.html` por las versiones de este repositorio y selecciona **Implementar > Administrar implementaciones > Editar > Nueva versión > Implementar**. Conserva el manifest y las Script Properties existentes.
+- Comprueba los enlaces a celdas, que la cifra de sesiones atendidas coincida con PSICOPRO y que un usuario sin acceso no pueda abrir la Web App.
+- La validación automática ejecuta `command-center-smoke.mjs` y `command-center-v8.mjs` con **datos sintéticos**.
 
 ## Configuración inicial única
 
@@ -58,11 +77,11 @@ El motor, la interfaz privada y el manifiesto están preparados en GitHub; **aú
 El motor entrega **hasta tres recomendaciones**, priorizadas por gravedad y distribuidas entre dominios para evitar que decenas de avisos clínicos oculten DRG o finanzas. Cada recomendación incluye evidencia, acción, estado «verificado» o «revisar», y un enlace a la fuente original. No se hacen cambios en las hojas automáticamente.
 
 - **DRG ABORT / Hard Stop hoy:** prioridad máxima. No usar una evaluación histórica para bloquear la actividad actual.
-- **PSICOPRO vs Matrix:** compara día/hora y, internamente, coincidencia aproximada del nombre. Los nombres y tokens nunca se envían al navegador; las diferencias requieren comprobación manual.
+- **PSICOPRO vs Matrix:** compara día/hora y, internamente, coincidencia aproximada del nombre. La comparación de identidad se realiza en el servidor; los detalles de una actividad exclusiva de Matrix se muestran solo bajo demanda en la Web App privada.
 - **MTS vs Matrix:** solo evalúa modalidades con sesión activa planificada. Si no hay planificación, devuelve **sin plan**, no «cero faltantes». Informa la última fecha programada disponible.
 - **Finanzas:** concilia el total con sus categorías. Muestra las tres mayores desviaciones por categoría y el importe gastado en partidas sin presupuesto asignado. Un presupuesto de otro mes se marca **desactualizado**.
 - **PSICOPRO:** controla que la meta de `Objetivos/Paciente` sea exactamente **15**, distinguiendo **pacientes clasificados semanalmente** de bloques horarios de agenda. Si la fuente usa otro objetivo, el KPI queda pendiente de verificación.
-- **Estado de las fuentes:** `4/4` indica que el cálculo de las cuatro fuentes produjo un estado utilizable, **no** que todos los registros sean recientes o correctos.
+- **Estado de las fuentes:** `5/5` indica que el cálculo de las cuatro fuentes produjo un estado utilizable, **no** que todos los registros sean recientes o correctos.
 
 El dashboard refresca al abrirse y **cada cinco minutos mientras está abierto**. No envía correos, avisos push ni tareas en segundo plano cuando está cerrado. Una alerta externa recurrente requeriría un trigger de Apps Script y permisos adicionales, y conviene evitar duplicarla con otras revisiones nocturnas existentes.
 
