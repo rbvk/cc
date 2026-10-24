@@ -1,0 +1,20 @@
+name: Validate private Command Center
+on:
+  push:
+    paths:
+      - 'apps-script/**'
+      - '.github/workflows/validate-command-center.yml'
+  pull_request:
+    paths:
+      - 'apps-script/**'
+      - '.github/workflows/validate-command-center.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run privacy and operational KPI regression tests
+        run: node apps-script/tests/command-center-smoke.mjs
