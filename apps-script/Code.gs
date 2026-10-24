@@ -521,7 +521,12 @@ function getDashboard(){
   const differentClinical=out.comparisons.clinical.possibleDifferent;
   const matrixOnlyClinical=out.comparisons.clinical.matrixOnly;
   if(todayDrg&&(todayDrg.hardStop||/\bABORT\b/i.test(todayDrg.output))){
-    out.nextAction={title:'DRG: detener carga',reason:'Hard Stop o ABORT en la evaluación de hoy.',level:'critical'};
+    out.nextAction={title:'DRG '+todayDrg.output+': detener carga',
+      reason:'Evaluación de hoy: '+(todayDrg.score===null?'puntuación pendiente':todayDrg.score+'/10')+
+        (todayDrg.hardStop?' · Hard Stop.':' · ABORT.')+
+        (out.matrix.state==='ok'&&out.matrix.todayTitle!=='Sin entrenamiento explícito'?
+          ' Matrix tiene previsto: '+out.matrix.todayTitle+'.':''),
+      level:'critical'};
   }else if(out.calendar.state==='ok'&&out.calendar.next&&out.calendar.next.minutesUntil<=120&&out.calendar.next.minutesUntil>=0){
     out.nextAction={title:'Preparar próximo compromiso',reason:'Hay un evento de calendario en menos de dos horas.',level:'high'};
   }else if(collisionClinical>0){
@@ -570,8 +575,12 @@ function getDashboard(){
   };
   if(todayDrg&&(todayDrg.hardStop||/\\bABORT\\b/i.test(todayDrg.output))){
     recommend('training',100,'critical','Aplicar DRG ABORT / Hard Stop',
-      'Evaluación válida de hoy; no sustituirla por el plan de entrenamiento.',
-      'No ejecutar la carga programada sin reevaluación y decisión de seguridad.', 'verificado','drg');
+      'DRG '+todayDrg.output+' hoy · '+(todayDrg.score===null?'sin puntuación':todayDrg.score+'/10')+
+        (todayDrg.hardStop?' · Hard Stop.':' · ABORT.')+
+        (out.matrix.state==='ok'&&out.matrix.todayTitle!=='Sin entrenamiento explícito'?
+          ' En Matrix aparece: '+out.matrix.todayTitle+'.':''),
+      'No ejecutar cargas ni sesiones de contacto hasta reevaluar el estado y decidir con criterios de seguridad.',
+      'verificado','drg');
   }else if(out.training.state==='ok'&&!todayDrg&&out.matrix.state==='ok'&&
       (out.matrix.today.boxing+out.matrix.today.gym+out.matrix.today.cardio)>0){
     recommend('training',83,'high','Evaluar DRG antes de entrenar',
