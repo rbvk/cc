@@ -30,11 +30,17 @@ const tabs = {
 };
 const sheets = {
  "MATRIX_SYNTHETIC_SHEET|19/10":[["9:00","","","","","","",""]],
- "MATRIX_SYNTHETIC_SHEET|26/10":[["17:00","","","","","","",""],["18:00","psicopro: PersonaSoloMatrix","","","","","",""]],
+ "MATRIX_SYNTHETIC_SHEET|26/10":[
+  ["9:00","Boxeo: clase","","","","","",""],
+  ["13:00","gym: pull","","","","","",""],
+  ["17:00","","","","","","",""],
+  ["18:00","psicopro: PersonaSoloMatrix","","","","","",""],
+  ["19:00","","trabajo: paper","","","","",""]
+ ],
  "TRAINING_SYNTHETIC_SHEET|Daily log":[["M9","25/10/2026 — Sunday","🏋️ SUN 25/10 · PUSH + Z2","not done ill"]],
  "TRAINING_SYNTHETIC_SHEET|drg":[["M9","Sat","24/10/2026",1,1,1,1,1,0,1,"YES","ABORT"]],
  "CLINICAL_SYNTHETIC_SHEET|Objetivos/Paciente":[["cupos","Nivel","Faltan"],["13","🔵 Clasificados semanales","—"],["15","🟠 Objetivo habitual","2"]],
- "CLINICAL_SYNTHETIC_SHEET|26/10":[["17:00","PersonaPrueba","","","",""]],
+ "CLINICAL_SYNTHETIC_SHEET|26/10":[["17:00","PersonaPrueba","","","",""],["19:00","","PacienteSintetico","","",""]],
  "FINANCE_SYNTHETIC_SHEET|Pre Oct":[
   ["💰 Presupuesto mensual"],
   ["Mes activo","October 2026","Gasto real del mes"],
@@ -59,7 +65,10 @@ const context = {
  Date:FixedDate, Utilities:{formatDate},
  PropertiesService:{getScriptProperties:()=>({getProperty:key=>sheetIds[key]||null})},
  Sheets:{Spreadsheets:{
-  get:(id)=>({sheets:(tabs[id]||[]).map(title=>({properties:{title}}))}),
+  get:(id)=>({sheets:(tabs[id]||[]).map((title,index)=>({properties:{
+    title,sheetId: id===sheetIds.TRAINING_SHEET_ID?
+      (title==='drg'?1815262331:24711586):1000+index
+  }}))}),
   Values:{get:(id,a1)=>({values:sheets[id+"|"+(a1.match(/^'([^']+)'!/)||[])[1]]||[]})}
  }},
  CalendarApp:{getDefaultCalendar:()=>({getEvents:()=>[]})},
@@ -73,6 +82,16 @@ assert.equal(result.training.drgToday.output,"ABORT");
 assert.equal(result.comparisons.training.state,"no_plan");
 assert.equal(result.comparisons.training.total,null);
 assert.equal(result.comparisons.clinical.matrixOnly,1);
+assert.equal(result.comparisons.clinical.conflicts,1);
+assert.equal(result.comparisons.clinical.collisionItems[0].hour,'19:00');
+assert.ok(result.recommendations.some(x=>x.domain==='clinical'&&
+  x.evidence.includes('martes 27/10 19:00')));
+assert.equal(result.comparisons.training.matrixOnlyDays,1);
+assert.ok(result.matrix.nextWeekTrainingDays.some(x=>x.title==='Clase boxeo + Pull / espalda'));
+assert.ok(result.training.drgUrl.endsWith('#gid=1815262331'));
+assert.ok(result.training.dailyLogUrl.endsWith('#gid=24711586'));
+assert.equal(result.training.completedSessions7d,0);
+assert.equal(result.training.omittedSessions7d,1);
 assert.equal(result.finance.categoryReconciled,true);
 assert.equal(result.finance.over,292415);
 assert.equal(result.finance.topOverages[0].over,150675);
@@ -82,4 +101,5 @@ assert.equal(result.recommendations.length,3);
 assert.equal(new Set(result.recommendations.map(x=>x.domain)).size,3);
 assert.equal(JSON.stringify(result).includes("PersonaPrueba"),false);
 assert.equal(JSON.stringify(result).includes("PersonaSoloMatrix"),false);
+assert.equal(JSON.stringify(result).includes("PacienteSintetico"),false);
 console.log("RV Command Center: security, DOM integrity and KPI regression tests PASSED.");
