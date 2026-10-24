@@ -177,11 +177,14 @@ function readTraining_(id,now) {
   const latest=drgs[0]||null;
   const weekEnd=plusDays_(startMonday_(now),13);
   const headerDays={};
+  let lastProgrammedDate=null;
   for(const row of daily){
     const d=parseDmy_(row[1]);
     if(!d||d>weekEnd)continue;
     const plan=String(row[2]||'');
     if(!isSessionHeader_(plan))continue;
+    const sessionDate=iso_(d);
+    if(!lastProgrammedDate || sessionDate>lastProgrammedDate)lastProgrammedDate=sessionDate;
     const done=String(row[3]||'').trim();
     // Cancelled work is not a booking obligation.
     if(/not done|cancel|ill\b|enferm|⛔|abort|drop\b/i.test(done))continue;
@@ -207,7 +210,7 @@ function readTraining_(id,now) {
       state:'ok',drgToday,drgLatest,
       drgState:drgToday?(drgToday.output==='SIN SALIDA'?'incomplete':'recorded'):'missing',
       completedRows7d:doneCount,scheduledKinds:plans.length,
-      nextWeekScheduled,
+      nextWeekScheduled,lastProgrammedDate,
       message:drgToday?'DRG hoy: '+drgToday.output+' · puntuación '+(drgToday.score===null?'pendiente':drgToday.score):
         'Sin DRG válido de hoy. Último registro: '+(latest?latest.date:'no disponible')
     },plans};
@@ -273,14 +276,37 @@ function readFinance_(id,now,props) {
   if(!row)return {state:'partial',tab,month:sourceMonth,message:'No se encontró fila «Total presupuesto»'};
   const budget=money_(row[1]),spent=money_(row[2]);
   if(budget===null||spent===null||budget<=0)return {state:'partial',tab,month:sourceMonth,message:'Presupuesto o gasto sin cifra válida'};
+  // Use the existing category summary only. Exclude income, raw bank movements,
+  // and handwritten notes; they do not belong in the dashboard.
+  const heading=rows.findIndex(r=>/categor[ií]a/i.test(String(r[0]||''))&&/presupuesto/i.test(String(r[1]||'')));
+  const totalIdx=rows.findIndex(r=>/total presupuesto/i.test(String(r[0]||'')));
+  const categories=heading>=0&&totalIdx>heading?rows.slice(heading+1,totalIdx):[];
+  let sumBudget=0,sumSpent=0;
+  const overages=[],unbudgeted=[];
+  for(const line of categories){
+    const category=String(line[0]||'').trim().slice(0,75);
+    if(!category||/^(?:total|ingreso|saldo|ahorro|rescate)/i.test(category))continue;
+    const planned=money_(line[1]),actual=money_(line[2]);
+    if(planned!==null)sumBudget+=planned;
+    if(actual!==null)sumSpent+=actual;
+    if(planned!==null&&actual!==null&&actual>planned){
+      overages.push({category,over:actual-planned,budget:planned,actual});
+    }
+    if(planned===null&&actual!==null&&actual>0)unbudgeted.push({category,amount:actual});
+  }
+  const reconciled=Boolean(categories.length)&&sumBudget===budget&&sumSpent===spent;
+  const topOverages=overages.sort((a,b)=>b.over-a.over).slice(0,3);
+  const unbudgetedAmount=unbudgeted.reduce((total,item)=>total+item.amount,0);
   const diff=spent-budget;
   const over=Math.max(0,diff);
   const remaining=Math.max(0,-diff);
   const pct=Number((100*diff/budget).toFixed(1));
   const current=sourceMonth===Utilities.formatDate(now,RV_TZ,'yyyy-MM');
-  return {state:current?'ok':'stale',month:sourceMonth,
+  return {state:!reconciled?'partial':current?'ok':'stale',month:sourceMonth,
     budget,spent,difference:diff,over,remaining,pct,
-    message:(current?'Mes actual':'Mes sin actualizar')+' · '+(diff>0?'Sobre presupuesto por '+clp_(over):diff<0?'Bajo presupuesto por '+clp_(remaining):'Presupuesto justo')+
+    categoryReconciled:reconciled,topOverages,unbudgetedCount:unbudgeted.length,unbudgetedAmount,
+    message:!reconciled?'Totales y categorías no concuerdan: verificar fórmula o rango':
+      (current?'Mes actual':'Mes sin actualizar')+' · '+(diff>0?'Sobre presupuesto por '+clp_(over):diff<0?'Bajo presupuesto por '+clp_(remaining):'Presupuesto justo')+
       ' CLP ('+pct+'%)'};
 }
 function clp_(n){return Math.round(n).toLocaleString('es-CL');}
@@ -357,7 +383,11 @@ function getDashboard(){
   if(financeId){try{out.finance=readFinance_(financeId,now,props);
     out.finance.url='https://docs.google.com/spreadsheets/d/'+financeId+'/edit';}
     catch(e){out.finance=registerError_();}}
-  if(training&&matrix){out.comparisons.training=Object.assign({state:'ok'},reconcileTraining_(training.plans,matrix));}
+  if(training&&matrix){
+    out.comparisons.training=training.plans.length?
+      Object.assign({state:'ok'},reconcileTraining_(training.plans,matrix)):
+      {state:'no_plan',total:null,items:[],message:'Sin plan activo comparable. No se puede concluir que Matrix esté al día.'};
+  }
   if(clinical&&matrix&&clinical.publicData.agendaState==='ok'){
     const weekAvailable=matrix.available.includes(clinical.publicData.week);
     out.comparisons.clinical=weekAvailable?
@@ -399,6 +429,8 @@ function getDashboard(){
   if(missingTraining>0)out.alerts.push('MTS: '+missingTraining+' modalidades no agendadas');
   if(out.clinical.state==='ok'&&out.clinical.gap<0)out.alerts.push('Cupos: faltan '+Math.abs(out.clinical.gap)+' para '+RV_TARGET_WEEKLY);
   if(out.finance.state==='ok'&&out.finance.over>0)out.alerts.push('Finanzas: exceso '+clp_(out.finance.over)+' CLP');
+  if(out.finance.state==='partial'&&out.finance.categoryReconciled===false)out.alerts.push('Finanzas: suma de categorías no coincide con el total');
+  if(out.finance.state==='stale')out.alerts.push('Finanzas: presupuesto corresponde a otro mes');
   if(out.training.state==='ok'&&!todayDrg)out.alerts.push('DRG: sin evaluación válida hoy');
   if(out.training.state==='ok'&&!out.training.nextWeekScheduled)out.alerts.push('MTS: sin programación activa próxima semana');
   return out;
