@@ -766,7 +766,7 @@ function reconcileClinical_(bookings,matrix,week,clinical){
       const clinicUrl=clinical?.fileId&&clinicRow&&weekday>=0&&weekday<5&&clinical.tab?
         cellUrl_(clinical.fileId,clinical.tab,dayColumn_(weekday)+clinicRow,clinical.metadata):null;
       matrixOnly.push({date,hour:String(Math.floor(minutes/60)).padStart(2,'0')+':'+String(minutes%60).padStart(2,'0'),
-        matrixEntry:slot.privateClinicalLabel||'Actividad clínica sin descripción',
+        hasPrivateDetail:true,
         matrixUrl:slot.cellUrl||null,clinicalUrl:clinicUrl});
     }
   }
@@ -895,6 +895,35 @@ function history_(out,props,now) {
     resolved24h:resolved.length,persistent:items.length-new24h,
     checkedAt:now.toISOString(),
     message:'Se guardan únicamente identificadores anónimos, no nombres ni contenidos de hojas'};
+}
+
+/**
+ * Owner-only, on-demand clinical detail. Sensitive free text is not included in
+ * the dashboard payload or alert history. The Web App MUST be "Only myself".
+ */
+function getMatrixOnlyClinicalDetail(date,hour){
+  const dateText=String(date||''),timeText=String(hour||'');
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(dateText)||!/^\d{2}:\d{2}$/.test(timeText))
+    return {state:'invalid'};
+  const now=new Date(),target=parseIso_(dateText),minutes=hour_(timeText);
+  if(minutes===null||Math.abs(target.getTime()-now.getTime())>21*24*60*60*1000)
+    return {state:'invalid'};
+  const props=PropertiesService.getScriptProperties();
+  const mid=String(props.getProperty('MATRIX_SHEET_ID')||'');
+  const cid=String(props.getProperty('CLINICAL_SHEET_ID')||'');
+  if(!/^[A-Za-z0-9_-]{15,}$/.test(mid)||!/^[A-Za-z0-9_-]{15,}$/.test(cid))
+    return {state:'unavailable'};
+  try{
+    const matrix=readMatrix_(mid,now),clinic=readClinical_(cid,now);
+    const cmp=reconcileClinical_(clinic.bookings,matrix,clinic.publicData.week,clinic);
+    const issue=(cmp.matrixOnlyItems||[]).find(x=>x.date===dateText&&x.hour===timeText);
+    if(!issue)return {state:'not_found'};
+    const slot=(matrix.slots[dateText]||{})[minutes];
+    if(!slot?.clinical)return {state:'not_found'};
+    return {state:'ok',date:dateText,hour:timeText,
+      description:String(slot.privateClinicalLabel||'Actividad clínica').slice(0,150),
+      matrixUrl:issue.matrixUrl,clinicalUrl:issue.clinicalUrl};
+  }catch(e){return {state:'unavailable'};}
 }
 
 function getDashboard(){
