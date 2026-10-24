@@ -1,4 +1,54 @@
-# 🧠 RV Command Center — análisis privado, sin OAuth recurrente
+# RV Command Center V9 — implementación privada y despliegue
+
+**Estado:** V9 implementado y validado en GitHub. El enlace privado /exec de Google Apps Script **NO** se actualiza mediante commits; el propietario debe incorporar los nuevos archivos y publicar una nueva versión. No se debe confundir GitHub Pages (portal público) con el motor privado.
+
+## Archivos que debes cargar en tu proyecto existente
+
+1. Sustituir Code.gs por la última versión de [Code.gs](Code.gs). V8 se conserva como respuesta opcional con ?view=v8.
+2. Mantener el archivo histórico HTML Index.html para que ?view=v8 siga funcionando.
+3. Crear nuevo archivo de script con el nombre V9_Core y pegar [V9_Core.gs](V9_Core.gs).
+4. Crear nuevo archivo de script con el nombre V9_Intelligence y pegar [V9_Intelligence.gs](V9_Intelligence.gs).
+5. Crear archivo HTML llamado V9, pegando [V9.html](V9.html). No insertar las fotos en Github Pages.
+6. Actualizar appsscript.json con [appsscript.json](appsscript.json), conservar las Script Properties con IDs de Matrix, MTS, PSICOPRO y Finanzas; añadir únicamente opciones explícitas deseadas.
+
+**Activación:** en el editor Apps Script, guardar todos los archivos; ejecutar getV9Dashboard una vez para autorizar la nueva capacidad de solicitudes externas; luego **Implementar > Administrar implementaciones > Editar > Nueva versión > Implementar**. Mantener SIEMPRE Ejecutar como Yo y acceso Solo yo. La URL /exec será la misma. La lectura de Sheets y Calendar permanece bajo permisos de solo lectura, mientras que UrlFetchApp pide autorización external_request.
+
+**Verificación:** abrir la URL /exec con tu cuenta, recorrer Hoy/Oportunidades/Arica/Inteligencia, usar un registro de prueba anónimo y deshacerlo, capturar una tarea sin datos personales y marcarla como terminada, comprobar que los KPI coincidan con la hoja, comprobar que todas las fotos carguen y que las no disponibles tengan fallback; usar ?view=v8 si aparece un error. Confirmar que una cuenta ajena no puede acceder a /exec.
+
+## Implementaciones V9
+
+- 🧠 **External Brain:** botón Capturar -> tarea anónima no clínica almacenada en Script Properties por mes, categorización y duración estimadas, detección de duplicado exacto, estado abrir/terminar/descartar; solo 6 meses recientes y límite de 28 entradas/mes para respetar 9KB por valor. No se exige hoja nueva.
+- 📲 **Captación mínima:** clic de nueva consulta con origen opcional; contador agregado por día/semana/mes, botón deshacer durante cinco minutos; no se lee WhatsApp ni se guardan números o nombres. Sin conversión individual exacta.
+- 🏥 **Primeras atenciones:** se cuentan ÚNICAMENTE los bloques completados que contengan marca explícita 🆕 o texto primera sesión/atención en PSICOPRO. Si no está estandarizada se muestra NO VERIFICADO, no 0. No se modifican hojas.
+- ⏳ **Time Opportunity:** ventanas potenciales de Matrix + calendario predeterminado, con margen de 15 minutos por Calendar; las tareas capturadas de duración estimada compatible pueden proponerse para finalizar.
+- ⚡ **Opportunity Engine:** reglas vinculadas a DRG ABORT, faltantes de cupos clínicos, sobrepresupuesto, entregables terminables, stock BOXINGCI, habilidades de boxeo y pendientes de registro MTS. Incertidumbres y origen explícitos.
+- 🔬 **Decision Engine:** simulación de cupos clínicos por tarifa registrada en PSICOPRO y comisión 40% por defecto, ahorro presupuestario hipotético y tiempo de foco. NO hay escrituras de PSICOPRO/Calendar/Finanzas ni promesa de ingresos.
+- 📊 **Inteligencia nueva:** Boxing roadmap, MONTH KPI, Bodyfat, Plan 6 meses, BOXINGCI Merch, Servicios. Cifras sin marca de fecha vigente no se consideran medidas actuales.
+- 🌆 **Arica Live:** reloj America/Santiago, pronóstico meteorológico Open-Meteo, modelo PM2.5, modelo marítimo, enlaces SENAPRED/CSN/DMC/SINCA/Armada y directorio webcams públicas con estado SIN VERIFICAR/OFFLINE o FOTOS FECHADAS. No se accede a CCTV municipal, ni se declara emisión EN VIVO sin comprobarla. Los modelos NO equivalen a observaciones oficiales.
+- 📷 **29 fotografías referenciadas desde sus proveedores:** 11 Arica de Wikimedia Commons, 18 temáticas Pexels; están integradas en V9.html por URL remota, con carga diferida, texto alternativo, créditos y fallback. **No hay archivos fotográficos descargados en este repositorio** y algunas URLs podrían no cargar por políticas de hotlink/bloqueo. Fotografías de archivo no son webcams.
+- 🛡️ **Seguridad:** Script Web App Solo yo; nunca llevar datos privados a GitHub Pages; sin acceso de escritura a Sheets o Calendar. GitHub Pages únicamente distribuye el portal. Los controles públicos nunca reciben datos del proyecto Apps Script.
+
+### Configuración opcional
+- CLINIC_COMMISSION_PCT: porcentaje comisión clínica (por defecto 40).
+- RV9_GITHUB_REPOS: repositorios públicos separados por coma, bajo rbvk (por defecto rbvk/cc,rbvk/boxingCI).
+- FINANCE_BUDGET_TAB: continúa siendo la pestaña de presupuesto vigente del sistema anterior.
+
+### Restricciones y fuentes externas
+- Open-Meteo publica su API gratuita **para uso no comercial**, y dispone de producto comercial. Antes de emplear datos meteorológicos como parte de un producto de negocio, verificar la licencia y pasar al endpoint comercial. Esta integración inicial está pensada para evaluar el panel privado.
+- No se consulta automáticamente Gmail ni el contenido de documentos Drive para evitar scopes nuevos y uso de información sensible sin delimitación. Los repositorios GitHub aparecen como enlaces públicos, no como falsa verificación de entregables.
+- No se obtienen automáticamente cámaras municipales ni eventos/sismos en un feed validado. Los enlaces a fuentes oficiales funcionan como acceso directo y las etiquetas informan la falta de verificación.
+- La captura V9 es una memoria operativa, no un sistema de historias clínicas: no registrar pacientes, diagnósticos, contraseñas ni mensajes.
+- La cifra de consultas nuevas es agregada y manual; no atribuible automáticamente a una atención individual.
+
+### Pruebas
+Ejecutar las tres suites sintéticas (sin nombres clínicos reales):
+  node apps-script/tests/command-center-smoke.mjs
+  node apps-script/tests/command-center-v8.mjs
+  node apps-script/tests/command-center-v9.mjs
+
+---
+
+# RV Command Center V8 — documentación histórica de respaldo
 
 **GitHub Pages (`cc.rodolfovalle.com`) publica únicamente el portal.** Los datos reales se procesan dentro de una Web App de Google Apps Script, desplegada por el propietario como **Execute as: Me / Who has access: Only myself**.
 
