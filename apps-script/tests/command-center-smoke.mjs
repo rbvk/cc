@@ -30,7 +30,7 @@ const tabs = {
 };
 const sheets = {
  "MATRIX_SYNTHETIC_SHEET|19/10":[["9:00","","","","","","",""]],
- "MATRIX_SYNTHETIC_SHEET|26/10":[["17:00","","","","","","",""]],
+ "MATRIX_SYNTHETIC_SHEET|26/10":[["17:00","","","","","","",""],["18:00","psicopro: PersonaSoloMatrix","","","","","",""]],
  "TRAINING_SYNTHETIC_SHEET|Daily log":[["M9","25/10/2026 — Sunday","🏋️ SUN 25/10 · PUSH + Z2","not done ill"]],
  "TRAINING_SYNTHETIC_SHEET|drg":[["M9","Sat","24/10/2026",1,1,1,1,1,0,1,"YES","ABORT"]],
  "CLINICAL_SYNTHETIC_SHEET|Objetivos/Paciente":[["cupos","Nivel","Faltan"],["13","🔵 Clasificados semanales","—"],["15","🟠 Objetivo habitual","2"]],
@@ -72,6 +72,7 @@ assert.equal(result.clinical.gap,-2);
 assert.equal(result.training.drgToday.output,"ABORT");
 assert.equal(result.comparisons.training.state,"no_plan");
 assert.equal(result.comparisons.training.total,null);
+assert.equal(result.comparisons.clinical.matrixOnly,1);
 assert.equal(result.finance.categoryReconciled,true);
 assert.equal(result.finance.over,292415);
 assert.equal(result.finance.topOverages[0].over,150675);
@@ -80,4 +81,5 @@ assert.equal(result.nextAction.level,"critical");
 assert.equal(result.recommendations.length,3);
 assert.equal(new Set(result.recommendations.map(x=>x.domain)).size,3);
 assert.equal(JSON.stringify(result).includes("PersonaPrueba"),false);
+assert.equal(JSON.stringify(result).includes("PersonaSoloMatrix"),false);
 console.log("RV Command Center: security, DOM integrity and KPI regression tests PASSED.");
