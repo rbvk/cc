@@ -399,6 +399,30 @@ function parseIso_(iso){
   const parts=String(iso).split('-').map(Number);
   return new Date(parts[0],parts[1]-1,parts[2],12);
 }
+function upcomingMatrixWithoutPlan_(matrix,training,now) {
+  const start=startMonday_(now);
+  const nextKey=weekKey_(plusDays_(start,7));
+  if(!matrix.available.includes(nextKey))
+    return {state:'matrix_missing',total:null,matrixOnlyDays:null,
+      matrixOnlyItems:[],message:'No se encontró Matrix para '+nextKey+'.'};
+  const matrixDays=matrix.publicData.nextWeekTrainingDays||[];
+  const plans=training.plans.filter(p=>p.date>=iso_(plusDays_(start,7))&&
+    p.date<=iso_(plusDays_(start,13)));
+  const plannedDates=new Set(plans.map(p=>p.date));
+  const mismatches=matrixDays.filter(day=>!plannedDates.has(day.date))
+    .map(day=>({date:day.date,title:day.title}));
+  return {state:plans.length?'ok':'no_plan',
+    total:null,matrixOnlyDays:mismatches.length,matrixOnlyItems:mismatches.slice(0,7),
+    week:nextKey,lastProgrammedDate:training.publicData.lastProgrammedDate,
+    message:plans.length?
+      mismatches.length+' jornadas Matrix sin entrada MTS equivalente en semana '+nextKey:
+      'MTS no tiene programación activa para '+nextKey+'. Matrix contiene '+matrixDays.length+' jornadas de entrenamiento.'};
+}
+function slotSummary_(slots,limit) {
+  const first=(slots||[]).slice(0,limit||4).map(slotDescription_);
+  const extra=(slots||[]).length-first.length;
+  return first.join('; ')+(extra>0?' (+'+extra+' más)':'');
+}
 function reconcileClinical_(bookings,matrix,week){
   const missing=[],conflicts=[],possibleDifferent=[],matrixOnly=[];
   const available=new Set(matrix.available);
@@ -458,21 +482,25 @@ function getDashboard(){
   const matrixId=idFor('MATRIX_SHEET_ID'),trainingId=idFor('TRAINING_SHEET_ID'),
     clinicalId=idFor('CLINICAL_SHEET_ID'),financeId=idFor('FINANCE_SHEET_ID');
   if(matrixId){try{matrix=readMatrix_(matrixId,now);out.matrix=matrix.publicData;
-    out.matrix.url='https://docs.google.com/spreadsheets/d/'+matrixId+'/edit';}
+    out.matrix.url=out.matrix.url||'https://docs.google.com/spreadsheets/d/'+matrixId+'/edit';}
     catch(e){out.matrix=registerError_();}}
   if(trainingId){try{training=readTraining_(trainingId,now);out.training=training.publicData;
-    out.training.url='https://docs.google.com/spreadsheets/d/'+trainingId+'/edit';}
+    out.training.url=out.training.dailyLogUrl||'https://docs.google.com/spreadsheets/d/'+trainingId+'/edit';}
     catch(e){out.training=registerError_();}}
   if(clinicalId){try{clinical=readClinical_(clinicalId,now);out.clinical=clinical.publicData;
-    out.clinical.url='https://docs.google.com/spreadsheets/d/'+clinicalId+'/edit';}
+    out.clinical.url=out.clinical.url||'https://docs.google.com/spreadsheets/d/'+clinicalId+'/edit';}
     catch(e){out.clinical=registerError_();}}
   if(financeId){try{out.finance=readFinance_(financeId,now,props);
-    out.finance.url='https://docs.google.com/spreadsheets/d/'+financeId+'/edit';}
+    out.finance.url=out.finance.url||'https://docs.google.com/spreadsheets/d/'+financeId+'/edit';}
     catch(e){out.finance=registerError_();}}
   if(training&&matrix){
+    const reverse=upcomingMatrixWithoutPlan_(matrix,training,now);
     out.comparisons.training=training.plans.length?
-      Object.assign({state:'ok'},reconcileTraining_(training.plans,matrix)):
-      {state:'no_plan',total:null,items:[],message:'Sin plan activo comparable. No se puede concluir que Matrix esté al día.'};
+      Object.assign({state:'ok'},reconcileTraining_(training.plans,matrix),{
+        matrixOnlyDays:reverse.matrixOnlyDays,matrixOnlyItems:reverse.matrixOnlyItems,
+        week:reverse.week,reverseState:reverse.state
+      }):
+      Object.assign({total:null,items:[]},reverse);
   }
   if(clinical&&matrix&&clinical.publicData.agendaState==='ok'){
     const weekAvailable=matrix.available.includes(clinical.publicData.week);
@@ -491,7 +519,9 @@ function getDashboard(){
   }else if(out.calendar.state==='ok'&&out.calendar.next&&out.calendar.next.minutesUntil<=120&&out.calendar.next.minutesUntil>=0){
     out.nextAction={title:'Preparar próximo compromiso',reason:'Hay un evento de calendario en menos de dos horas.',level:'high'};
   }else if(collisionClinical>0){
-    out.nextAction={title:'Resolver conflicto PSICOPRO / Matrix',reason:collisionClinical+' citas coinciden con otra actividad en Matrix.',level:'high'};
+    out.nextAction={title:'Revisar '+collisionClinical+' solapamientos PSICOPRO',reason:collisionClinical+
+      ' horarios coinciden: '+slotSummary_(out.comparisons.clinical.collisionItems,4)+
+      '. Verificar ambas pestañas antes de corregir.',level:'high'};
   }else if(missingClinical>0){
     out.nextAction={title:'Agendar pacientes en Matrix',reason:missingClinical+' bloques PSICOPRO no aparecen en Matrix.',level:'high'};
   }else if(differentClinical>0){
@@ -510,7 +540,9 @@ function getDashboard(){
     (out.matrix.today.boxing+out.matrix.today.gym+out.matrix.today.cardio)>0){
     out.nextAction={title:'Registrar DRG de hoy',reason:'Hay entrenamiento en Matrix, pero falta la evaluación diaria.',level:'medium'};
   }else if(out.training.state==='ok'&&!out.training.nextWeekScheduled){
-    out.nextAction={title:'Revisar programación MTS próxima semana',reason:'No aparecen sesiones activas planificadas para la próxima semana.',level:'normal'};
+    out.nextAction={title:'Revisar programación MTS próxima semana',reason:
+    out.comparisons.training.state==='no_plan'?
+      out.comparisons.training.message:'No aparecen sesiones activas planificadas para la próxima semana.',level:'normal'};
   }
   if(collisionClinical>0)out.alerts.push('PSICOPRO: '+collisionClinical+' posibles solapamientos');
   if(missingClinical>0)out.alerts.push('PSICOPRO: '+missingClinical+' citas ausentes en Matrix');
@@ -533,25 +565,31 @@ function getDashboard(){
   if(todayDrg&&(todayDrg.hardStop||/\\bABORT\\b/i.test(todayDrg.output))){
     recommend('training',100,'critical','Aplicar DRG ABORT / Hard Stop',
       'Evaluación válida de hoy; no sustituirla por el plan de entrenamiento.',
-      'No ejecutar la carga programada sin reevaluación y decisión de seguridad.', 'verificado','training');
+      'No ejecutar la carga programada sin reevaluación y decisión de seguridad.', 'verificado','drg');
   }else if(out.training.state==='ok'&&!todayDrg&&out.matrix.state==='ok'&&
       (out.matrix.today.boxing+out.matrix.today.gym+out.matrix.today.cardio)>0){
     recommend('training',83,'high','Evaluar DRG antes de entrenar',
       'Matrix incluye actividad física, pero no hay DRG válido de hoy.',
-      'Completar evaluación y aplicar PROCEED, CUT o ABORT antes de la sesión.','verificado','training');
+      'Completar evaluación y aplicar PROCEED, CUT o ABORT antes de la sesión.','verificado','drg');
   }else if(missingTraining>0){
     recommend('training',79,'high','Conciliar MTS con Matrix',
       missingTraining+' modalidades de entrenamiento no detectadas en la fecha prevista.',
       'Revisar los días señalados y reservar los bloques que correspondan.','revisar','matrix');
   }else if(out.training.state==='ok'&&!out.training.nextWeekScheduled){
+    const cmp=out.comparisons.training;
+    const first=cmp.matrixOnlyItems?.[0];
     recommend('training',72,'medium','Planificar el próximo ciclo MTS',
-      'Sin sesiones activas la semana siguiente. Último día de plan: '+(out.training.lastProgrammedDate||'no disponible')+'.',
-      'Confirmar primero el nuevo plan MTS; después contrastarlo con Matrix.','verificado','training');
+      (cmp.state==='no_plan'?
+        'Matrix '+cmp.week+' tiene '+cmp.matrixOnlyDays+' jornadas con ejercicio y MTS no tiene sesiones futuras.':
+        'Sin sesiones activas la semana siguiente.')+
+        ' Último día planificado: '+(out.training.lastProgrammedDate||'no disponible')+'.'+
+        (first?' Primer bloque Matrix: '+slotDescription_(first)+' · '+first.title+'.':''),
+      'Completar las sesiones en Daily log y contrastar después con Matrix.','verificado','training');
   }
   if(collisionClinical>0){
-    recommend('clinical',93,'high','Resolver solapamientos PSICOPRO',
-      collisionClinical+' horarios de pacientes coinciden con otra actividad en Matrix.',
-      'Comprobar ambas agendas y corregir solo después de verificar la reserva.','revisar','clinical');
+    recommend('clinical',93,'high','Revisar '+collisionClinical+' solapamientos PSICOPRO',
+      collisionClinical+' horarios coinciden: '+slotSummary_(out.comparisons.clinical.collisionItems,6)+'.',
+      'Comprobar esas fechas y horas en PSICOPRO y Matrix (semana '+out.clinical.week+') antes de modificar una reserva.','revisar','clinical');
   }else if(missingClinical>0){
     recommend('clinical',89,'high','Completar agenda privada en Matrix',
       missingClinical+' posibles citas de PSICOPRO no tienen bloque clínico correspondiente.',
