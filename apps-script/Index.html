@@ -32,9 +32,16 @@
     .progress{height:9px;width:100%;background:#2b3d55;border-radius:30px;overflow:hidden;margin:14px 0 5px}.progress span{display:block;height:100%;width:0;background:#89c8fa;border-radius:30px}
     .source-link{display:inline-block;margin-top:15px;color:#9dd6ff;font-size:12px;font-weight:600}
     .critical{border-color:#e78372}.critical .eyebrow{color:#ffad99}.attention{border-color:#b99a65}
+    .recommend-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;list-style:none;padding:0;margin:0}
+    .recommendation{border:1px solid #354a66;border-radius:13px;padding:16px;background:#152439}
+    .recommendation.high{border-color:#bc9d65}.recommendation.critical{border-color:#dd8a77}
+    .recommendation h3{margin:5px 0 8px}.recommendation p{font-size:13px;color:#b8cbe1;margin:0 0 7px;overflow-wrap:anywhere}
+    .recommendation .next{font-weight:650;color:#e4f0ff}
+    .recommendation .evidence{font-size:11px;color:#96b0c9;margin-top:10px}
+    .recommendation a{display:inline-block;margin-top:11px;font-size:12px}
     .footer{margin-top:30px;border-top:1px solid #2b3b50;padding-top:20px;font-size:12px;color:#99adc7}
     #reload-state{min-height:20px}
-    @media(max-width:950px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.focus{grid-column:span 2}}
+    @media(max-width:950px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.focus{grid-column:span 2}.recommend-grid{grid-template-columns:1fr}}
     @media(max-width:590px){.wrap{padding:18px 14px 35px}.grid{grid-template-columns:1fr}.focus{grid-column:auto}.card{padding:16px}.header{align-items:flex-start}.chip{font-size:11px}.metric{font-size:28px}}
   </style>
 </head>
@@ -93,6 +100,8 @@
       <div class="statrow"><span>Presupuestado</span><b id="budget-plan">—</b></div>
       <div class="statrow"><span>Gastado</span><b id="budget-actual">—</b></div>
       <p id="budget-period" class="minor"></p>
+      <ul id="finance-drivers" class="status-list" aria-label="Categorías con mayor desviación"></ul>
+      <p id="unbudgeted-note" class="minor"></p>
       <a class="source-link" id="finance-link" href="https://sheets.google.com" target="_blank" rel="noopener noreferrer">Abrir Finanzas ↗</a>
     </article>
     <article class="card">
@@ -107,6 +116,15 @@
       <p id="matrix-summary" class="description">No consultado</p>
       <p id="plan-status" class="minor">Próxima semana MTS: sin verificar</p>
     </article>
+  </section>
+  <section aria-labelledby="rec-heading">
+    <div class="section-head">
+      <div><p class="eyebrow">Análisis que conduce a una acción</p><h2 id="rec-heading">🧭 Tres recomendaciones prioritarias</h2></div>
+      <span id="source-health" class="small muted">Fuentes: por verificar</span>
+    </div>
+    <ol id="recommendations" class="recommend-grid">
+      <li class="recommendation"><h3>Esperando las fuentes privadas…</h3></li>
+    </ol>
   </section>
   <footer class="footer">
     🔐 Esta vista debe desplegarse en Google Apps Script con acceso <strong>Only myself</strong>. Solo se muestran recuentos, fechas y horas de diferencias; nunca nombres, RUT, diagnósticos ni notas clínicas. Los cotejos de agenda son candidatos para verificación, no confirmaciones clínicas automáticas.
@@ -138,6 +156,37 @@ function list(id,items,makeLabel){
 function sourceLink(id,data){
  const link=$(id);
  if(data?.url&&/^https:\/\/docs\.google\.com\/spreadsheets\/d\/[A-Za-z0-9_-]+\/edit$/.test(data.url))link.href=data.url;
+}
+function renderRecommendations(d){
+ const parent=$('recommendations');
+ parent.replaceChildren();
+ const allowed={training:d.training?.url,matrix:d.matrix?.url,
+   clinical:d.clinical?.url,finance:d.finance?.url,calendar:'https://calendar.google.com/'};
+ const items=Array.isArray(d.recommendations)?d.recommendations.slice(0,3):[];
+ for(let i=0;i<items.length;i++){
+   const r=items[i];
+   const li=document.createElement('li');li.className='recommendation';
+   if(r.level==='critical'||r.level==='high')li.classList.add(r.level);
+   const label=document.createElement('div');label.className='eyebrow';
+   label.textContent='#'+(i+1)+' · '+(r.certainty==='revisar'?'REVISAR':'VERIFICADO');
+   const heading=document.createElement('h3');heading.textContent=r.title;
+   const evidence=document.createElement('p');evidence.textContent=r.evidence;
+   const next=document.createElement('p');next.className='next';next.textContent='Acción: '+r.action;
+   li.append(label,heading,evidence,next);
+   const url=allowed[r.source];
+   if(typeof url==='string'&&/^https:\/\/(?:docs\.google\.com\/spreadsheets\/d\/[A-Za-z0-9_-]+\/edit|calendar\.google\.com\/)$/.test(url)){
+     const link=document.createElement('a');link.href=url;link.target='_blank';link.rel='noopener noreferrer';link.textContent='Abrir fuente original ↗';li.appendChild(link);
+   }
+   parent.appendChild(li);
+ }
+ if(!items.length){
+   const li=document.createElement('li');li.className='recommendation';
+   li.textContent='No hay recomendaciones verificadas todavía. Revisa los estados de las fuentes.';
+   parent.appendChild(li);
+ }
+ const quality=d.sourceHealth;
+ set('source-health',quality?('Fuentes válidas: '+quality.available+'/'+quality.total+
+   (quality.issues.length?' · revisar: '+quality.issues.join(', '):'')):'Fuentes: por verificar');
 }
 function render(d){
  const a=d.nextAction||{};
@@ -184,6 +233,11 @@ function render(d){
  set('budget-plan',amount?clp(f.budget):'—');
  set('budget-actual',amount?clp(f.spent):'—');
  set('budget-period',f.month?(f.month+(f.state==='stale'?' · DATOS DESACTUALIZADOS':'')):'Sin período confirmado');
+ list('finance-drivers',amount&&f.categoryReconciled?f.topOverages:[],
+   row=>row.category+' · +'+clp(row.over)+' sobre su partida');
+ set('unbudgeted-note',amount&&f.unbudgetedCount?
+   f.unbudgetedCount+' partidas sin presupuesto asignado: '+clp(f.unbudgetedAmount):
+   (f.categoryReconciled===false?'⚠️ Categorías y total no concuerdan':''));
  set('calendar-count',d.calendar?.state==='ok'?d.calendar.upcoming48h:'—');
  set('calendar-message',d.calendar?.message);
  set('matrix-summary',matrix.message);
@@ -191,7 +245,8 @@ function render(d){
  for(const name of ['matrix','training','clinical','finance'])sourceLink(name+'-link',d[name]);
  const alertText=Array.isArray(d.alerts)?d.alerts:[];
  $('alerts').hidden=alertText.length===0;
- set('alerts',alertText.join(' · '));
+ set('alerts',alertText.slice(0,4).join(' · ')+(alertText.length>4?' · +'+(alertText.length-4)+' avisos en las tarjetas':''));
+ renderRecommendations(d);
  const last=new Date(d.generatedAt);
  set('reload-state','Actualizado: '+(Number.isNaN(last.getTime())?'sin fecha':last.toLocaleString('es-CL',{timeZone:'America/Santiago'}))+' · Datos agregados y privados');
 }
