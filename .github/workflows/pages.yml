@@ -2,6 +2,11 @@ name: Publish RV Command Center
 on:
   push:
     branches: [main]
+    paths:
+      - index.html
+      - app.js
+      - styles.css
+      - .github/workflows/pages.yml
   workflow_dispatch:
 permissions:
   contents: read
@@ -12,21 +17,29 @@ concurrency:
   cancel-in-progress: true
 jobs:
   deploy:
+    runs-on: ubuntu-latest
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - name: Prepare static site
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Assemble static site
         run: |
+          set -eu
           mkdir -p public-site
-          cp index.html config.json public-site/
-          echo 'cc.rodolfovalle.com' > public-site/CNAME
+          cp index.html app.js styles.css public-site/
+          printf '%s\n' cc.rodolfovalle.com > public-site/CNAME
           touch public-site/.nojekyll
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
+          test -s public-site/index.html
+          test -s public-site/app.js
+          test -s public-site/styles.css
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+      - name: Upload site
+        uses: actions/upload-pages-artifact@v3
         with:
           path: public-site
-      - id: deployment
+      - name: Deploy GitHub Pages
+        id: deployment
         uses: actions/deploy-pages@v4
