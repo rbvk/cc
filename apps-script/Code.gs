@@ -265,16 +265,22 @@ function readTraining_(id,now) {
   const afterMonday=iso_(plusDays_(startMonday_(now),7));
   const nextWeekScheduled=plans.some(p=>p.date>=afterMonday);
   const from=iso_(plusDays_(now,-7));
-  const doneCount=daily.filter(row=>{
+  const recentHeaders=daily.filter(row=>{
     const d=parseDmy_(row[1]);
-    return d&&iso_(d)>=from&&iso_(d)<=todayIso&&/\bdone\b|completad|realizad/i.test(String(row[3]||''));
-  }).length;
+    return d&&iso_(d)>=from&&iso_(d)<=todayIso&&isSessionHeader_(row[2]);
+  });
+  const isComplete=status=>/^(?:done|completed|completad[ao]|realizad[ao]|hecho|✅)(?:\b|\s)/i.test(String(status||'').trim())&&
+    !/not done|no realizado/i.test(String(status||''));
+  const completedSessions7d=recentHeaders.filter(row=>isComplete(row[3])).length;
+  const omittedSessions7d=recentHeaders.filter(row=>
+    /not done|cancel|ill\b|enferm|⛔|abort|drop\b/i.test(String(row[3]||''))).length;
   const drgToday=current?{date:current.date,score:current.score,output:current.output,hardStop:current.hardStop}:null;
   const drgLatest=latest?{date:latest.date,score:latest.score,output:latest.output}:null;
   return {publicData:{
       state:'ok',drgToday,drgLatest,
       drgState:drgToday?(drgToday.output==='SIN SALIDA'?'incomplete':'recorded'):'missing',
-      completedRows7d:doneCount,scheduledKinds:plans.length,
+      completedSessions7d,omittedSessions7d,sessionHeaders7d:recentHeaders.length,
+      scheduledKinds:plans.length,
       nextWeekScheduled,lastProgrammedDate,
       drgUrl:tabUrl_(id,'drg',metadata),
       dailyLogUrl:tabUrl_(id,'Daily log',metadata),
