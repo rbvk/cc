@@ -408,11 +408,12 @@ function readClinicalHours_(id,tabs,metadata,now) {
     const cell=String(row[day]||'').trim();
     if(cell)freq[cell]=(freq[cell]||0)+1;
   }
-  let booked=0,elapsed=0,markedAttended=0;
+  let booked=0,elapsed=0,markedAttended=0,explicitlyFree=0;
   for(const row of rows) {
     const time=hour_(row[0]);if(time===null)continue;
     for(let weekday=0;weekday<5;weekday++) {
       const cell=String(row[weekday+1]||'').trim();
+      if(/^(?:libre|disponible|vacante)$/i.test(cell))explicitlyFree++;
       if(isFree_(cell)||/^(?:bloquead[oa]|reservado|nuevo paciente|no disponible|por confirmar|sin confirmar|sin agenda|sin asignar)$/i.test(cell))continue;
       if(freq[cell]>=6&&!/(?:\bpaciente\b|psicop|confirmad)/i.test(cell))continue;
       booked++;
@@ -427,6 +428,7 @@ function readClinicalHours_(id,tabs,metadata,now) {
   }
   return {state:'ok',week:key,elapsedBookingHours:elapsed,bookedWeekHours:booked,
     attendedHours:elapsed,verifiedAttendedHours:markedAttended>0?markedAttended:null,
+    explicitFreeHours:explicitlyFree,
     note:'Horas atendidas esta semana según PSICOPRO depurado (solo citas efectivamente atendidas); cada bloque representa 1 h.',
     url:tabUrl_(id,tab,metadata)};
 }
@@ -453,7 +455,14 @@ function readClinical_(id,now) {
     message:usable?weekly+' / '+RV_TARGET_WEEKLY+' pacientes semanales · '+(delta<0?'faltan '+Math.abs(delta):delta>0?'sobre objetivo por '+delta:'meta alcanzada'):
       (targetMatches?'No se pudo validar pacientes clasificados':'La meta de la hoja no coincide con 15: revisar antes de comparar')
   };
-  if(!tab){publicData.agendaState='missing';publicData.message+=' · Sin agenda de la semana '+key;return {publicData,bookings:[]};}
+  if(!tab){publicData.agendaState='missing';publicData.capacity={
+    classifiedWeeklyPatients:usable?weekly:null,target:RV_TARGET_WEEKLY,
+    patientsToTarget:usable?Math.max(0,RV_TARGET_WEEKLY-weekly):null,
+    patientsAboveTarget:usable?Math.max(0,weekly-RV_TARGET_WEEKLY):null,
+    attendedSessionsThisWeek:currentWeekHours.state==='ok'?currentWeekHours.attendedHours:null,
+    operatingWeek:key,bookedBlocks:null,explicitlyFreeSlots:null,
+    warning:'No existe pestaña de agenda para la semana operativa'
+  };publicData.message+=' · Sin agenda de la semana '+key;return {publicData,bookings:[]};}
   publicData.url=tabUrl_(id,tab,metadata);
   // Only time rows A3:F15, not side notes nor patient-objective cells.
   const rows=values_(id,"'"+tab.replace(/'/g,"''")+"'!A3:F15");
@@ -463,6 +472,7 @@ function readClinical_(id,now) {
     if(s)freq[s]=(freq[s]||0)+1;
   }
   const bookings=[],clinicRowByTime={};
+  let explicitFreeSlots=0;
   for(let rowIndex=0;rowIndex<rows.length;rowIndex++){
     const row=rows[rowIndex];
     const time=hour_(row[0]);
@@ -470,6 +480,7 @@ function readClinical_(id,now) {
     clinicRowByTime[time]=rowIndex+3;
     for(let weekday=0;weekday<5;weekday++){
       const content=String(row[weekday+1]||'').trim();
+      if(/^(?:libre|disponible|vacante)$/i.test(content))explicitFreeSlots++;
       if(isFree_(content))continue;
       // Heuristic for recurring placeholder, not 42 patient appointments.
       if(freq[content]>=6&&!/(?:\bpaciente\b|psicop|confirmad)/i.test(content))continue;
@@ -481,6 +492,16 @@ function readClinical_(id,now) {
   }
   publicData.agendaState='ok';
   publicData.bookedBlocks=bookings.length;
+  publicData.capacity={
+    classifiedWeeklyPatients:usable?weekly:null,
+    target:RV_TARGET_WEEKLY,patientsToTarget:usable?Math.max(0,RV_TARGET_WEEKLY-weekly):null,
+    patientsAboveTarget:usable?Math.max(0,weekly-RV_TARGET_WEEKLY):null,
+    attendedSessionsThisWeek:currentWeekHours.state==='ok'?currentWeekHours.attendedHours:null,
+    actualAttendedHoursThisWeek:currentWeekHours.state==='ok'?currentWeekHours.attendedHours:null,
+    operatingWeek:key,bookedBlocks:bookings.length,
+    explicitlyFreeSlots:explicitFreeSlots,
+    warning:'Los bloques marcados Libre no equivalen necesariamente a cupos sostenibles para pacientes semanales'
+  };
   publicData.message+=' · '+bookings.length+' bloques de agenda detectados en semana '+key;
   return {publicData,bookings,clinicRowByTime,fileId:id,metadata,tab};
 }
@@ -522,10 +543,25 @@ function readFinance_(id,now,props) {
   const remaining=Math.max(0,-diff);
   const pct=Number((100*diff/budget).toFixed(1));
   const current=sourceMonth===Utilities.formatDate(now,RV_TZ,'yyyy-MM');
+  // Transparent linear pace projection; no invented future transactions.
+  const dayOfMonth=Number(iso_(now).slice(8,10));
+  const parts=String(sourceMonth||'').split('-').map(Number);
+  const daysInMonth=parts.length===2&&parts[0]>2000&&parts[1]>=1&&parts[1]<=12?
+    new Date(parts[0],parts[1],0).getDate():null;
+  const projection=current&&reconciled&&dayOfMonth>=5&&daysInMonth?
+    {state:'ok',daysElapsed:dayOfMonth,daysInMonth,
+      dailyPace:Math.round(spent/dayOfMonth),
+      projectedSpent:Math.round(spent/dayOfMonth*daysInMonth),
+      projectedOver:Math.max(0,Math.round(spent/dayOfMonth*daysInMonth)-budget),
+      projectedRemaining:Math.max(0,budget-Math.round(spent/dayOfMonth*daysInMonth)),
+      method:'Extrapolación lineal del gasto acumulado; no incorpora cargos o ingresos futuros'}:
+    {state:'unavailable',message:!current?'La fuente no corresponde al mes actual':
+      !reconciled?'Primero corregir el presupuesto':'Historial mensual aún insuficiente'};
   return {state:!reconciled?'partial':current?'ok':'stale',month:sourceMonth,
     url:tabUrl_(id,tab,metadata),
     budget,spent,difference:diff,over,remaining,pct,
     categoryReconciled:reconciled,topOverages,unbudgetedCount:unbudgeted.length,unbudgetedAmount,
+    projection,
     message:!reconciled?'Totales y categorías no concuerdan: verificar fórmula o rango':
       (current?'Mes actual':'Mes sin actualizar')+' · '+(diff>0?'Sobre presupuesto por '+clp_(over):diff<0?'Bajo presupuesto por '+clp_(remaining):'Presupuesto justo')+
       ' CLP ('+pct+'%)'};
