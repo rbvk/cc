@@ -1,0 +1,725 @@
+<!doctype html>
+<html lang="es">
+<head>
+ <base target="_top">
+ <meta charset="utf-8">
+ <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+ <meta name="theme-color" content="#0a1323">
+ <title>V9 Preview · Datos ficticios</title>
+ <meta name="robots" content="noindex,nofollow,noarchive">
+ <style>
+ :root{color-scheme:dark;--bg:#07111f;--surface:#101f31;--surface2:#15283c;--border:#29435b;--muted:#a8c0d1;--text:#f1f7fb;--accent:#80d6f5;--good:#82d6bf;--warn:#f2c67d;--bad:#ff9c97;font:17px/1.54 -apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;font-synthesis:none}
+ *{box-sizing:border-box}
+ html{scroll-behavior:smooth}
+ body{margin:0;color:var(--text);background:radial-gradient(ellipse 90% 480px at 50% -180px,#16425d 0,transparent 90%),var(--bg);min-height:100vh;padding-bottom:90px}
+ a{color:#9adbf8;text-decoration-thickness:1px;text-underline-offset:3px}
+ button,select,textarea,input{font:inherit}
+ button{cursor:pointer}
+ button:disabled{opacity:.55;cursor:not-allowed}
+ :focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+ .shell{max-width:1190px;margin:auto;padding:0 18px}
+ .topbar{position:sticky;top:0;z-index:35;background:rgba(7,17,31,.96);backdrop-filter:blur(18px);border-bottom:1px solid #263f55}
+ .topinner{display:flex;align-items:center;justify-content:space-between;gap:14px;min-height:70px}
+ .brand{display:flex;align-items:center;gap:11px;min-width:0}
+ .logo{width:42px;height:42px;border-radius:14px;display:grid;place-items:center;font-weight:900;letter-spacing:-2px;color:#092032;background:linear-gradient(135deg,#90dfff,#59bacb)}
+ .brandtext{display:flex;flex-direction:column;line-height:1.2}
+ .brandtext strong{font-size:17px;letter-spacing:.3px}
+ .brandtext small{color:var(--muted);font-size:12px}
+ .currenttime{text-align:right;font-variant-numeric:tabular-nums}
+ .currenttime strong{font-size:18px;display:block}
+ .currenttime small{color:var(--muted);font-size:12px}
+ .intro{padding:29px 0 20px}
+ .eyebrow{font-size:11px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:var(--accent)}
+ h1,h2,h3,p{margin-top:0}
+ h1{font-size:clamp(31px,4.6vw,49px);line-height:1.06;letter-spacing:-1.3px;margin:8px 0}
+ h2{font-size:clamp(23px,3vw,30px);line-height:1.2;letter-spacing:-.4px}
+ h3{font-size:20px;line-height:1.22}
+ .sub{color:var(--muted);font-size:15px}
+ .screen[hidden],.subpanel[hidden],.overlay[hidden],[hidden]{display:none!important}
+ .screen{animation:rise .2s ease both}
+ @keyframes rise{from{opacity:.3;transform:translateY(4px)}to{opacity:1;transform:none}}
+ .grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:15px}
+ .s12{grid-column:span 12}.s8{grid-column:span 8}.s7{grid-column:span 7}.s6{grid-column:span 6}.s5{grid-column:span 5}.s4{grid-column:span 4}.s3{grid-column:span 3}
+ .card{background:linear-gradient(145deg,rgba(20,41,60,.91),rgba(13,29,46,.99));border:1px solid var(--border);border-radius:19px;padding:19px;min-width:0;overflow:hidden}
+ .card.selected{border-color:#4a94b9}
+ .card.soft{background:var(--surface)}
+ .card h3{margin-bottom:8px}
+ .cardhead{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:13px}
+ .label{font-size:13px;color:var(--muted);font-weight:650}
+ .metric{font-size:clamp(29px,3.4vw,44px);font-weight:800;letter-spacing:-1.5px;line-height:1.15;font-variant-numeric:tabular-nums}
+ .minor{color:var(--muted);font-size:13px;line-height:1.5}
+ .strong{font-weight:750}
+ .button{border:1px solid #4788a4;border-radius:11px;color:#0d2534;background:var(--accent);padding:10px 15px;font-weight:760;min-height:44px;display:inline-flex;align-items:center;justify-content:center;gap:6px;text-align:center}
+ .button.secondary{background:#203a50;color:#e9f5ff;border-color:#35546b}
+ .button.ghost{background:transparent;color:var(--accent);border-color:var(--border)}
+ .button.small{min-height:38px;padding:8px 12px;font-size:14px}
+ .buttons{display:flex;gap:9px;flex-wrap:wrap;align-items:center}
+ .divider{height:1px;background:#2a4357;margin:13px 0}
+ .tag{font-size:11px;font-weight:750;letter-spacing:.2px;border:1px solid #3a5970;background:#20364c;border-radius:50px;color:#c0e7fa;padding:4px 9px;display:inline-block;white-space:nowrap}
+ .tag.good{color:var(--good);border-color:#397868;background:#19352f}
+ .tag.warn{color:var(--warn);border-color:#7c6036;background:#382c1b}
+ .tag.critical{color:var(--bad);border-color:#7b474c;background:#3b2528}
+ .tag.none{color:#a3b2c0}
+ .softlist{list-style:none;margin:0;padding:0}
+ .softlist li{padding:10px 0;border-bottom:1px solid #29445b;line-height:1.45}
+ .softlist li:last-child{border-bottom:0}
+ .smalltext{font-size:14px;line-height:1.48}
+ .statrow{display:flex;justify-content:space-between;gap:12px;align-items:baseline;margin:8px 0;font-size:15px}
+ .statrow span{color:var(--muted)}.statrow b{font-variant-numeric:tabular-nums;text-align:right}
+ .sectiontop{display:flex;gap:13px;align-items:end;justify-content:space-between;margin:26px 0 13px}
+ .sectiontop h2{margin:0}
+ .hero{min-height:190px;display:flex;position:relative;align-items:end;padding:25px;overflow:hidden;border-radius:20px;background:#193446;border:1px solid var(--border)}
+ .hero:before{content:'';position:absolute;inset:0;background:linear-gradient(90deg,rgba(6,18,32,.95),rgba(7,20,34,.35));z-index:1}
+ .hero img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+ .hero .hero-copy{position:relative;z-index:2;max-width:650px}
+ .hero h2{font-size:clamp(23px,3vw,36px);line-height:1.18;margin:8px 0}
+ .hero .hero-copy p{color:#dfedfb;font-size:15px}
+ .photocredit{position:absolute;bottom:8px;right:10px;font-size:11px;background:#081523c7;padding:3px 7px;border-radius:5px;z-index:2}
+ .photoimg{width:100%;height:auto;aspect-ratio:3/2;object-fit:cover;display:block;background:#203344}
+ .photocard{overflow:hidden;border:1px solid var(--border);border-radius:15px;background:var(--surface)}
+ .photocard .details{padding:11px 12px}
+ .photocard h3{font-size:15px;margin-bottom:4px}
+ .photo-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+ .photo-grid .minor{font-size:12px}
+ .photofallback{min-height:138px;background:#1b3448;display:grid;place-items:center;color:#b2c7d7;padding:12px;text-align:center}
+ .dash{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}
+ .dashitem{background:#162b40;border:1px solid #2d465a;border-radius:13px;padding:13px;min-width:0}
+ .dashitem .metric{font-size:29px;margin-top:5px}
+ .timeline{position:relative;padding-left:20px}
+ .timeline:before{content:'';position:absolute;top:7px;bottom:8px;left:5px;width:1px;background:#406c89}
+ .timelineitem{position:relative;margin-bottom:17px;font-size:15px}
+ .timelineitem:before{content:'';position:absolute;left:-19px;top:7px;width:9px;height:9px;background:#74bfdc;border-radius:50%}
+ .timelineitem .when{font-size:13px;color:var(--accent);font-variant-numeric:tabular-nums}
+ .tabs{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 17px}
+ .chip{background:#182d40;border:1px solid #35536c;color:#c8ddeb;border-radius:99px;padding:9px 13px;min-height:42px;font-size:14px;font-weight:600}
+ .chip.active{background:#a0e5fa;color:#0c2230;border-color:#a0e5fa}
+ .opp{border-bottom:1px solid #30495e;padding:16px 0}
+ .opp:last-child{border:0}.opp h3{font-size:19px;margin:6px 0}
+ .opp .reason{color:#c5dceb;font-size:15px}
+ .ratio{height:9px;border-radius:10px;background:#21374b;overflow:hidden;margin:9px 0}
+ .ratio>span{height:100%;display:block;background:linear-gradient(90deg,#45b9bc,#9addf2);border-radius:10px}
+ .modalback{position:fixed;inset:0;z-index:95;background:rgba(3,10,19,.83);display:grid;place-items:center;padding:15px}
+ .modal{background:#102438;border:1px solid #42637b;max-width:570px;width:100%;max-height:92dvh;overflow:auto;border-radius:21px;padding:23px;box-shadow:0 30px 70px #0009}
+ .modal h2{margin-bottom:6px}
+ textarea,select{background:#0c1d2c;border:1px solid #47637a;border-radius:12px;padding:12px;color:var(--text);width:100%;font-size:17px}
+ textarea{min-height:128px;resize:vertical}
+ .floating{position:fixed;right:20px;bottom:89px;z-index:60;border:0;border-radius:18px;background:var(--accent);color:#082132;padding:12px 19px;font-weight:850;box-shadow:0 9px 30px #0007;min-height:50px}
+ .bottomnav{position:fixed;bottom:0;left:0;right:0;z-index:70;border-top:1px solid #294e68;background:#071522f5;backdrop-filter:blur(16px);padding:7px max(8px,env(safe-area-inset-right)) calc(7px + env(safe-area-inset-bottom))}
+ .bottomnav>div{display:grid;grid-template-columns:repeat(4,1fr);max-width:730px;margin:auto;gap:3px}
+ .navbtn{background:transparent;border:0;min-height:55px;color:#95b1c5;display:grid;place-items:center;gap:1px;border-radius:10px;font-weight:700;font-size:11px}
+ .navbtn .symbol{font-size:21px}
+ .navbtn.active{background:#24445a;color:#e7f8ff}
+ .statusline{font-size:12px;color:#9eb9c9;margin-top:11px}
+ .notice{background:#3a2b1b;border-left:3px solid #e7bd79;padding:12px;border-radius:8px;font-size:14px;color:#f4dfbc}
+ .statusfeed{font-size:14px;min-height:21px;margin:8px 0}
+ .loading{color:#9fc9e2}
+ .footer{border-top:1px solid var(--border);color:var(--muted);font-size:12px;margin:40px auto 10px;padding-top:15px}
+ @media(max-width:900px){.s8,.s7,.s6,.s5,.s4{grid-column:span 12}.s3{grid-column:span 6}.photo-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+ @media(max-width:480px){:root{font-size:17px}.shell{padding:0 13px}.card{padding:15px;border-radius:15px}.hero{min-height:178px;padding:18px}.photo-grid{gap:9px}.photocard .details{padding:9px}.s3{grid-column:span 6}.brandtext small{font-size:11px}.sectiontop h2{font-size:23px}.currenttime strong{font-size:16px}.floating{right:13px}}
+ @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
+ </style>
+</head>
+<body>
+<div role="banner" style="background:#553d21;color:#fff3cf;padding:9px 15px;text-align:center;font-weight:750;font-size:14px;position:relative;z-index:80">VISTA PREVIA PÚBLICA · DATOS 100% FICTICIOS · Sin conexión a PSICOPRO, Matrix ni Calendar real</div>
+<script>
+'use strict';
+/* Synthetic ONLY. This static GitHub Pages demo never reads actual patient data. */
+const DEMO={
+ state:'ok',version:'V9 PREVIEW · DATOS FICTICIOS',generatedAt:new Date().toISOString(),timezone:'America/Santiago',
+ base:{
+  nextAction:{title:'Elegir una tarea terminable',reason:'Ejemplo de priorización'},
+  clinical:{state:'ok',weekly:8,target:15,gap:-7,
+   message:'Meta clínica demostrativa; los datos reales solo aparecen en la Web App privada',
+   capacity:{patientsToTarget:7},currentWeekHours:{attendedHours:4},bookedBlocks:11},
+  calendar:{state:'ok',todayEvents:[
+    {title:'Bloque de estudio (ficticio)',start:new Date(Date.now()+70*60000).toISOString(),ongoing:false},
+    {title:'Entrenamiento técnico (ficticio)',start:new Date(Date.now()+210*60000).toISOString(),ongoing:false}
+  ]},
+  finance:{state:'ok',difference:-45000,spent:455000,budget:500000,month:'2026-10',
+   message:'Ejemplo ilustrativo de presupuesto',projection:{state:'ok',projectedSpent:495000,method:'proyección lineal de ejemplo'}},
+  training:{adherence:{boxing:{planned:3,done:2,omitted:0,unverified:1},
+   gym:{planned:2,done:1,omitted:0,unverified:1},cardio:{planned:2,done:1,omitted:1,unverified:0}},
+   drgToday:{output:'PROCEED',score:8}},
+  sleepTrend:{state:'ok',averageHours:8.1,nightsBelowTarget:1,observedNights:6},
+  sourceHealth:{details:[{state:'ok',label:'Matrix',detail:'Ejemplo'},{state:'ok',label:'MTS',detail:'Ejemplo'},
+   {state:'ok',label:'PSICOPRO',detail:'Ejemplo'},{state:'ok',label:'Finanzas',detail:'Ejemplo'},{state:'ok',label:'Calendar',detail:'Ejemplo'}]},
+  history:{state:'ok',new24h:1,resolved24h:2,persistent:1}
+ },
+ leads:{state:'ok',today:1,week:3,month:8,byOrigin:[{origin:'Google Maps',count:4},{origin:'Sitio web',count:3},{origin:'Sin identificar',count:1}]},
+ firstAttentions:{state:'not_verified',currentWeek:null,message:'No se simulan primeras atenciones verificadas'},
+ inbox:{state:'ok',open:2,items:[
+  {id:'00000000-0000-4000-8000-000000000001',title:'Cerrar una sección del informe ficticio',area:'Tesis',minutes:60,status:'open'},
+  {id:'00000000-0000-4000-8000-000000000002',title:'Revisar un bug de ejemplo',area:'Proyectos',minutes:25,status:'open'}
+ ]},
+ availability:{state:'ok',windows:[{start:'11:00',end:'12:30',minutes:90,certainty:'potential'}]},
+ finishes:{state:'ok',items:[{id:'00000000-0000-4000-8000-000000000001',title:'Cerrar una sección del informe ficticio',area:'Tesis',minutes:60}]},
+ opportunities:{state:'ok',items:[
+  {title:'Cerrar un entregable de ejemplo',area:'Proyectos',evidence:'Existe una ventana de 90 min y tareas capturadas (datos ficticios).',
+   action:'Revisar duración y confirmar horario.',impact:'Entregable verificable',risk:'La duración es estimada',scenario:'focus',requiresApproval:true},
+  {title:'Analizar capacidad clínica hipotética',area:'Clínica',evidence:'8 pacientes de ejemplo frente a meta 15.',
+   action:'Verificar demanda y cupos recurrentes.',impact:'Potencial aumento de capacidad',risk:'No son pacientes reales',scenario:'clinical',requiresApproval:true},
+  {title:'Revisar stock BOXINGCI simulado',area:'BOXINGCI',evidence:'Inventario demostrativo.',
+   action:'Verificar ventas antes de reponer.',impact:'Mejor capital',risk:'No representa inventario real',scenario:'stock',requiresApproval:true}
+ ]},
+ extra:{performance:{state:'ok',skills:[{skill:'Jab (ejemplo)',baseline:5,goal:7}],
+   kpis:[{name:'Bench Press (ejemplo)',current:'60 kg',goal:'100 kg'}]},
+  business:{sixMonths:[{month:'Oct-26',patientsGoal:12,clinicGoal:600000,clinicActual:null}],
+   merch:[{name:'Protector bucal (ejemplo)',inStock:4,marginUnit:4000,inventoryAtCost:16000}]}},
+ arica:{state:'partial',consultedAt:new Date().toISOString(),
+  weather:{state:'unavailable'},air:{state:'unavailable'},marine:{state:'unavailable'},
+  alerts:{message:'Demostración: consulta SENAPRED para alertas oficiales reales.'},
+  cameras:[
+   {name:'Humedal Río Lluta',source:'Ubiavis',kind:'Transmisión anunciada',state:'not_verified',
+    note:'No validado como transmisión activa',url:'https://www.ubiavis.cl/'},
+   {name:'Chacalluta',source:'DGAC',kind:'Fotografías',state:'dated_photos',
+    note:'Imágenes fechadas, no video',url:'https://aipchile.dgac.gob.cl/camara_ubicacion/show/designador/SCAR'}
+  ],
+  sources:[{kind:'Oficial',name:'Alertas SENAPRED',url:'https://senapred.cl/alertas/'},
+   {kind:'Oficial',name:'Sismos CSN',url:'https://www.csn.uchile.cl/'},
+   {kind:'Oficial',name:'Meteo Armada',url:'https://meteoarmada.directemar.cl/'}]
+ },
+ projects:{repos:[{name:'rbvk/cc',url:'https://github.com/rbvk/cc'},{name:'rbvk/boxingCI',url:'https://github.com/rbvk/boxingCI'}]}
+};
+function runner(){
+ let okay=()=>{};
+ return {
+  withSuccessHandler(fn){okay=fn;return this;},
+  withFailureHandler(){return this;},
+  getV9Dashboard(){okay(DEMO)},
+  recordV9Lead(origin){
+   DEMO.leads.week++;DEMO.leads.month++;
+   const old=DEMO.leads.byOrigin.find(x=>x.origin===origin);
+   if(old)old.count++;else DEMO.leads.byOrigin.push({origin,count:1});
+   okay({state:'ok',token:'demo-last',stats:DEMO.leads});
+  },
+  undoV9Lead(){
+   DEMO.leads.week=Math.max(0,DEMO.leads.week-1);
+   DEMO.leads.month=Math.max(0,DEMO.leads.month-1);
+   okay({state:'ok',stats:DEMO.leads});
+  },
+  captureV9Idea(value){
+   const item={id:'00000000-0000-4000-8000-'+String(Date.now()).slice(-12),title:value,area:'Proyectos',minutes:45,status:'open'};
+   DEMO.inbox.items.unshift(item);DEMO.inbox.open++;okay({state:'ok',item,inbox:DEMO.inbox});
+  },
+  setV9TaskStatus(id,status){
+   const item=DEMO.inbox.items.find(x=>x.id===id);
+   if(item){item.status=status;DEMO.inbox.open=Math.max(0,DEMO.inbox.open-1);}
+   okay({state:'ok',inbox:DEMO.inbox});
+  },
+  simulateV9Scenario(type,n){
+   okay({state:'ok',results:[{label:'Escenario ficticio',value:type},{label:'Magnitud elegida',value:n}],
+    assumptions:['Esta demostración no usa tus datos'],warnings:['No se ha ejecutado ninguna acción'],applied:false});
+  }
+ };
+}
+window.google={script:{get run(){return runner()}}};
+</script>
+<header class="topbar">
+ <div class="shell topinner">
+  <div class="brand"><div class="logo" aria-hidden="true">RV</div>
+   <div class="brandtext"><strong>COMMAND CENTER</strong><small>V9 · Intelligence OS · Acceso privado</small></div>
+  </div>
+  <div class="currenttime"><strong id="local-clock">--:--:--</strong><small id="local-date">Arica, Chile</small></div>
+ </div>
+</header>
+<main class="shell">
+ <div class="intro">
+  <div class="eyebrow" id="screen-eyebrow">PANORAMA OPERATIVO</div>
+  <h1 id="screen-title">Mi día</h1>
+  <p id="screen-description" class="sub">Decisiones verificables, oportunidades reales y fuentes privadas.</p>
+  <div id="load-line" class="statusfeed loading" role="status" aria-live="polite">Leyendo fuentes autorizadas…</div>
+ </div>
+
+ <section class="screen" id="screen-hoy" aria-label="Resumen diario">
+  <div class="hero" id="hoy-hero">
+   <div class="hero-copy"><div class="eyebrow">⚡ DECISIÓN PRIORITARIA</div>
+    <h2 id="today-priority">Cargando prioridades…</h2><p id="today-why">Comprobando restricciones y fuentes.</p>
+    <span class="tag" id="today-confidence">Por verificar</span>
+   </div>
+  </div>
+  <div class="sectiontop"><h2>Tu situación</h2><button class="button ghost small" type="button" id="refresh">↻ Actualizar</button></div>
+  <div class="grid">
+   <article class="card s3"><div class="label">🏥 Pacientes semanales</div><div class="metric" id="k-patients">—</div><div class="minor" id="k-patients-sub">PSICOPRO · Meta 15</div></article>
+   <article class="card s3"><div class="label">📲 Consultas nuevas</div><div class="metric" id="k-leads">—</div><div class="minor">Esta semana · Registro CC</div></article>
+   <article class="card s3"><div class="label">🥊 Sesiones boxeo hechas</div><div class="metric" id="k-box">—</div><div class="minor">Últimos 7 días · MTS</div></article>
+   <article class="card s3"><div class="label">💤 Sueño</div><div class="metric" id="k-sleep">—</div><div class="minor">Media por noche registrada</div></article>
+   <article class="card s7">
+    <div class="cardhead"><h3>📅 Agenda de hoy</h3><a href="https://calendar.google.com/" target="_blank" rel="noopener">Abrir Calendar ↗</a></div>
+    <div id="today-events" class="timeline"><p class="minor">Consultando eventos…</p></div>
+    <p class="statusline" id="today-events-note"></p>
+   </article>
+   <article class="card s5">
+    <div class="cardhead"><h3>⏳ Tu mejor ventana</h3><span class="tag">Potencial</span></div>
+    <div class="metric" id="today-free-minutes">—</div><p class="minor" id="today-free-window">Comparando Calendar y Matrix…</p>
+    <div class="divider"></div><h3>✅ Terminar algo hoy</h3><div id="today-finish" class="smalltext">Sin tareas capturadas todavía.</div>
+   </article>
+   <article class="card s6">
+    <div class="cardhead"><h3>💰 Finanzas</h3><span class="tag" id="finance-badge">Mes actual</span></div>
+    <div class="metric" id="today-finance">—</div><p class="minor" id="today-finance-note">Calculando gasto y presupuesto…</p>
+   </article>
+   <article class="card s6">
+    <div class="cardhead"><h3>🌆 Arica ahora</h3><button class="button ghost small" type="button" data-goto="arica">Ver Arica</button></div>
+    <div class="dash">
+     <div class="dashitem"><div class="label">🌤️ Temperatura</div><div class="metric" id="home-weather">—</div></div>
+     <div class="dashitem"><div class="label">💨 Viento</div><div class="metric" id="home-wind">—</div></div>
+    </div>
+    <p class="minor" id="home-weather-source">Modelo meteorológico; la medición de estación se consulta por separado.</p>
+   </article>
+  </div>
+ </section>
+
+ <section class="screen" id="screen-oportunidades" hidden aria-label="Oportunidades">
+  <div class="hero" id="op-hero">
+   <div class="hero-copy"><div class="eyebrow">RADAR · DECISION ENGINE</div><h2>Detectar, simular y decidir.</h2>
+    <p>Oportunidades derivadas de tus fuentes, con límites y supuestos explícitos.</p>
+   </div>
+  </div>
+  <div class="sectiontop"><h2>⚡ Oportunidades del momento</h2><span class="tag">Nunca se ejecutan solas</span></div>
+  <div class="grid">
+   <article class="card s8"><div id="opportunities-list"><p class="minor">Consultando…</p></div></article>
+   <article class="card s4">
+    <h3>🧠 Buzón de ideas</h3><div class="metric" id="ideas-count">—</div>
+    <p class="minor">Pendientes que anteriormente tendrías que recordar.</p>
+    <div class="buttons"><button class="button secondary" type="button" data-open-capture="idea">+ Capturar idea</button></div>
+    <div class="divider"></div>
+    <h3>Entregables disponibles</h3><ul class="softlist" id="ideas-list"></ul>
+   </article>
+   <article class="card s12" id="scenario-panel" hidden>
+    <div class="cardhead"><h3>🔬 Simulador de escenarios</h3><button class="button ghost small" id="scenario-close">Cerrar</button></div>
+    <p id="scenario-title" class="minor"></p>
+    <label for="scenario-count" class="label">Magnitud del escenario (1–5)</label>
+    <select id="scenario-count" aria-label="Cantidad simulada"><option>1</option><option selected>2</option><option>3</option><option>4</option><option>5</option></select>
+    <div class="buttons" style="margin:14px 0"><button class="button" id="scenario-calculate" type="button">Calcular alternativa</button></div>
+    <div id="scenario-results" class="smalltext"></div>
+    <p class="minor">Simular no modifica PSICOPRO, Finanzas, Calendar ni Matrix.</p>
+   </article>
+  </div>
+ </section>
+
+ <section class="screen" id="screen-arica" hidden aria-label="Arica en vivo">
+  <div class="hero" id="arica-hero"><div class="hero-copy">
+   <div class="eyebrow">🌆 ARICA LIVE · FUENTES VERIFICABLES</div>
+   <h2>Arica, donde estás.</h2>
+   <p>Clima, costa, imágenes públicas y avisos oficiales con fecha de actualización.</p>
+  </div></div>
+  <div class="sectiontop"><h2>Condiciones locales</h2><span class="tag">Datos modelo, no CCTV</span></div>
+  <div class="grid">
+   <article class="card s3"><div class="label">🌡️ Temperatura</div><div class="metric" id="arica-temp">—</div><div class="minor" id="arica-temp-sub">Modelo en Arica</div></article>
+   <article class="card s3"><div class="label">💨 Viento</div><div class="metric" id="arica-wind">—</div><div class="minor" id="arica-gust">Ráfagas: —</div></article>
+   <article class="card s3"><div class="label">☀️ Radiación UV</div><div class="metric" id="arica-uv">—</div><div class="minor" id="arica-uv-sub">Índice modelado</div></article>
+   <article class="card s3"><div class="label">🌊 Altura de ola</div><div class="metric" id="arica-wave">—</div><div class="minor">Pronóstico marítimo</div></article>
+   <article class="card s6"><h3>🌤️ Pronóstico y aire</h3><div id="arica-conditions"></div></article>
+   <article class="card s6"><h3>🚨 Avisos y calidad de señal</h3><p class="notice">Los modelos meteorológicos NO reemplazan alertas SENAPRED, DMC o Armada.</p><p id="arica-alert-note" class="minor"></p><p id="arica-refresh" class="minor"></p></article>
+   <article class="card s12"><div class="cardhead"><h3>📷 Directorio de cámaras públicas</h3><span class="tag warn">Verificar señal</span></div>
+    <p class="sub">No se publica CCTV privado. Se distingue video confirmado, fotografía fechada y señal no disponible.</p>
+    <div class="grid" id="camera-list"></div>
+   </article>
+   <article class="card s12"><h3>🗺️ Arica en fotografías</h3><p class="minor">Galería de archivo con autor, licencia y fuente. Estas imágenes no son transmisiones en vivo.</p><div class="photo-grid" id="arica-photos"></div></article>
+   <article class="card s12"><h3>Enlaces oficiales y contexto local</h3><div class="grid" id="arica-sources"></div></article>
+  </div>
+ </section>
+
+ <section class="screen" id="screen-inteligencia" hidden aria-label="Inteligencia y métricas">
+  <div class="hero" id="intel-hero"><div class="hero-copy"><div class="eyebrow">📊 EVIDENCIA Y TENDENCIAS</div><h2>Entender antes de actuar.</h2><p>El origen, período y nivel de certeza acompañan cada cifra.</p></div></div>
+  <div class="tabs" role="tablist" aria-label="Inteligencia por dominio">
+   <button class="chip active" type="button" data-intel="clinica" role="tab" aria-selected="true">🏥 Clínica</button>
+   <button class="chip" type="button" data-intel="rendimiento" role="tab" aria-selected="false">🥊 Rendimiento</button>
+   <button class="chip" type="button" data-intel="finanzas" role="tab" aria-selected="false">💰 Finanzas</button>
+   <button class="chip" type="button" data-intel="proyectos" role="tab" aria-selected="false">💻 Proyectos</button>
+   <button class="chip" type="button" data-intel="fuentes" role="tab" aria-selected="false">🛡️ Fuentes</button>
+   <button class="chip" type="button" data-intel="fotografias" role="tab" aria-selected="false">📷 Fotos</button>
+  </div>
+  <div class="subpanel" id="intel-clinica">
+   <div class="grid">
+    <article class="card s6"><h3>📲 Captación mínima por WhatsApp</h3><div class="dash">
+      <div class="dashitem"><div class="label">Consultas del mes</div><div class="metric" id="intel-leads">—</div></div>
+      <div class="dashitem"><div class="label">Primeras atenciones</div><div class="metric" id="intel-first">—</div></div></div>
+     <p class="minor" id="intel-leads-note">Sin enlace individual, no se calcula conversión exacta.</p>
+     <div class="divider"></div><h3>Origen de consultas</h3><ul class="softlist" id="intel-origins"></ul>
+     <div class="buttons"><button class="button secondary" type="button" data-open-capture="lead">+ Nueva consulta</button></div>
+    </article>
+    <article class="card s6"><h3>🏥 Capacidad clínica</h3>
+     <div class="metric" id="intel-capacity">—</div><p id="intel-capacity-note" class="minor"></p>
+     <div class="statrow"><span>Horas atendidas esta semana</span><b id="intel-attended">—</b></div>
+     <div class="statrow"><span>Bloques en agenda operativa</span><b id="intel-booked">—</b></div>
+     <div class="divider"></div><h3>Resumen PSICOPRO</h3><p id="intel-clinic-message" class="smalltext"></p>
+    </article>
+   </div>
+  </div>
+  <div class="subpanel" id="intel-rendimiento" hidden>
+   <div class="grid">
+    <article class="card s6"><h3>🥊 Adherencia reciente · 7 días</h3><ul class="softlist" id="intel-adherence"></ul>
+     <div class="divider"></div><h3>DRG actual</h3><div class="metric" id="intel-drg">—</div><p id="intel-drg-note" class="minor"></p></article>
+    <article class="card s6"><h3>💤 Sueño registrado</h3><div class="metric" id="intel-sleep">—</div><p id="intel-sleep-note" class="minor"></p>
+     <div class="divider"></div><h3>Cardio</h3><p id="intel-cardio" class="smalltext"></p></article>
+    <article class="card s6"><h3>🎯 Boxing roadmap</h3><ul class="softlist" id="intel-boxing-skills"></ul></article>
+    <article class="card s6"><h3>🏋️ Objetivos MTS</h3><ul class="softlist" id="intel-mts-kpis"></ul></article>
+   </div>
+  </div>
+  <div class="subpanel" id="intel-finanzas" hidden>
+   <div class="grid">
+    <article class="card s6"><h3>💰 Presupuesto vigente</h3><div class="metric" id="intel-finance-total">—</div><p id="intel-finance-note" class="minor"></p>
+     <h3>Proyección</h3><p id="intel-projection"></p></article>
+    <article class="card s6"><h3>📆 Plan económico 6 meses</h3><ul class="softlist" id="intel-finance-plan"></ul></article>
+    <article class="card s12"><h3>🥊 BOXINGCI · Inventario y margen</h3><ul class="softlist" id="intel-merch"></ul><p class="minor">Las cifras son aproximaciones a partir de stock y precios registrados, no ventas futuras.</p></article>
+   </div>
+  </div>
+  <div class="subpanel" id="intel-proyectos" hidden>
+   <div class="grid">
+    <article class="card s6"><h3>✅ Buzón operativo</h3><div class="metric" id="intel-inbox-count">—</div><p class="minor">Ideas y compromisos capturados, sin detalles clínicos</p><ul class="softlist" id="intel-project-ideas"></ul></article>
+    <article class="card s6"><h3>💻 Repositorios</h3><ul class="softlist" id="intel-github-links"></ul>
+     <p class="minor">Los enlaces no significan que un proyecto haya terminado; debe comprobarse el entregable.</p></article>
+   </div>
+  </div>
+  <div class="subpanel" id="intel-fuentes" hidden>
+   <article class="card"><h3>🛡️ Calidad y actualidad</h3>
+    <ul class="softlist" id="intel-sources"></ul>
+    <div class="divider"></div><h3>Incidencias nuevas y resueltas</h3><p id="intel-history" class="smalltext">Sin datos</p>
+    <p class="minor">Un dato que no está disponible no equivale a cero.</p>
+    <div class="buttons"><a class="button secondary" href="https://github.com/rbvk/cc/blob/main/apps-script/V9_ROADMAP.md" target="_blank" rel="noopener">Hoja de ruta ↗</a></div>
+   </article>
+  </div>
+  <div class="subpanel" id="intel-fotografias" hidden>
+   <article class="card"><h3>📷 Biblioteca visual · Uso responsable</h3>
+    <p class="minor">18 fotografías adicionales: clínica, boxeo, gimnasio, tesis, proyectos y productividad. Créditos y enlaces visibles. Fotografías ilustrativas, no de tu consultorio ni sesiones reales.</p>
+    <div class="photo-grid" id="other-photos"></div>
+   </article>
+  </div>
+ </section>
+ <footer class="footer"><div>RV Command Center V9 · Google Apps Script propietario · Fuentes con fecha y certeza.</div><div>Portal público GitHub Pages sin acceso a tus datos privados · <a href="https://github.com/rbvk/cc" target="_blank" rel="noopener">Código</a></div></footer>
+</main>
+<button class="floating" type="button" id="capture-open" aria-label="Capturar consulta o idea">＋ Capturar</button>
+<nav class="bottomnav" aria-label="Navegación principal"><div>
+ <button class="navbtn active" type="button" data-goto="hoy" aria-current="page"><span class="symbol">⌂</span>Hoy</button>
+ <button class="navbtn" type="button" data-goto="oportunidades"><span class="symbol">⚡</span>Oportunidades</button>
+ <button class="navbtn" type="button" data-goto="arica"><span class="symbol">🌆</span>Arica</button>
+ <button class="navbtn" type="button" data-goto="inteligencia"><span class="symbol">▥</span>Inteligencia</button>
+</div></nav>
+<div class="modalback overlay" id="capture-modal" role="presentation" hidden>
+ <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+  <div class="cardhead"><h2 id="modal-title">Captura rápida</h2><button class="button ghost small" type="button" id="capture-close">Cerrar ×</button></div>
+  <div class="tabs" aria-label="Tipo de captura">
+   <button class="chip active" type="button" data-capture-type="idea">🧠 Idea o pendiente</button>
+   <button class="chip" type="button" data-capture-type="lead">📲 Nueva consulta</button>
+  </div>
+  <div id="capture-idea">
+   <label for="idea-text" class="label">¿Qué quieres recordar o terminar?</label>
+   <textarea id="idea-text" maxlength="220" placeholder="Terminar la sección..., revisar..., construir..." aria-describedby="idea-policy"></textarea>
+   <p id="idea-policy" class="minor">Puedes usar el dictado del teclado del iPhone. Evita información de pacientes, contraseñas y datos personales.</p>
+   <div class="buttons"><button class="button" type="button" id="save-idea">Guardar pendiente</button></div>
+  </div>
+  <div id="capture-lead" hidden>
+   <label for="lead-origin" class="label">Origen opcional de la nueva consulta</label>
+   <select id="lead-origin"><option>Sin identificar</option><option>Google Maps</option><option>Google Search</option><option>Sitio web</option><option>Instagram</option><option>Recomendación</option><option>Otro</option></select>
+   <p class="minor" style="margin-top:13px">Registra una consulta nueva por persona, no por cada mensaje. No se guardan nombre, teléfono ni conversaciones.</p>
+   <div class="buttons"><button class="button" id="save-lead" type="button">+ Contar consulta</button><button class="button ghost small" id="undo-lead" type="button" hidden>Deshacer última</button></div>
+  </div>
+  <p id="capture-status" class="statusfeed" aria-live="polite"></p>
+ </div>
+</div>
+<script>
+'use strict';
+const V9_VERSION='2026.10.24.9';
+const PHOTOS=[{"id":"AR-01","area":"Arica","title":"Portada panorámica para el explorador de Arica","alt":"Panorámica de Arica vista desde el Morro","author":"Luciajimena1990","license":"CC BY-SA 4.0","url":"https://commons.wikimedia.org/wiki/File:Arica%20vista%20desde%20el%20Morro%2C%20Chile.jpg","provider":"Wikimedia Commons","photoId":null,"fileName":"Arica vista desde el Morro, Chile.jpg"},{"id":"AR-02","area":"Arica","title":"Contexto visual histórico: no representa una señal live","alt":"Vista nocturna de la ciudad de Arica desde el Morro","author":"Sayayinz","license":"CC BY-SA 3.0","url":"https://commons.wikimedia.org/wiki/File:Arica%20desde%20el%20morro.JPG","provider":"Wikimedia Commons","photoId":null,"fileName":"Arica desde el morro.JPG"},{"id":"AR-03","area":"Arica","title":"Patrimonio y guía de lugares","alt":"Plaza Colón y catedral San Marcos de Arica","author":"Heretiq","license":"CC BY-SA 2.5","url":"https://commons.wikimedia.org/wiki/File:AricaPlazaColon.jpg","provider":"Wikimedia Commons","photoId":null,"fileName":"AricaPlazaColon.jpg"},{"id":"AR-04","area":"Arica","title":"Contexto de litoral y puerto sin fingir cámara actual","alt":"Vista de la costa, puerto y centro de Arica desde el Morro","author":"Heretiq","license":"CC BY-SA 2.5","url":"https://commons.wikimedia.org/wiki/File:AricaViewCoast.jpg","provider":"Wikimedia Commons","photoId":null,"fileName":"AricaViewCoast.jpg"},{"id":"AR-05","area":"Arica","title":"Card geográfico para el valle de Azapa","alt":"Vista de Arica hacia el oriente y el valle de Azapa","author":"Heretiq","license":"CC BY-SA 2.5","url":"https://commons.wikimedia.org/wiki/File:AricaViewEast.jpg","provider":"Wikimedia Commons","photoId":null,"fileName":"AricaViewEast.jpg"},{"id":"AR-06","area":"Arica","title":"Patrimonio ferroviario, no tráfico actual","alt":"Locomotora y estación Chinchorro del ferrocarril Arica La Paz","author":"CARLOS TEIXIDOR CADENAS","license":"CC BY-SA 4.0","url":"https://commons.wikimedia.org/wiki/File:Estaci%C3%B3n%20Chinchorro%2C%20de%20Arica%2C%20Chile%2C%20con%20locomotora%20di%C3%A9sel%20General%20Electric%2C%20FCALP%2C%20tren%20tur%C3%ADstico.jpg","provider":"Wikimedia Commons","photoId":null,"fileName":"Estación Chinchorro, de Arica, Chile, con locomotora diésel General Electric, FCALP, tren turístico.jpg"},{"id":"AR-07","area":"Arica","title":"Ficha detallada de movilidad y patrimonio","alt":"Tren turístico en la estación Chinchorro de Arica","author":"CARLOS TEIXIDOR CADENAS","license":"CC BY-SA 4.0","url":"https://commons.wikimedia.org/wiki/File:Ferrocarril%20Arica-La%20Paz%2C%20FCALP%2C%20tren%20tur%C3%ADstico%20de%20Arica%20a%20Central%2C%20estaci%C3%B3n%20Chinchorro%20(Arica)%2C%20Chile.jpg","provider":"Wikimedia Commons","photoId":null,"fileName":"Ferrocarril Arica-La Paz, FCALP, tren turístico de Arica a Central, estación Chinchorro (Arica), Chile.jpg"},{"id":"AR-08","area":"Arica","title":"Galería litoral con metadatos históricos","alt":"Fotografía del litoral costero de Arica","author":"Eduardo Woo","license":"CC BY 2.0","url":"https://commons.wikimedia.org/wiki/File:Litoral%20de%20Arica%20(8210297118).jpg","provider":"Wikimedia Commons","photoId":null,"fileName":"Litoral de Arica (8210297118).jpg"},{"id":"AR-09","area":"Arica","title":"Lugar de interés y contexto patrimonial","alt":"Antigua Aduana de Arica","author":"Heretiq","license":"CC BY-SA 2.5","url":"https://commons.wikimedia.org/wiki/File:Arica-Aduana.jpg","provider":"Wikimedia Commons","photoId":null,"fileName":"Arica-Aduana.jpg"},{"id":"AR-10","area":"Arica","title":"Ficha del hito local Morro","alt":"Otra perspectiva del Morro de Arica","author":"Patito uwu 15","license":"CC BY-SA 4.0","url":"https://commons.wikimedia.org/wiki/File:Morro%20de%20la%20ciudad%20de%20arica.jpg","provider":"Wikimedia Commons","photoId":null,"fileName":"Morro de la ciudad de arica.jpg"},{"id":"AR-11","area":"Arica","title":"Contexto visual histórico del centro de Arica","alt":"Calle Arturo Prat de Arica","author":"Bachelot Pierre J-P","license":"CC BY-SA 3.0","url":"https://commons.wikimedia.org/wiki/File:Arica%2C%20Chili.jpg","provider":"Wikimedia Commons","photoId":null,"fileName":"Arica, Chili.jpg"},{"id":"CL-01","area":"Clínica","title":"Portada contextual para actividad clínica; nunca insinuar que es CasaPsicoPro","alt":"Dos sillas blancas en un espacio interior minimalista","author":"PNW Production","license":"Pexels License","url":"https://www.pexels.com/photo/two-chairs-and-blank-frame-hanging-on-the-wall-8490251/","provider":"Pexels","photoId":"8490251","fileName":null},{"id":"CL-02","area":"Clínica","title":"Tarjeta de espacios de atención con etiqueta foto ilustrativa","alt":"Silla de madera y plantas iluminadas por luz natural","author":"White Noiise","license":"Pexels License","url":"https://www.pexels.com/photo/plants-and-wooden-chair-in-room-18911870/","provider":"Pexels","photoId":"18911870","fileName":null},{"id":"CL-03","area":"Clínica","title":"Apoyo visual de la sección de servicios, no fotografía del consultorio","alt":"Interior de oficina con sillas y plantas","author":"Capture Crew","license":"Pexels License","url":"https://www.pexels.com/photo/modern-office-interior-with-minimalist-design-33827314/","provider":"Pexels","photoId":"33827314","fileName":null},{"id":"BX-01","area":"Boxeo","title":"Apertura de inteligencia de boxeo","alt":"Guantes de boxeo rojos y negros colgados en un gimnasio","author":"Pavel Danilyuk","license":"Pexels License","url":"https://www.pexels.com/photo/close-up-shot-boxing-gloves-6296121/","provider":"Pexels","photoId":"6296121","fileName":null},{"id":"BX-02","area":"Boxeo","title":"Habilidad técnica y feedback del entrenador","alt":"Boxeadores practicando golpes con manoplas en el ring","author":"Gustavo Fring","license":"Pexels License","url":"https://www.pexels.com/photo/training-in-boxing-ring-6699100/","provider":"Pexels","photoId":"6699100","fileName":null},{"id":"BX-03","area":"Boxeo","title":"Módulo de sparring y transferencia al ring","alt":"Dos boxeadores practicando sparring en un gimnasio","author":"Ron Lach","license":"Pexels License","url":"https://www.pexels.com/photo/people-training-on-a-boxing-ring-8745630/","provider":"Pexels","photoId":"8745630","fileName":null},{"id":"BX-04","area":"Boxeo","title":"Módulo de equipo; no sustituye fotos reales de BOXINGCI","alt":"Guantes y protector de cabeza sobre el piso de un ring","author":"Njay Minh Nhựt","license":"Pexels License","url":"https://www.pexels.com/photo/boxing-gloves-in-a-ring-corner-perspective-34621804/","provider":"Pexels","photoId":"34621804","fileName":null},{"id":"GY-01","area":"Gimnasio","title":"Identidad visual para planificación de fuerza","alt":"Barra, pesas y accesorios de gimnasio vistos desde arriba","author":"Marta Nogueira","license":"Pexels License","url":"https://www.pexels.com/photo/barbell-dumbbells-and-accessories-on-the-floor-at-the-gym-top-down-view-vertical-flat-lay-with-bodybuilding-equipment-on-a-black-background-and-empty-space-for-text-fitness-weight-trai-17093369/","provider":"Pexels","photoId":"17093369","fileName":null},{"id":"GY-02","area":"Cardio","title":"Contexto de base aeróbica: nunca registrar ejercicio desde la foto","alt":"Persona corriendo en una cinta dentro de un gimnasio","author":"Andrea Piacquadio","license":"Pexels License","url":"https://www.pexels.com/photo/strong-sportsman-using-treadmill-for-cardio-workout-in-gym-3888343/","provider":"Pexels","photoId":"3888343","fileName":null},{"id":"TH-01","area":"Tesis","title":"Vista de entregables e investigación","alt":"Ordenador portátil, libros y cuaderno en un escritorio","author":"Tima Miroshnichenko","license":"Pexels License","url":"https://www.pexels.com/photo/a-laptop-beside-a-note-book-and-books-on-the-table-5708862/","provider":"Pexels","photoId":"5708862","fileName":null},{"id":"TH-02","area":"Tesis","title":"Tareas de revisión y bloques de concentración","alt":"Mano escribiendo en un cuaderno junto a un teléfono","author":"Mike Murray","license":"Pexels License","url":"https://www.pexels.com/photo/a-cell-phone-and-a-person-writing-in-a-notebook-6446248/","provider":"Pexels","photoId":"6446248","fileName":null},{"id":"PR-01","area":"Proyectos","title":"Panel de proyectos GitHub","alt":"Ordenador mostrando un editor de código","author":"Daniil Komov","license":"Pexels License","url":"https://www.pexels.com/photo/laptop-with-code-editor-on-wooden-desk-34804004/","provider":"Pexels","photoId":"34804004","fileName":null},{"id":"PR-02","area":"Proyectos","title":"Motor Finish Something Today","alt":"Manos escribiendo código en un portátil","author":"Sora Shimazaki","license":"Pexels License","url":"https://www.pexels.com/photo/crop-faceless-developer-working-on-software-code-on-laptop-5926382/","provider":"Pexels","photoId":"5926382","fileName":null},{"id":"PR-03","area":"Proyectos","title":"Contexto para tareas de desarrollo y planificación","alt":"Escritorio minimalista iluminado por luz natural","author":"Alpha En","license":"Pexels License","url":"https://www.pexels.com/photo/modern-home-office-with-minimalist-design-28461037/","provider":"Pexels","photoId":"28461037","fileName":null},{"id":"FN-01","area":"Finanzas","title":"Sección de finanzas y simulación de presupuestos","alt":"Calculadora, bolígrafo e informe financiero sobre una mesa","author":"Bia Limova","license":"Pexels License","url":"https://www.pexels.com/photo/office-desk-with-calculator-and-financial-report-33175669/","provider":"Pexels","photoId":"33175669","fileName":null},{"id":"SL-01","area":"Sueño","title":"Contexto visual de sueño real Zz sin representar mediciones","alt":"Cama y dormitorio iluminados por luz natural","author":"Evgeniya Kuzmina","license":"Pexels License","url":"https://www.pexels.com/photo/a-pillow-on-a-bed-9040109/","provider":"Pexels","photoId":"9040109","fileName":null},{"id":"FF-01","area":"Bomberos","title":"Responsabilidades y servicios, no afirmar que es la Tercera Compañía","alt":"Carro de bomberos rojo estacionado en un cuartel chileno","author":"Oscar Sánchez","license":"Pexels License","url":"https://www.pexels.com/photo/red-fire-truck-parked-in-a-garage-10353883/","provider":"Pexels","photoId":"10353883","fileName":null},{"id":"CP-01","area":"Captura","title":"Buzón de ideas y registro mínimo WhatsApp, sin logo ni chat real","alt":"Teléfono sobre cuadernos en un escritorio","author":"Mike Murray","license":"Pexels License","url":"https://www.pexels.com/photo/a-phone-on-notebooks-6446250/","provider":"Pexels","photoId":"6446250","fileName":null}];
+const $=id=>document.getElementById(id);
+let STATE=null,SCREEN='hoy',INTEL='clinica',CURRENT_SCENARIO=null,lastLeadToken=null;
+const CLP=new Intl.NumberFormat('es-CL',{style:'currency',currency:'CLP',maximumFractionDigits:0});
+function money(x){return typeof x==='number'&&Number.isFinite(x)?CLP.format(x):'—'}
+function num(x,unit){return typeof x==='number'&&Number.isFinite(x)?String(Math.round(x*10)/10)+(unit||''):'—'}
+function text(id,value){const a=$(id);if(a)a.textContent=value===null||value===undefined?'No disponible':String(value)}
+function make(tag,cl,txt){const e=document.createElement(tag);if(cl)e.className=cl;if(txt!==undefined)e.textContent=txt;return e}
+function clear(el){el.replaceChildren()}
+function link(textContent,url,cl){if(!safeURL(url))return make('span','minor','Fuente no disponible');const a=make('a',cl||'',textContent);a.href=url;a.target='_blank';a.rel='noopener noreferrer';return a}
+function safeURL(url){try{const u=new URL(url);return u.protocol==='https:'&&!u.username&&!u.password&&
+ ['docs.google.com','calendar.google.com','github.com','www.pexels.com','commons.wikimedia.org',
+  'www.ubiavis.cl','aipchile.dgac.gob.cl','www.skylinewebcams.com','senapred.cl',
+  'www.csn.uchile.cl','climatologia.meteochile.gob.cl','sinca.mma.gob.cl',
+  'meteoarmada.directemar.cl','muniarica.cl','open-meteo.com'].includes(u.hostname)}catch(e){return false}}
+function localClock(){
+ const now=new Date(),opt={timeZone:'America/Santiago'};
+ text('local-clock',new Intl.DateTimeFormat('es-CL',{...opt,hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}).format(now));
+ text('local-date',new Intl.DateTimeFormat('es-CL',{...opt,weekday:'short',day:'numeric',month:'short'}).format(now)+' · Arica');
+}
+setInterval(localClock,1000);localClock();
+const screenNames={hoy:['PANORAMA OPERATIVO','Mi día','Decisiones verificables, oportunidades reales y fuentes privadas.'],
+ oportunidades:['OPPORTUNITY ENGINE','Oportunidades','Detectar, simular y decidir sin modificar las fuentes automáticamente.'],
+ arica:['ARICA LIVE INTELLIGENCE','Arica, ahora','Tiempo local, meteorología y cámaras públicas verificables.'],
+ inteligencia:['INTELLIGENCE LAYER','Inteligencia','Indicadores con fuente, fecha y nivel de certeza.']};
+function goto(section){
+ if(!screenNames[section])return;
+ SCREEN=section;
+ for(const k of Object.keys(screenNames))$('screen-'+k).hidden=k!==section;
+ document.querySelectorAll('[data-goto]').forEach(b=>{
+  const selected=b.dataset.goto===section;
+  b.classList.toggle('active',selected);
+  if(b.classList.contains('navbtn')){if(selected)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current')}
+ });
+ const meta=screenNames[section];
+ text('screen-eyebrow',meta[0]);text('screen-title',meta[1]);text('screen-description',meta[2]);
+ window.scrollTo({top:0,behavior:'instant'});
+ if(section==='arica')ensurePhotos('arica-photos','Arica');
+ if(section==='inteligencia'&&INTEL==='fotografias')ensurePhotos('other-photos','other');
+}
+document.querySelectorAll('[data-goto]').forEach(b=>b.addEventListener('click',()=>goto(b.dataset.goto)));
+document.querySelectorAll('[data-intel]').forEach(b=>b.addEventListener('click',()=>{
+ INTEL=b.dataset.intel;
+ document.querySelectorAll('.subpanel').forEach(p=>p.hidden=p.id!=='intel-'+INTEL);
+ document.querySelectorAll('[data-intel]').forEach(c=>{c.classList.toggle('active',c.dataset.intel===INTEL);c.setAttribute('aria-selected',c.dataset.intel===INTEL?'true':'false')});
+ if(INTEL==='fotografias')ensurePhotos('other-photos','other');
+}));
+function photoSrc(photo,width){
+ if(photo.provider==='Pexels'&&/^\d+$/.test(photo.photoId||''))
+  return 'https://images.pexels.com/photos/'+photo.photoId+'/pexels-photo-'+photo.photoId+'.jpeg?auto=compress&cs=tinysrgb&w='+width;
+ if(photo.provider==='Wikimedia Commons'&&photo.fileName)
+  return 'https://commons.wikimedia.org/wiki/Special:FilePath/'+encodeURIComponent(photo.fileName).replace(/%2F/g,'/')+'?width='+width;
+ return '';
+}
+function photoElement(photo){
+ const card=make('div','photocard'),img=document.createElement('img');
+ img.className='photoimg';img.loading='lazy';img.decoding='async';img.alt=photo.alt||photo.title;
+ img.width=640;img.height=430;img.src=photoSrc(photo,640);
+ img.addEventListener('error',()=>{
+  const fallback=make('div','photofallback','Fotografía no disponible en el proveedor.');
+  if(img.parentNode)img.replaceWith(fallback);
+ });
+ card.append(img);
+ const info=make('div','details'),title=make('h3','',photo.title),credit=make('p','minor',photo.author+' · '+photo.license+' · Foto de archivo');
+ info.append(title,credit,link('Ver imagen y licencia ↗',photo.url,'smalltext'));card.append(info);
+ return card;
+}
+const MOUNTED=new Set();
+function ensurePhotos(id,group){
+ if(MOUNTED.has(id))return;
+ const root=$(id);clear(root);
+ const selected=PHOTOS.filter(p=>group==='Arica'?p.area==='Arica':p.area!=='Arica');
+ for(const p of selected)root.append(photoElement(p));
+ MOUNTED.add(id);
+}
+function setHero(id,photoId){
+ const node=$(id),p=PHOTOS.find(x=>x.id===photoId);
+ if(!node||!p)return;
+ const img=document.createElement('img');img.alt=p.alt||'';img.src=photoSrc(p,960);img.decoding='async';
+ img.addEventListener('error',()=>img.remove());node.prepend(img);
+ const credit=make('a','photocredit',p.author+' · '+p.provider);
+ if(safeURL(p.url)){credit.href=p.url;credit.target='_blank';credit.rel='noopener noreferrer';node.append(credit)}
+}
+setHero('hoy-hero','AR-01');
+setHero('arica-hero','AR-04');
+setHero('op-hero','PR-02');
+setHero('intel-hero','TH-01');
+function listLines(id,rows,fmt){
+ const node=$(id);clear(node);
+ if(!rows?.length){node.append(make('li','minor','No hay registros verificables.'));return;}
+ rows.forEach((row)=>{
+  const li=make('li','',fmt(row));node.append(li);
+ });
+}
+function renderToday(v){
+ const b=v.base||{},opp=v.opportunities?.items?.[0];
+ text('today-priority',opp?.title||b.nextAction?.title||'Revisar las fuentes disponibles');
+ text('today-why',opp?.evidence||b.nextAction?.reason||'Sin prioridades confirmadas');
+ text('today-confidence',opp?'Regla verificada · '+opp.area:'Pendiente');
+ text('k-patients',typeof b.clinical?.weekly==='number'?b.clinical.weekly+' / '+b.clinical.target:'—');
+ text('k-leads',v.leads?.week??'—');
+ text('k-box',v.base?.training?.adherence?.boxing?.done??'—');
+ text('k-sleep',num(b.sleepTrend?.averageHours,' h'));
+ const events=b.calendar?.todayEvents||[],root=$('today-events');clear(root);
+ if(!events.length)root.append(make('p','minor',b.calendar?.state==='ok'?'Sin más eventos registrados para hoy':'Google Calendar sin datos disponibles'));
+ events.slice(0,8).forEach(ev=>{
+  const item=make('div','timelineitem'),when=make('div','when',ev.allDay?'Todo el día':ev.ongoing?'En curso':ev.start?new Date(ev.start).toLocaleTimeString('es-CL',{timeZone:'America/Santiago',hour:'2-digit',minute:'2-digit'}):'Horario no disponible');
+  item.append(when,make('div','strong',ev.title||'Evento sin título'));root.append(item);
+ });
+ text('today-events-note',b.calendar?.state==='ok'?'Eventos del calendario predeterminado · Actualizado '+new Date(v.generatedAt).toLocaleTimeString('es-CL',{timeZone:'America/Santiago',hour:'2-digit',minute:'2-digit'}):'Sin acceso a Calendar');
+ const window=v.availability?.windows?.[0];text('today-free-minutes',window?window.minutes+' min':'Sin hueco');
+ text('today-free-window',window?window.start+'–'+window.end+' · Potencialmente libre, confirmar antes de usar':'Sin ventana comparable entre Matrix y Calendar');
+ const finish=v.finishes?.items?.[0],end=$('today-finish');clear(end);
+ if(finish){end.append(make('p','strong',finish.title),make('p','minor','Estimado '+finish.minutes+' min · '+finish.area));const button=make('button','button secondary small','Ver pendientes');button.onclick=()=>goto('oportunidades');end.append(button);}
+ else end.append(make('p','minor','Registra ideas o revisa la disponibilidad para recibir propuestas específicas.'));
+ const fin=b.finance,checked=fin?.state==='ok'||fin?.state==='stale';
+ text('today-finance',checked?money(fin.difference):'—');
+ text('today-finance-note',checked?'Variación gasto vs presupuesto · '+fin.month+' · '+fin.message:'Presupuesto no verificado');
+ text('finance-badge',fin?.state==='stale'?'Mes desactualizado':fin?.state==='ok'?'Mes conciliado':'Por verificar');
+ const w=v.arica?.weather||{};text('home-weather',num(w.temperature,' °C'));text('home-wind',num(w.wind,' km/h'));
+ text('home-weather-source',w.state==='model'?'Open-Meteo · modelo actualizado '+(w.time||'sin hora')+' · No es medición DMC':'Pronóstico aún no disponible; abrir sección Arica para fuentes oficiales');
+}
+function renderOpportunities(v){
+ const root=$('opportunities-list');clear(root);
+ (v.opportunities?.items||[]).forEach((o,index)=>{
+  const el=make('div','opp'),row=make('div','cardhead');
+  row.append(make('span','eyebrow','#'+(index+1)+' · '+o.area),make('span','tag',o.requiresApproval?'Revisar':'Automático'));
+  el.append(row,make('h3','',o.title),make('p','reason',o.evidence),make('p','minor','Acción: '+o.action),make('p','minor','Impacto: '+o.impact),make('p','minor','Limitación: '+o.risk));
+  const button=make('button','button secondary small','Simular / evaluar');
+  button.onclick=()=>openScenario(o);
+  el.append(button);root.append(el);
+ });
+ const inbox=v.inbox||{};text('ideas-count',inbox.open??'—');
+ const ideas=$('ideas-list');clear(ideas);
+ const pending=(inbox.items||[]).filter(x=>x.status==='open');
+ if(!pending.length)ideas.append(make('li','minor','Aún no has capturado pendientes.'));
+ pending.slice(0,10).forEach(task=>{
+  const li=make('li'),title=make('div','smalltext strong',task.title),sub=make('div','minor',task.area+' · '+task.minutes+' min estimados');
+  const actions=make('div','buttons');
+  const done=make('button','button ghost small','✓ Terminado'),drop=make('button','button ghost small','Descartar');
+  done.onclick=()=>setTaskStatus(task.id,'done');drop.onclick=()=>setTaskStatus(task.id,'drop');
+  actions.append(done,drop);li.append(title,sub,actions);ideas.append(li);
+ });
+}
+function openScenario(o){
+ CURRENT_SCENARIO=o;const panel=$('scenario-panel');panel.hidden=false;
+ text('scenario-title',o.title+' · '+o.risk);text('scenario-results','Selecciona un tamaño y calcula un escenario.');
+ panel.scrollIntoView({behavior:'smooth',block:'start'});
+}
+$('scenario-close').onclick=()=>{$('scenario-panel').hidden=true;CURRENT_SCENARIO=null};
+$('scenario-calculate').onclick=()=>{
+ if(!CURRENT_SCENARIO)return;
+ const button=$('scenario-calculate');button.disabled=true;text('scenario-results','Calculando…');
+ google.script.run.withSuccessHandler(r=>{
+  button.disabled=false;const root=$('scenario-results');clear(root);
+  if(r.state!=='ok'){root.append(make('p','minor',r.message||'No se pudo calcular con datos verificados.'));return}
+  const ul=make('ul','softlist');
+  (r.results||[]).forEach(k=>ul.append(make('li','',k.label+': '+(k.value===null?'—':typeof k.value==='number'&&/CLP/.test(k.label)?money(k.value):k.value))));
+  root.append(ul);
+  (r.assumptions||[]).forEach(s=>root.append(make('p','minor','Supuesto: '+s)));
+  (r.warnings||[]).forEach(s=>root.append(make('p','notice',s)));
+  root.append(make('p','minor','Ningún dato ha sido escrito en tus fuentes.'));
+ }).withFailureHandler(()=>{button.disabled=false;text('scenario-results','No se pudo evaluar el escenario.')})
+ .simulateV9Scenario(CURRENT_SCENARIO.scenario,Number($('scenario-count').value));
+};
+function renderArica(v){
+ const a=v.arica||{},w=a.weather||{},m=a.marine||{},air=a.air||{};
+ text('arica-temp',num(w.temperature,' °C'));text('arica-temp-sub',w.time?'Estimación '+w.time:'Modelo no disponible');
+ text('arica-wind',num(w.wind,' km/h'));text('arica-gust','Ráfagas '+num(w.gust,' km/h'));
+ text('arica-uv',num(w.uv));text('arica-uv-sub','Modelo UV, no instrumento local');
+ text('arica-wave',num(m.waveHeight,' m'));
+ const conditions=$('arica-conditions');clear(conditions);
+ const rows=[['Sensación térmica',num(w.feelsLike,' °C')],['Humedad',num(w.humidity,' %')],
+  ['Probabilidad máx. de lluvia',num(w.rainChance,' %')],['MP2.5 · modelo',num(air.pm25,' µg/m³')],
+  ['Índice AQI · modelo',num(air.usAqi)],['Período de ola · modelo',num(m.wavePeriod,' s')],
+  ['Temperatura del mar · modelo',num(m.seaTemp,' °C')],['Amanecer',w.sunrise?.slice(11)||'—'],['Atardecer',w.sunset?.slice(11)||'—']];
+ rows.forEach(r=>{const row=make('div','statrow');row.append(make('span','',r[0]),make('b','',r[1]));conditions.append(row)});
+ if(w.source)conditions.append(link('Fuente del modelo y metodología ↗',w.source,'smalltext'));
+ text('arica-alert-note',a.alerts?.message||'Consultar avisos oficiales vigentes.');
+ text('arica-refresh','Consultado: '+new Date(a.consultedAt||v.generatedAt).toLocaleString('es-CL',{timeZone:'America/Santiago'})+
+  ' · '+(w.state==='model'?'modelo disponible':'modelo no disponible')+' · uso de API sujeto a licencia del proveedor');
+ const cameras=$('camera-list');clear(cameras);
+ (a.cameras||[]).forEach(c=>{
+  const node=make('div','card s4 soft'),heading=make('div','cardhead');heading.append(make('h3','',c.name),
+   make('span','tag '+(c.state==='offline'?'warn':'none'),c.state==='offline'?'Fuera de línea':c.state==='dated_photos'?'Imágenes fechadas':'No verificada'));
+  node.append(heading,make('p','label',c.source+' · '+c.kind),make('p','minor',c.note),link('Abrir cámara/fuente ↗',c.url,'smalltext'));cameras.append(node);
+ });
+ const sources=$('arica-sources');clear(sources);
+ (a.sources||[]).forEach(s=>{
+  const col=make('div','s4'),node=make('div','card soft');
+  node.append(make('div','label',s.kind),link(s.name+' ↗',s.url,'strong'));col.append(node);sources.append(col);
+ });
+}
+function renderIntelligence(v){
+ const b=v.base||{},ext=v.extra||{};
+ text('intel-leads',v.leads?.month??'—');
+ text('intel-first',typeof v.firstAttentions?.currentWeek==='number'?v.firstAttentions.currentWeek:'No validado');
+ text('intel-leads-note','Consulta: conteo mensual · Primera atención: '+
+  (v.firstAttentions?.message||v.firstAttentions?.note||'No verificable')+
+  '. Sin identificador individual no se calcula conversión exacta.');
+ listLines('intel-origins',v.leads?.byOrigin||[],x=>x.origin+' · '+x.count+' consultas');
+ text('intel-capacity',typeof b.clinical?.weekly==='number'?b.clinical.weekly+' / '+b.clinical.target:'—');
+ text('intel-capacity-note','Pacientes semanales · '+(b.clinical?.capacity?.patientsToTarget===null?'Sin meta comparable':(b.clinical?.capacity?.patientsToTarget||0)+' faltantes'));
+ text('intel-attended',typeof b.clinical?.currentWeekHours?.attendedHours==='number'?b.clinical.currentWeekHours.attendedHours+' h':'—');
+ text('intel-booked',b.clinical?.bookedBlocks??'—');
+ text('intel-clinic-message',b.clinical?.message||'Sin resultados');
+ const att=b.training?.adherence||{};
+ listLines('intel-adherence',['boxing','gym','cardio'],name=>{
+  const n=att[name]||{};return ({boxing:'🥊 Boxeo',gym:'🏋️ Gimnasio',cardio:'🫀 Cardio'}[name])+
+   ' · '+(n.done??'—')+'/'+(n.planned??'—')+' realizadas; '+(n.omitted??'—')+' omitidas, '+(n.unverified??'—')+' sin verificar';
+ });
+ text('intel-drg',b.training?.drgToday?.output||'Sin registro');
+ text('intel-drg-note','DRG de hoy; si existe ABORT o hard stop no ejecutar cargas.');
+ text('intel-sleep',num(b.sleepTrend?.averageHours,' h'));
+ text('intel-sleep-note',b.sleepTrend?.state==='ok'?b.sleepTrend.nightsBelowTarget+' noches bajo 7 h 30 de '+b.sleepTrend.observedNights+' registradas.':'Sueño insuficiente o no verificado');
+ const cardio=att.cardio||{};text('intel-cardio',cardio.done+' realizadas · '+cardio.unverified+' sin verificar (últimos 7 días)');
+ listLines('intel-boxing-skills',ext.performance?.skills||[],x=>x.skill+' · nivel '+(x.baseline??'?')+' · meta '+(x.goal??'?'));
+ listLines('intel-mts-kpis',ext.performance?.kpis?.slice(0,16)||[],x=>x.name+': '+x.current+' · Meta '+x.goal);
+ const fin=b.finance||{};
+ text('intel-finance-total',fin.state==='ok'||fin.state==='stale'?money(fin.spent):'—');
+ text('intel-finance-note',fin.message||'Presupuesto no disponible');
+ text('intel-projection',fin.projection?.state==='ok'?money(fin.projection.projectedSpent)+' estimados al cierre · '+fin.projection.method:'Sin proyección comprobable');
+ listLines('intel-finance-plan',ext.business?.sixMonths||[],
+  x=>x.month+' · pacientes objetivo '+(x.patientsGoal??'—')+' · ingreso objetivo '+money(x.clinicGoal)+' · real '+money(x.clinicActual));
+ listLines('intel-merch',ext.business?.merch||[],
+  x=>x.name+' · '+x.inStock+' unidades estimadas · margen bruto unitario '+money(x.marginUnit)+' · capital '+money(x.inventoryAtCost));
+ text('intel-inbox-count',v.inbox?.open??'—');
+ listLines('intel-project-ideas',(v.inbox?.items||[]).filter(x=>x.status==='open').slice(0,12),
+  x=>x.title+' · '+x.area+' · '+x.minutes+' min');
+ const projects=$('intel-github-links');clear(projects);
+ (v.projects?.repos||[]).forEach(repo=>{
+  const li=make('li');li.append(link(repo.name+' ↗',repo.url));projects.append(li);
+ });
+ const quality=b.sourceHealth||{};
+ listLines('intel-sources',quality.details||[],x=>(x.state==='ok'?'✅ ':x.state==='warning'?'⚠️ ':'⛔ ')+x.label+' · '+x.detail);
+ text('intel-history',b.history?.state==='ok'?'Nuevos: '+b.history.new24h+' · Resueltos: '+b.history.resolved24h+' · Persistentes: '+b.history.persistent:
+  b.history?.message||'Historial aún no verificable');
+}
+function render(v){
+ STATE=v;if(!v||v.state!=='ok'){text('load-line','La respuesta privada no es válida.');return}
+ renderToday(v);renderOpportunities(v);renderArica(v);renderIntelligence(v);
+ text('load-line','● Actualizado '+new Date(v.generatedAt).toLocaleTimeString('es-CL',{timeZone:'America/Santiago'})+
+  ' · '+v.version+' · Panel privado');
+ $('load-line').classList.remove('loading');
+}
+let pending=false;
+function refresh(){
+ if(pending)return;pending=true;$('refresh').disabled=true;
+ google.script.run.withSuccessHandler(v=>{pending=false;$('refresh').disabled=false;render(v)})
+  .withFailureHandler(()=>{pending=false;$('refresh').disabled=false;text('load-line','Error de lectura: comprobar despliegue privado, permisos y servicios avanzados.');})
+  .getV9Dashboard();
+}
+$('refresh').onclick=refresh;
+function openCapture(mode){
+ $('capture-modal').hidden=false;captureType(mode||'idea');text('capture-status','');
+ if(mode!=='lead')$('idea-text').focus();
+}
+function captureType(type){
+ const choice=type==='lead'?'lead':'idea';
+ $('capture-idea').hidden=choice!=='idea';$('capture-lead').hidden=choice!=='lead';
+ document.querySelectorAll('[data-capture-type]').forEach(b=>b.classList.toggle('active',b.dataset.captureType===choice));
+}
+$('capture-open').onclick=()=>openCapture('idea');$('capture-close').onclick=()=>{$('capture-modal').hidden=true};
+$('capture-modal').addEventListener('click',e=>{if(e.target===$('capture-modal'))$('capture-modal').hidden=true});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')$('capture-modal').hidden=true});
+document.querySelectorAll('[data-open-capture]').forEach(b=>b.onclick=()=>openCapture(b.dataset.openCapture));
+document.querySelectorAll('[data-capture-type]').forEach(b=>b.onclick=()=>captureType(b.dataset.captureType));
+function setTaskStatus(id,status){
+ google.script.run.withSuccessHandler(r=>{
+  if(r.state==='ok'&&STATE){STATE.inbox=r.inbox;renderOpportunities(STATE);renderIntelligence(STATE);}
+ }).withFailureHandler(()=>text('load-line','No se pudo cambiar el estado de la tarea')).setV9TaskStatus(id,status);
+}
+$('save-idea').onclick=()=>{
+ const value=$('idea-text').value.trim();if(value.length<4){text('capture-status','Escribe al menos cuatro caracteres.');return}
+ $('save-idea').disabled=true;text('capture-status','Guardando…');
+ google.script.run.withSuccessHandler(r=>{
+  $('save-idea').disabled=false;
+  text('capture-status',r.state==='ok'?'✅ Capturado · '+r.item.area+' · '+r.item.minutes+' min estimados':r.message||'No se pudo guardar');
+  if(r.state==='ok'){$('idea-text').value='';if(STATE){STATE.inbox=r.inbox;renderOpportunities(STATE);renderIntelligence(STATE)}}
+ }).withFailureHandler(()=>{$('save-idea').disabled=false;text('capture-status','Error de guardado. No se registró el pendiente.')}).captureV9Idea(value);
+};
+$('save-lead').onclick=()=>{
+ $('save-lead').disabled=true;text('capture-status','Registrando consulta…');
+ google.script.run.withSuccessHandler(r=>{
+  $('save-lead').disabled=false;
+  text('capture-status',r.state==='ok'?'✅ Consulta agregada sin datos personales':'No se pudo registrar');
+  if(r.state==='ok'){lastLeadToken=r.token;$('undo-lead').hidden=false;if(STATE){STATE.leads=r.stats;renderToday(STATE);renderIntelligence(STATE);}}
+ }).withFailureHandler(()=>{$('save-lead').disabled=false;text('capture-status','No se pudo registrar la consulta.')}).recordV9Lead($('lead-origin').value);
+};
+$('undo-lead').onclick=()=>{
+ if(!lastLeadToken)return;
+ $('undo-lead').disabled=true;
+ google.script.run.withSuccessHandler(r=>{
+  $('undo-lead').disabled=false;
+  if(r.state==='ok'){$('undo-lead').hidden=true;lastLeadToken=null;text('capture-status','Último registro deshecho');if(STATE){STATE.leads=r.stats;renderToday(STATE);renderIntelligence(STATE)}}
+  else text('capture-status','Ya no es posible deshacer ese registro.');
+ }).withFailureHandler(()=>{$('undo-lead').disabled=false;text('capture-status','Error al deshacer.')}).undoV9Lead(lastLeadToken);
+};
+refresh();
+setInterval(refresh,5*60*1000);
+</script>
+</body>
+</html>
