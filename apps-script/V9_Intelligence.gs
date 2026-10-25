@@ -20,60 +20,8 @@ const RV9_LOCAL_SOURCES=[
  {name:'Municipalidad Arica',url:'https://muniarica.cl/',kind:'Información local'}
 ];
 
-function rv9GetJson_(url,seconds){
- try{
-  const cache=CacheService.getScriptCache();
-  const digest=Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256,url);
-  const key='RV9_'+Utilities.base64EncodeWebSafe(digest).slice(0,30);
-  const old=cache.get(key);if(old)return rv9Json_(old,null);
-  const res=UrlFetchApp.fetch(url,{muteHttpExceptions:true,followRedirects:true});
-  if(res.getResponseCode()!==200)return null;
-  const body=res.getContentText();
-  if(body.length>32000)return null;
-  const data=rv9Json_(body,null);
-  if(data)cache.put(key,body,seconds);
-  return data;
- }catch(e){return null;}
-}
-function rv9Number_(x){return typeof x==='number'&&Number.isFinite(x)?x:null;}
-function rv9Arica_(now){
- const output={state:'partial',timezone:RV_TZ,place:'Arica · Chinchorro',
-  consultedAt:now.toISOString(),weather:{state:'unavailable'},
-  air:{state:'unavailable'},marine:{state:'unavailable'},
-  cameras:RV9_CAMERAS,sources:RV9_LOCAL_SOURCES,
-  alerts:{state:'links_only',message:'Los avisos oficiales deben comprobarse en SENAPRED y Armada; no hay feed integrado.'},
-  note:'Las fotografías históricas no son webcams y ninguna cámara se marca EN VIVO sin verificación.'};
- const q='https://api.open-meteo.com/v1/forecast?latitude=-18.49&longitude=-70.30&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,wind_gusts_10m,uv_index&daily=sunrise,sunset,uv_index_max,precipitation_probability_max&timezone=America%2FSantiago&forecast_days=2';
- const w=rv9GetJson_(q,900);
- if(w?.current){
-  const x=w.current;
-  output.weather={state:'model',provider:'Open-Meteo',time:x.time||null,
-   temperature:rv9Number_(x.temperature_2m),feelsLike:rv9Number_(x.apparent_temperature),
-   humidity:rv9Number_(x.relative_humidity_2m),wind:rv9Number_(x.wind_speed_10m),
-   gust:rv9Number_(x.wind_gusts_10m),uv:rv9Number_(x.uv_index),
-   code:x.weather_code,sunrise:w.daily?.sunrise?.[0]||null,
-   sunset:w.daily?.sunset?.[0]||null,rainChance:rv9Number_(w.daily?.precipitation_probability_max?.[0]),
-   source:'https://open-meteo.com/en/docs',certainty:'Estimación meteorológica; no observación de Chacalluta'};
- }
- const aq=rv9GetJson_('https://air-quality-api.open-meteo.com/v1/air-quality?latitude=-18.49&longitude=-70.30&current=pm2_5,us_aqi&timezone=America%2FSantiago',1200);
- if(aq?.current){
-  output.air={state:'model',provider:'Open-Meteo Air Quality',time:aq.current.time,
-   pm25:rv9Number_(aq.current.pm2_5),usAqi:rv9Number_(aq.current.us_aqi),
-   source:'https://open-meteo.com/en/docs/air-quality-api',
-   certainty:'Modelo, no estación SINCA'};
- }
- const wave=rv9GetJson_('https://marine-api.open-meteo.com/v1/marine?latitude=-18.47&longitude=-70.33&current=wave_height,wave_period,sea_surface_temperature&cell_selection=sea&timezone=America%2FSantiago',1200);
- if(wave?.current){
-  output.marine={state:'model',provider:'Open-Meteo Marine',time:wave.current.time,
-   waveHeight:rv9Number_(wave.current.wave_height),wavePeriod:rv9Number_(wave.current.wave_period),
-   seaTemp:rv9Number_(wave.current.sea_surface_temperature),
-   source:'https://open-meteo.com/en/docs/marine-weather-api',
-   certainty:'Modelo de oleaje; no pronóstico oficial de marejadas'};
- }
- output.state=output.weather.state==='model'?'ok':'partial';
- output.license='Open-Meteo API gratuita condicionada a uso no comercial. Evaluar licencia comercial antes de uso profesional de negocio.';
- return output;
-}
+// No automatic meteorological, air-quality or marine network requests in V9.
+// Arica keeps curated public links; the user decides whether to open them.
 
 function rv9Extra_(p,now){
  const output={performance:{state:'unavailable',skills:[],kpis:[],bodyfat:[]},
