@@ -236,30 +236,83 @@
   </div>
  </section>
 
- <section class="screen" id="screen-arica" hidden aria-label="Arica, fuentes y fotografías">
+ <section class="screen" id="screen-arica" hidden aria-label="Arica y Parinacota, datos locales">
   <div class="hero" id="arica-hero"><div class="hero-copy">
-   <div class="eyebrow">🌆 ARICA · DIRECTORIO PÚBLICO</div>
-   <h2>Arica, donde estás.</h2>
-   <p>Hora de Arica, fotografías, cámaras anunciadas y acceso voluntario a fuentes oficiales.</p>
+   <div class="eyebrow">🌆 ARICA INTELLIGENCE</div>
+   <h2>Arica con información verificable.</h2>
+   <p>Meteorología estimada, avisos y sismos fechados, mar, cámaras públicas y acceso a los registros originales.</p>
   </div></div>
-  <div class="sectiontop"><h2>Arica sin consultas automáticas</h2><span class="tag good">Sin API meteorológica</span></div>
+  <div class="sectiontop">
+   <h2>Condiciones y avisos</h2>
+   <button class="button secondary small" type="button" id="local-refresh">↻ Comprobar fuentes</button>
+  </div>
+  <p class="statusline" id="local-updated">Los datos de Arica se solicitan únicamente cuando abres esta sección. Caché de 15 minutos.</p>
   <div class="grid">
-   <article class="card s6">
-    <h3>🕒 Hora oficial local</h3>
-    <div class="metric" id="arica-clock">--:--:--</div>
-    <p class="minor">America/Santiago · Hora del dispositivo con ajuste de zona horaria; sin consultas a internet para actualizarla.</p>
+   <article class="card s6" data-photo="AR-10">
+    <div class="cardhead"><h3>🌡️ Temperatura y viento</h3><span class="tag" id="local-weather-state">Sin consultar</span></div>
+    <div class="dash">
+      <div class="dashitem"><div class="label">Temperatura · modelo</div><div class="metric" id="local-temp">—</div></div>
+      <div class="dashitem"><div class="label">Viento · modelo</div><div class="metric" id="local-wind">—</div></div>
+      <div class="dashitem"><div class="label">Radiación UV · modelo</div><div class="metric" id="local-uv">—</div></div>
+      <div class="dashitem"><div class="label">Sensación térmica</div><div class="metric" id="local-feels">—</div></div>
+    </div>
+    <p class="minor" id="local-weather-time">Modelos Open-Meteo, no estación de medición. Fecha de dato pendiente.</p>
+    <div id="local-weather-source"></div>
    </article>
-   <article class="card s6">
-    <h3>🛡️ Fuentes locales</h3>
-    <p class="smalltext">El CC ya no consulta temperatura, viento, radiación UV, calidad del aire ni oleaje. Puedes abrir las fuentes oficiales manualmente cuando las necesites.</p>
-    <p id="arica-alert-note" class="minor">Consultar alertas directamente en SENAPRED y Armada.</p>
+   <article class="card s6" data-photo="AR-05">
+    <div class="cardhead"><h3>🌫️ Calidad del aire</h3><span class="tag" id="local-air-state">Sin consultar</span></div>
+    <div class="dash">
+      <div class="dashitem"><div class="label">MP2,5 estimado</div><div class="metric" id="local-pm25">—</div></div>
+      <div class="dashitem"><div class="label">US AQI estimado</div><div class="metric" id="local-aqi">—</div></div>
+    </div>
+    <p class="minor" id="local-air-time">Modelo de aire, no estación SINCA; fecha pendiente.</p>
+    <div id="local-air-source"></div>
    </article>
-   <article class="card s12"><div class="cardhead"><h3>📷 Directorio de cámaras públicas</h3><span class="tag warn">Señal sin verificar</span></div>
-    <p class="sub">Enlaces voluntarios a proveedores. No se consultan señales CCTV desde el servidor; las fotografías históricas nunca se etiquetan como video en vivo.</p>
+   <article class="card s6" data-photo="AR-09">
+    <div class="cardhead"><h3>🚨 Publicaciones SENAPRED · Arica y Parinacota</h3><span class="tag warn">Vigencia por verificar</span></div>
+    <p class="minor">Comunicados fechados de SENAPRED encontrados en un índice de noticias. Una publicación no certifica que una alerta continúe vigente.</p>
+    <div id="local-senapred" class="audit-list"><p class="minor">Consultar para obtener publicaciones recientes.</p></div>
+    <div id="senapred-source"></div>
+   </article>
+   <article class="card s6" data-photo="AR-02">
+    <div class="cardhead"><h3>🌎 Últimos sismos · región y norte</h3><span class="tag">CSN</span></div>
+    <p class="minor">Últimos eventos procesados, no predicción ni alerta temprana. Se distingue la región de los eventos en otras zonas.</p>
+    <div id="local-sismos" class="audit-list"><p class="minor">Sin consultar.</p></div>
+    <div id="sismos-source"></div>
+   </article>
+   <article class="card s6" data-photo="AR-08">
+    <div class="cardhead"><h3>🌊 Oleaje y mar</h3><span class="tag" id="local-marine-state">Sin consultar</span></div>
+    <div class="dash">
+      <div class="dashitem"><div class="label">Altura de ola modelada</div><div class="metric" id="local-wave">—</div></div>
+      <div class="dashitem"><div class="label">Período de ola</div><div class="metric" id="local-period">—</div></div>
+    </div>
+    <p id="local-marine-time" class="minor">Fecha del modelo pendiente.</p>
+    <p id="local-marine-alert" class="notice">Un pronóstico de ola no constituye aviso oficial de marejadas.</p>
+    <div id="local-marine-source"></div>
+   </article>
+   <article class="card s6" data-photo="FF-01">
+    <div class="cardhead"><h3>🛡️ Seguridad y alertas verificadas</h3><span class="tag">Fuentes oficiales</span></div>
+    <p class="smalltext">Consulta directamente SENAPRED, el Servicio Meteorológico de la Armada y el CSN antes de actuar ante una contingencia. Sin indicador verde falso cuando falta acceso a un feed oficial.</p>
+    <p class="minor">La presencia o ausencia de publicaciones indexadas no equivale a una declaración oficial de riesgo.</p>
+    <div id="local-alert-links"></div>
+   </article>
+   <article class="card s12" data-photo="AR-06">
+    <div class="cardhead"><h3>📷 Cámaras públicas de Arica</h3><span class="tag warn">Estado de señal no verificado</span></div>
+    <p class="minor">Cada cámara conserva su proveedor y naturaleza. Las imágenes de archivo no se confunden con transmisiones CCTV.</p>
     <div class="grid" id="camera-list"></div>
    </article>
-   <article class="card s12"><h3>🗺️ Arica en fotografías</h3><p class="minor">Galería de archivo con autor, licencia y fuente, cargada cuando abres esta sección.</p><div class="photo-grid" id="arica-photos"></div></article>
-   <article class="card s12"><h3>Fuentes oficiales y contexto local</h3><p class="minor">Estos enlaces se abren solamente cuando los seleccionas; no hay solicitudes periódicas desde el CC.</p><div class="grid" id="arica-sources"></div></article>
+   <article class="card s4" data-photo="AR-03">
+    <h3>🏛️ Centro y patrimonio</h3><p class="minor">Información ciudadana y avisos oficiales de Arica, presentada junto a una fotografía de archivo con autor.</p>
+    <a href="https://muniarica.cl/" target="_blank" rel="noopener noreferrer">Municipalidad de Arica ↗</a>
+   </article>
+   <article class="card s4" data-photo="AR-07">
+    <h3>🚆 Movilidad y desplazamientos</h3><p class="minor">Contexto de movilidad local y referencia histórica de estación Chinchorro.</p>
+    <a href="https://www.waze.com/live-map" target="_blank" rel="noopener noreferrer">Abrir mapa de movilidad ↗</a>
+   </article>
+   <article class="card s4" data-photo="AR-11">
+    <h3>📍 Sectores de Arica</h3><p class="minor">Noticias y referencias locales sin atribuir a fotografías históricas la condición actual de una calle.</p>
+    <a href="https://senapred.cl/alertas/" target="_blank" rel="noopener noreferrer">Ver estado oficial de alertas ↗</a>
+   </article>
   </div>
  </section>
 
@@ -312,6 +365,18 @@
       <p class="minor">Radar de 15 habilidades · nivel actual frente a meta (escala 0–10).</p>
       <div id="boxing-radar" class="radar-wrap" role="img" aria-label="Radar comparativo de 15 habilidades: nivel registrado versus objetivo"></div>
       <div id="intel-boxing-skills" class="smalltext skill-legend"></div>
+     </article>
+    <article class="card s6" data-photo="BX-01">
+      <div class="cardhead"><h3>🥊 Clases de boxeo efectivamente registradas</h3><div id="classes-mts-link"></div></div>
+      <div class="metric" id="class-boxing-count">—</div>
+      <p class="minor">Una clase por fecha con registro “Coached Boxing” marcado Done. Los ejercicios de la misma clase no suman sesiones.</p>
+      <div id="class-boxing-dates" class="smalltext"></div>
+     </article>
+     <article class="card s6" data-photo="GY-02">
+      <h3>🫀 Cardio y volumen semanal</h3>
+      <p class="minor">Solo sesiones de ejecución verificadas; los registros no verificados no cuentan como completados.</p>
+      <div class="metric" id="cardio-done">—</div>
+      <p id="cardio-status" class="minor"></p>
      </article>
     <article class="card s6" data-photo="GY-01">
       <div class="cardhead"><h3>🏋️ Objetivos MTS</h3><div id="mts-kpi-source"></div></div>
@@ -383,7 +448,7 @@
    <button class="chip active" type="button" data-capture-type="idea">🧠 Idea o pendiente</button>
    <button class="chip" type="button" data-capture-type="lead">📲 Nueva consulta</button>
   </div>
-  <div id="capture-idea">
+  <div id="capture-idea"><div data-photo="CP-01" class="editorial-inset"></div>
    <label for="idea-text" class="label">¿Qué quieres recordar o terminar?</label>
    <textarea id="idea-text" maxlength="220" placeholder="Terminar la sección..., revisar..., construir..." aria-describedby="idea-policy"></textarea>
    <p id="idea-policy" class="minor">Puedes usar el dictado del teclado del iPhone. Evita información de pacientes, contraseñas y datos personales.</p>
