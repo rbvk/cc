@@ -9,6 +9,16 @@ const engine=read('Code.gs'),core=read('V9_Core.gs'),extra=read('V9_Intelligence
 [engine,core,extra,local].forEach(s=>new vm.Script(s));
 const client=html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
 assert.ok(client);new vm.Script(client);
+for(const name of ['renderRadar','renderMtsProgress','renderClinicTracking']){
+ assert.ok(client.includes('function '+name+'('),'Dashboard requires '+name+' to be defined');
+}
+assert.ok(client.includes('function renderAudits('),'Audit must be visible');
+assert.ok(client.includes('function renderLocal('),'Dated regional data must have a renderer');
+assert.ok(html.includes('id="boxing-radar"'));
+assert.ok(html.includes('id="intel-mts-progress"'));
+assert.ok(html.includes('id="clinic-weeks-bars"'));
+assert.ok(html.includes('id="audit-detailed"'));
+
 const ids=new Set([...html.matchAll(/\bid="([^"]+)"/g)].map(x=>x[1]));
 for(const m of client.matchAll(/\$\('([a-z0-9-]+)'\)/g))assert.ok(ids.has(m[1]),'Missing '+m[1]);
 assert.equal((client.match(/"id":"AR-\d\d"/g)||[]).length,11);
