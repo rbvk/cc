@@ -65,7 +65,7 @@ function rv9LocalSenapred_(xml,now){
  const news=[];
  for(const item of items){
   const get=tag=>{
-   const m=item.match(new RegExp('<'+tag+'(?:\\\\s[^>]*)?>([\\\\s\\\\S]*?)<\\\\/'+tag+'>','i'));
+   const m=item.match(new RegExp('<'+tag+'(?:\\s[^>]*)?>([\\s\\S]*?)<\\/'+tag+'>','i'));
    return m?rv9LocalSanitize_(m[1].replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g,'$1')):'';
   };
   const title=get('title').replace(/\s+-\s+SENAPRED.*$/i,'').slice(0,200);
