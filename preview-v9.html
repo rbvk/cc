@@ -5,7 +5,7 @@
  <meta charset="utf-8">
  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
  <meta name="theme-color" content="#0a1323">
- <title>Vista previa RV CC V9 · Datos ficticios</title>
+ <title>Vista previa RV Command Center V9 · Datos ficticios</title>
  <meta name="robots" content="noindex,nofollow,noarchive">
  <style>
  :root{color-scheme:dark;--bg:#07111f;--surface:#101f31;--surface2:#15283c;--border:#29435b;--muted:#a8c0d1;--text:#f1f7fb;--accent:#80d6f5;--good:#82d6bf;--warn:#f2c67d;--bad:#ff9c97;font:17px/1.54 -apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;font-synthesis:none}
@@ -101,7 +101,7 @@
  .modalback{position:fixed;inset:0;z-index:95;background:rgba(3,10,19,.83);display:grid;place-items:center;padding:15px}
  .modal{background:#102438;border:1px solid #42637b;max-width:570px;width:100%;max-height:92dvh;overflow:auto;border-radius:21px;padding:23px;box-shadow:0 30px 70px #0009}
  .modal h2{margin-bottom:6px}
- textarea,select{background:#0c1d2c;border:1px solid #47637a;border-radius:12px;padding:12px;color:var(--text);width:100%;font-size:17px}
+ textarea,select,.text-input{background:#0c1d2c;border:1px solid #47637a;border-radius:12px;padding:12px;color:var(--text);width:100%;font-size:17px}
  textarea{min-height:128px;resize:vertical}
  .floating{position:fixed;right:20px;bottom:89px;z-index:60;border:0;border-radius:18px;background:var(--accent);color:#082132;padding:12px 19px;font-weight:850;box-shadow:0 9px 30px #0007;min-height:50px}
  .bottomnav{position:fixed;bottom:0;left:0;right:0;z-index:70;border-top:1px solid #294e68;background:#071522f5;backdrop-filter:blur(16px);padding:7px max(8px,env(safe-area-inset-right)) calc(7px + env(safe-area-inset-bottom))}
@@ -120,12 +120,12 @@
  </style>
 </head>
 <body>
-<div role="banner" style="background:#553d21;color:#fff3cf;padding:9px 15px;text-align:center;font-weight:750;font-size:14px;position:relative;z-index:80">VISTA PREVIA PÚBLICA · DATOS 100% FICTICIOS · Sin conexión a PSICOPRO, Matrix ni Calendar real</div>
+<div role="banner" style="background:#553d21;color:#fff3cf;padding:9px 15px;text-align:center;font-weight:750;font-size:14px;position:relative;z-index:80">VISTA PREVIA PÚBLICA · DATOS 100% FICTICIOS · Sin conexión a Matrix, PSICOPRO, MTS ni Finanzas</div>
 <script>
 'use strict';
 /* Synthetic ONLY. This static GitHub Pages demo never reads actual patient data. */
 const DEMO={
- state:'ok',version:'V9 PREVIEW · DATOS FICTICIOS',generatedAt:new Date().toISOString(),timezone:'America/Santiago',
+ state:'ok',configuration:{state:'configured',configuredCount:4,total:4,sources:[],message:'Fuentes demostrativas'},version:'V9 PREVIEW · DATOS FICTICIOS',generatedAt:new Date().toISOString(),timezone:'America/Santiago',
  base:{
   nextAction:{title:'Elegir una tarea terminable',reason:'Ejemplo de priorización'},
   clinical:{state:'ok',weekly:8,target:15,gap:-7,
@@ -220,6 +220,9 @@ function runner(){
     const item=DEMO.decisions?.items?.find(x=>x.id===id);
     if(item){item.status=status;DEMO.decisions.open--;DEMO.decisions.completed++;}
     okay({state:'ok',decisions:DEMO.decisions});
+  },
+  configureV9Sources(){
+    okay({state:'invalid',message:'La vista previa no guarda fuentes. Utiliza la aplicación privada.'});
   }
  };
 }
@@ -242,6 +245,13 @@ window.google={script:{get run(){return runner()}}};
  </div>
 
  <section class="screen" id="screen-hoy" aria-label="Resumen diario">
+  <section id="setup-banner" class="card" style="border-color:#8b643c;margin-bottom:18px" aria-label="Configuración de fuentes" hidden>
+   <div class="cardhead"><h2 style="font-size:22px;margin:0">⚙️ Configurar fuentes privadas</h2><span class="tag warn" id="setup-badge">0/4</span></div>
+   <p class="smalltext" id="setup-message">Este proyecto necesita los enlaces de las cuatro hojas de Google Sheets.</p>
+   <ul class="softlist" id="setup-sources"></ul>
+   <p class="minor">Las fuentes se guardan en las propiedades privadas de este proyecto. No se publican en GitHub ni se copian registros de pacientes.</p>
+   <button class="button" type="button" id="setup-open">Configurar conexiones</button>
+  </section>
   <div class="hero" id="hoy-hero">
    <div class="hero-copy"><div class="eyebrow">⚡ DECISIÓN PRIORITARIA</div>
     <h2 id="today-priority">Cargando prioridades…</h2><p id="today-why">Comprobando restricciones y fuentes.</p>
@@ -414,6 +424,21 @@ window.google={script:{get run(){return runner()}}};
  <button class="navbtn" type="button" data-goto="arica"><span class="symbol">🌆</span>Arica</button>
  <button class="navbtn" type="button" data-goto="inteligencia"><span class="symbol">▥</span>Inteligencia</button>
 </div></nav>
+<div class="modalback overlay" id="setup-modal" role="presentation" hidden>
+ <div class="modal" role="dialog" aria-modal="true" aria-labelledby="setup-title">
+  <div class="cardhead"><h2 id="setup-title">Conectar hojas de Google</h2>
+   <button class="button ghost small" id="setup-close" type="button">Cerrar ×</button></div>
+  <p class="minor">Un proyecto nuevo de Apps Script no hereda las Script Properties del anterior. Pega las direcciones de tus hojas. Los campos vacíos conservarán la configuración existente.</p>
+  <div style="display:grid;gap:14px">
+   <div><label for="sheet-matrix" class="label">📅 MTS · System Matrix</label><input id="sheet-matrix" class="text-input" type="text" autocomplete="off" placeholder="https://docs.google.com/spreadsheets/d/.../edit"></div>
+   <div><label for="sheet-training" class="label">🥊 MTS · Execution Log</label><input id="sheet-training" class="text-input" type="text" autocomplete="off" placeholder="https://docs.google.com/spreadsheets/d/.../edit"></div>
+   <div><label for="sheet-clinical" class="label">🏥 RODOLFO.PSICOPRO</label><input id="sheet-clinical" class="text-input" type="text" autocomplete="off" placeholder="https://docs.google.com/spreadsheets/d/.../edit"></div>
+   <div><label for="sheet-finance" class="label">💰 Finanzas</label><input id="sheet-finance" class="text-input" type="text" autocomplete="off" placeholder="https://docs.google.com/spreadsheets/d/.../edit"></div>
+  </div>
+  <p class="statusfeed" id="setup-feedback" role="status" aria-live="polite"></p>
+  <div class="buttons"><button class="button" id="setup-save" type="button">Verificar y guardar fuentes</button></div>
+ </div>
+</div>
 <div class="modalback overlay" id="capture-modal" role="presentation" hidden>
  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
   <div class="cardhead"><h2 id="modal-title">Captura rápida</h2><button class="button ghost small" type="button" id="capture-close">Cerrar ×</button></div>
@@ -729,8 +754,20 @@ function renderIntelligence(v){
  text('intel-history',b.history?.state==='ok'?'Nuevos: '+b.history.new24h+' · Resueltos: '+b.history.resolved24h+' · Persistentes: '+b.history.persistent:
   b.history?.message||'Historial aún no verificable');
 }
+function renderConfiguration(info){
+ const config=info||{state:'setup_required',sources:[],configuredCount:0,total:4};
+ $('setup-banner').hidden=config.state==='configured';
+ text('setup-badge',(config.configuredCount||0)+' / '+(config.total||4));
+ text('setup-message',config.message||'Las fuentes no están configuradas');
+ const list=$('setup-sources');clear(list);
+ for(const source of (config.sources||[])){
+  list.append(make('li','smalltext',(source.configured?'✅ ':'⚠️ ')+source.name+' · '+
+   (source.state==='missing'?'Falta enlazar':source.state==='error'?'Error al consultar':'Enlazada')));
+ }
+}
 function render(v){
  STATE=v;if(!v||v.state!=='ok'){text('load-line','La respuesta privada no es válida.');return}
+ renderConfiguration(v.configuration);
  renderToday(v);renderOpportunities(v);renderArica(v);renderIntelligence(v);
  text('load-line','● Actualizado '+new Date(v.generatedAt).toLocaleTimeString('es-CL',{timeZone:'America/Santiago'})+
   ' · '+v.version+' · Panel privado');
@@ -740,10 +777,39 @@ let pending=false;
 function refresh(){
  if(pending)return;pending=true;$('refresh').disabled=true;
  google.script.run.withSuccessHandler(v=>{pending=false;$('refresh').disabled=false;render(v)})
-  .withFailureHandler(()=>{pending=false;$('refresh').disabled=false;text('load-line','Error de lectura: comprobar despliegue privado, permisos y servicios avanzados.');})
-  .getV9Dashboard();
+  .withFailureHandler(e=>{
+   pending=false;$('refresh').disabled=false;
+   const reason=String(e&&e.message||'').slice(0,260);
+   text('load-line','Error de lectura: '+(reason||'Comprueba permisos y la versión desplegada.'));
+   $('setup-banner').hidden=false;
+   text('setup-message','Comprueba la configuración de fuentes, permisos de lectura y servicio avanzado Sheets.');
+  }).getV9Dashboard();
 }
 $('refresh').onclick=refresh;
+function showSetup(){
+ $('setup-modal').hidden=false;text('setup-feedback','Solo se guardarán enlaces que introduzcas.');
+ $('sheet-matrix').focus();
+}
+$('setup-open').onclick=showSetup;
+$('setup-close').onclick=()=>{$('setup-modal').hidden=true};
+$('setup-modal').addEventListener('click',e=>{if(e.target===$('setup-modal'))$('setup-modal').hidden=true});
+$('setup-save').onclick=()=>{
+ const inputs={
+  MATRIX_SHEET_ID:$('sheet-matrix').value.trim(),TRAINING_SHEET_ID:$('sheet-training').value.trim(),
+  CLINICAL_SHEET_ID:$('sheet-clinical').value.trim(),FINANCE_SHEET_ID:$('sheet-finance').value.trim()
+ };
+ const button=$('setup-save');button.disabled=true;
+ text('setup-feedback','Verificando acceso y estructura de las hojas…');
+ google.script.run.withSuccessHandler(r=>{
+  button.disabled=false;
+  if(r.state!=='ok'){text('setup-feedback',r.errors?.join(' · ')||r.message||'No se guardaron cambios');return;}
+  text('setup-feedback','✅ Fuentes enlazadas: '+r.saved.map(x=>x.name).join(', '));
+  ['sheet-matrix','sheet-training','sheet-clinical','sheet-finance'].forEach(id=>$(id).value='');
+  renderConfiguration(r.configuration);refresh();
+ }).withFailureHandler(e=>{
+  button.disabled=false;text('setup-feedback','No se pudo guardar: '+String(e?.message||'Sin autorización').slice(0,200));
+ }).configureV9Sources(inputs);
+};
 function openCapture(mode){
  $('capture-modal').hidden=false;captureType(mode||'idea');text('capture-status','');
  if(mode!=='lead')$('idea-text').focus();
