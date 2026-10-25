@@ -2,7 +2,7 @@
   "version": "2026.10.24.9",
   "status": "source_ready_owner_deployment_required",
   "title": "RV Command Center V9 · Aplicación privada única",
-  "description": "Memoria operativa, captación anónima, oportunidades, decisiones, Arica Live e inteligencia de cuatro Sheets",
+  "description": "Captación anónima, memoria operativa, decisiones e inteligencia de cuatro Sheets; Arica sin solicitudes meteorológicas automáticas",
   "entry": "apps-script/Index.html",
   "scripts": [
     "Code.gs",
@@ -24,7 +24,14 @@
   "limitations": [
     "No verified public CCTV live stream",
     "Exact per-person conversion not calculated",
-    "Open-Meteo requires compliant terms for use",
-    "29 photographs are externally hosted and need visual spot check"
-  ]
+    "29 photographs are externally hosted and need visual spot check",
+    "GitHub no despliega el proyecto privado Apps Script; volver a publicar su versión manualmente"
+  ],
+  "arica": "Reloj del navegador, directorio de webcams y enlaces oficiales abiertos solo manualmente",
+  "automaticExternalWeatherRequests": false,
+  "oauthScopes": [
+    "https://www.googleapis.com/auth/spreadsheets.readonly",
+    "https://www.googleapis.com/auth/calendar.readonly"
+  ],
+  "loading": "getV9Bootstrap primero; getV9Dashboard y getV9Extended independientemente, sin API de clima"
 }
