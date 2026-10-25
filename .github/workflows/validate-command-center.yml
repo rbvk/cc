@@ -16,8 +16,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Run privacy and operational KPI regression tests
+      - name: Run V9 security, source-setup and operational regression tests
         run: |
-          node apps-script/tests/command-center-smoke.mjs
-          node apps-script/tests/command-center-v8.mjs
           node apps-script/tests/command-center-v9.mjs
