@@ -3,7 +3,7 @@
  * All current analytics reuse the original read-only Google Sheets readers.
  * SECURITY: Deploy as Me / Only myself. Never Anyone.
  * Private IDs belong only in per-project Script Properties, never GitHub.
- * Authorized scopes: spreadsheets.readonly, calendar.readonly and outbound weather.
+ * Authorized scopes: spreadsheets.readonly and calendar.readonly. No automatic weather HTTP calls.
  */
 const RV_TZ = 'America/Santiago';
 const RV_RELEASE = '2026.10.24.9';
