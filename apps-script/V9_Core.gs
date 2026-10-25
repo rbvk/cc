@@ -331,17 +331,106 @@ function configureV9Sources(raw){
  });
 }
 
+
+/**
+ * V9 boot is deliberately independent of all Sheets, Calendar and UrlFetch calls.
+ * The private app must be able to render its shell even when Google denies
+ * a specific spreadsheet or the weather provider is unavailable.
+ */
+function rv9NullBase_(problem){
+ return {
+  state:'partial',calendar:{state:'unavailable',todayEvents:[]},
+  matrix:{state:'unavailable'},training:{state:'unavailable'},
+  clinical:{state:'unavailable'},finance:{state:'unavailable'},
+  sleepTrend:{state:'unavailable'},nextAction:{
+   title:'Verificar conexiones privadas',
+   reason:'El resumen está temporalmente indisponible. '+(problem||''),
+   level:'high'
+  },sourceHealth:{details:[],available:0,total:5}
+ };
+}
+function rv9StaticArica_(now){
+ return {state:'links_only',timezone:RV_TZ,place:'Arica · Chinchorro',
+  consultedAt:now.toISOString(),weather:{state:'unavailable'},
+  air:{state:'unavailable'},marine:{state:'unavailable'},
+  cameras:RV9_CAMERAS,sources:RV9_LOCAL_SOURCES,
+  alerts:{state:'links_only',message:'Consultar avisos oficiales directamente en SENAPRED y Armada'}};
+}
+function rv9SafeInternals_(p,now){
+ const inbox=rv9Inbox_(rv9AllIdeas_(p,now));
+ return {
+  inbox,leads:rv9LeadStats_(p,now),
+  decisions:rv9DecisionSummary_(rv9AllDecisions_(p,now))
+ };
+}
+function getV9Bootstrap(){
+ const now=new Date(),p=rv9Props_();
+ const essentials=rv9SafeInternals_(p,now);
+ return {state:'ok',version:RV9_VERSION,generatedAt:now.toISOString(),
+  timezone:RV_TZ,configuration:rv9Configuration_(p,null),
+  ...essentials,
+  arica:rv9StaticArica_(now),
+  diagnostics:{
+   boot:'ok',version:RV9_VERSION,projectPropertiesReady:true,
+   note:'Bootstrap no lee archivos clínicos ni llama a servicios externos'}
+ };
+}
+/** Primary: existing operational V9 data from only the original source engine. */
 function getV9Dashboard(){
- const now=new Date(),p=rv9Props_(),base=rv9BaseDashboard_();
+ const now=new Date(),p=rv9Props_(),essentials=rv9SafeInternals_(p,now);
+ let base,error=null;
+ try{base=rv9BaseDashboard_();}
+ catch(e){
+  error='La lectura principal no se completó. Comprueba permisos y ejecuciones de Google Apps Script.';
+  base=rv9NullBase_(error);
+ }
  const configuration=rv9Configuration_(p,base);
- const ideas=rv9AllIdeas_(p,now),inbox=rv9Inbox_(ideas),leads=rv9LeadStats_(p,now);
- const decisions=rv9DecisionSummary_(rv9AllDecisions_(p,now));
- const availability=rv9Available_(p,now),extra=rv9Extra_(p,now);
- const opportunities=rv9Opportunities_(base,extra,inbox,availability);
+ const empty={business:{merch:[]},performance:{skills:[]}};
+ const noWindow={state:'pending',windows:[],message:'Análisis de disponibilidad en curso'};
  return {state:'ok',version:RV9_VERSION,generatedAt:now.toISOString(),timezone:RV_TZ,
-  base,configuration,inbox,leads,decisions,availability,finishes:rv9Finish_(inbox,availability),
-  opportunities,extra,arica:rv9Arica_(now),projects:rv9Projects_(p),
-  firstAttentions:rv9FirstAttentions_(p,now),
+  base,configuration,...essentials,
+  availability:noWindow,finishes:rv9Finish_(essentials.inbox,noWindow),
+  opportunities:rv9Opportunities_(base,empty,essentials.inbox,noWindow),
+  extra:{state:'pending',performance:{skills:[],kpis:[]},
+   business:{sixMonths:[],merch:[]},service:{state:'pending'}},
+  arica:rv9StaticArica_(now),projects:rv9Projects_(p),
+  firstAttentions:{state:'pending',currentWeek:null,
+   message:'Aún no se ha comprobado el marcador de primeras atenciones'},
+  diagnostics:{primary:error?'partial':'ok',
+   configuration:configuration.state,
+   message:error||'Análisis principal completo; fuentes secundarias se consultan en paralelo'},
   modules:{capture:true,memory:true,scenario:true,arica:true,opportunity:true,
    sourceReadOnly:true,clinicalWrite:false}};
+}
+/** Secondary datasets: independent of the primary response and weather. */
+function getV9Extended(){
+ const now=new Date(),p=rv9Props_(),errors=[];
+ let extra,availability,firstAttentions;
+ try{extra=rv9Extra_(p,now);}
+ catch(e){errors.push('intelligence');extra={performance:{state:'error',skills:[],kpis:[]},
+  business:{state:'error',sixMonths:[],merch:[]},service:{state:'error'}};}
+ try{availability=rv9Available_(p,now);}
+ catch(e){errors.push('availability');availability={state:'unavailable',windows:[]};}
+ try{firstAttentions=rv9FirstAttentions_(p,now);}
+ catch(e){errors.push('first_attentions');firstAttentions={state:'unavailable',currentWeek:null};}
+ return {state:errors.length?'partial':'ok',generatedAt:now.toISOString(),
+  extra,availability,firstAttentions,errors};
+}
+/** Arica remote models: isolated so remote latency never blocks clinical data. */
+function getV9Arica(){
+ const now=new Date();
+ try{return rv9Arica_(now);}
+ catch(e){return Object.assign(rv9StaticArica_(now),
+  {state:'unavailable',message:'Proveedor meteorológico no disponible; enlaces oficiales operativos'});}
+}
+/** Sanitized status payload; source IDs, events and patient information omitted. */
+function getV9Diagnostic(){
+ const p=rv9Props_(),now=new Date(),configuration=rv9Configuration_(p,null);
+ return {state:'ok',version:RV9_VERSION,
+  checkedAt:now.toISOString(),configuration,
+  checks:{boot:true,runContext:'Apps Script V9',
+   calendarScope:'https://www.googleapis.com/auth/calendar.readonly',
+   spreadsheetScope:'https://www.googleapis.com/auth/spreadsheets.readonly',
+   externalScope:'https://www.googleapis.com/auth/script.external_request'},
+  help:'No contiene IDs, credenciales, nombres, citas ni información clínica.'};
 }
