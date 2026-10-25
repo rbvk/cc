@@ -506,6 +506,62 @@ function listLines(id,rows,fmt){
   const li=make('li','',fmt(row));node.append(li);
  });
 }
+function auditEntries(v){
+ const b=v.base||{},c=b.comparisons||{},a=[];
+ const put=(title,count,rows,kind,why,high)=>{
+  if(!Number.isFinite(count)||count<1)return;
+  a.push({title,count,rows:rows||[],kind,why,high:!!high});
+ };
+ const cal=c.calendar||{},cli=c.clinical||{},mts=c.training||{};
+ put('Citas de PSICOPRO ausentes en Matrix',cli.missing,cli.items,'PSICOPRO + Matrix','Citas con día y hora sin bloque equivalente.',true);
+ put('Posibles solapamientos clínicos',cli.conflicts,cli.collisionItems,'PSICOPRO + Matrix','Mismo bloque horario con otra actividad en Matrix.',true);
+ put('Posible diferencia de paciente entre sistemas',cli.possibleDifferent,cli.identityItems,'PSICOPRO + Matrix','Comparación heurística; se debe verificar antes de corregir.',true);
+ put('Atenciones Matrix ausentes en PSICOPRO',cli.matrixOnly,cli.matrixOnlyItems,'Matrix + PSICOPRO','Citas candidatas sin respaldo equivalente en agenda.');
+ put('Eventos Calendar ausentes en Matrix',cal.calendarMissingMatrix,cal.items,'Calendar + Matrix','Compromisos con fecha y hora sin cobertura.',true);
+ put('Actividades Matrix sin evento Calendar',cal.matrixMissingCalendar,cal.reverseItems,'Matrix + Calendar','Solo actividades explícitamente marcadas como eventos.');
+ put('Diferencia de actividad Calendar / Matrix',cal.potentialConflicts,cal.conflictItems,'Calendar + Matrix','Tipos de actividad incompatibles en la misma hora.',true);
+ put('Planes MTS sin bloque Matrix',mts.total,mts.items,'MTS + Matrix','Una modalidad programada sin bloque correspondiente.');
+ put('Días Matrix sin programación MTS',mts.matrixOnlyDays,mts.matrixOnlyItems,'Matrix + MTS','Jornadas programadas en Matrix sin entrada MTS.');
+ for(const src of b.sourceHealth?.details||[])
+  if(src.state!=='ok')put('Fuente a revisar: '+src.label,1,[],src.label,src.detail,src.state==='error');
+ if(b.finance?.categoryReconciled===false)
+  put('Presupuesto sin conciliación',1,[{financeUrl:b.finance?.url}],
+   'Finanzas','La suma de categorías difiere del total.',true);
+ if(b.finance?.state==='ok'&&b.finance?.over>0)
+  put('Gasto sobre presupuesto',1,[{financeUrl:b.finance?.url}],'Finanzas',b.finance.message);
+ return a.sort((x,y)=>Number(y.high)-Number(x.high)||y.count-x.count);
+}
+function drawAudit(root,items,limit){
+ clear(root);
+ if(!items.length){
+  const row=make('div','audit-item ok');
+  row.append(make('strong','','Sin incoherencias detectadas en comparaciones disponibles'),
+   make('p','minor','No garantiza ausencia de fallos fuera de las fuentes auditadas.'));
+  root.append(row);return;
+ }
+ for(const entry of items.slice(0,limit)){
+  const row=make('div','audit-item '+(entry.high?'high':'')),head=make('strong','',entry.title+' · '+entry.count);
+  row.append(head,make('div','audit-meta',entry.kind+' · '+(entry.high?'Prioridad alta':'Revisar')),
+   make('p','minor',entry.why));
+  const lines=(entry.rows||[]).slice(0,limit===3?1:6);
+  for(const issue of lines){
+   const item=make('div','smalltext',String(issue.date||'')+' '+String(issue.hour||issue.type||''));
+   const links=make('div','buttons');
+   const targets=[['PSICOPRO',issue.clinicalUrl],['Matrix',issue.matrixUrl],
+    ['Calendar',issue.calendarUrl],['Finanzas',issue.financeUrl]];
+   if(issue.date&&!issue.matrixUrl)targets.push(['MTS',STATE?.base?.training?.dailyLogUrl]);
+   for(const [label,url] of targets)if(url&&safeURL(url))links.append(link(label+' ↗',url));
+   item.append(links);row.append(item);
+  }
+  root.append(row);
+ }
+}
+function renderAudits(v){
+ const items=auditEntries(v);
+ drawAudit($('audit-today'),items,3);drawAudit($('audit-detailed'),items,100);
+ text('audit-count',items.length+' categorías');
+}
+
 function renderToday(v){
  const b=v.base||{},opp=v.opportunities?.items?.[0];
  text('today-priority',opp?.title||b.nextAction?.title||'Revisar las fuentes disponibles');
