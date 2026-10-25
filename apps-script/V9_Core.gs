@@ -3,7 +3,7 @@
  * Data sources remain read-only. No patient labels, passwords or messages
  * may be stored in aggregated counters or the operational ideas inbox.
  */
-const RV9_VERSION='2026.10.24.9';
+const RV9_VERSION='9.3.0';
 const RV9_ORIGINS=['Google Maps','Google Search','Sitio web','Instagram','Recomendación','Otro','Sin identificar'];
 const RV9_AREAS=['Clínica','Boxeo','Gimnasio','Tesis','Proyectos','Finanzas','Bomberos','Personal'];
 
