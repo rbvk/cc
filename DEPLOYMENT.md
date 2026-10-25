@@ -10,12 +10,12 @@ El workflow de Pages es `.github/workflows/pages.yml`. Para configurar el domini
 
 El propietario ya tiene un proyecto Apps Script denominado **RV-CCv9**. Actualizar ese proyecto; no crear otro, pues las Script Properties son locales a cada proyecto.
 
-- Cargar `Code.gs`, `Index.html`, `V9_Core.gs` (en el editor puede llamarse `V9_core.gs`), `V9_Intelligence.gs` y `appsscript.json` desde [apps-script](apps-script/).
+- Cargar **todos** estos archivos: `Code.gs`, `Index.html`, `V9_Core.gs`, `V9_Intelligence.gs`, **`V9_Local.gs`** y `appsscript.json` desde [apps-script](apps-script/). Si falta `V9_Local.gs`, la pestaña Arica generará error.
 - Borrar del proyecto Apps Script la página HTML duplicada `V9.html`, porque la única interfaz está en `Index.html`.
-- Comprobar Google Sheets avanzado v4 y ámbitos de lectura `spreadsheets.readonly` y `calendar.readonly`. El valor `runtimeVersion: V8` del manifiesto es **JavaScript V8 de Google**, no una versión de RV CC.
+- Comprobar Google Sheets avanzado v4 y ámbitos de lectura `spreadsheets.readonly`, `calendar.readonly` y `script.external_request` (solo consultas Arica solicitadas por el propietario). El valor `runtimeVersion: V8` del manifiesto es **JavaScript V8 de Google**, no una versión de RV CC.
 - Guardar, ejecutar `getV9Dashboard` una vez en el editor si requiere autorización, y después **Implementar > Administrar implementaciones > RV-CCV9 > Editar > Nueva versión > Implementar**. Ejecutar como `Me`, acceso `Only myself`.
 - La URL /exec de la implementación existente se conserva. La versión publicada es independiente del último código guardado en el editor.
-- **Arica ya no consulta servicios meteorológicos**; no debe solicitarse el permiso `script.external_request`. El reloj es local y las fuentes meteorológicas solo aparecen como enlaces voluntarios.
+- **Arica vuelve a ofrecer mediciones modeladas** y publicaciones fechadas, únicamente al abrir la pestaña o pulsar «Comprobar fuentes». Usa caché 15 minutos, no peticiones recurrentes. Las fuentes externas requieren `script.external_request`; no se hace vigilancia continua.
 - La interfaz se abre por etapas: arranque sin dependencias, después lectura principal de Sheets/Calendar y finalmente métricas opcionales. Si una fuente falla, el panel muestra su diagnóstico en vez de quedar en blanco.
 
 ## 3. Configuración de datos en el nuevo proyecto
@@ -39,3 +39,12 @@ Esta acción **no** cambia las cuatro hojas originales. No introducir ni subir I
 La única suite actual es `node apps-script/tests/command-center-v9.mjs`. El éxito de pruebas GitHub no sustituye la prueba de una implementación real bajo la cuenta Google del propietario.
 
 [Instrucciones detalladas](apps-script/README.md)
+
+
+## Nuevas comprobaciones críticas (25/10/2026)
+
+- MTS 19/10 y 21/10: dos fechas distintas de “Coached Boxing” realizadas; no contar día completo ni drills por separado.
+- PSICOPRO registro semanal 19/10=6 y octubre hasta la semana 19/10=27 (futura 26/10=18 no incluida); cifras según “Seguimiento Semanal”.
+- Sección Inteligencia > Incongruencias restaurada; revisar enlaces a cada celda de los sistemas.
+- 15 habilidades Boxing roadmap visibles en radar; objetivos MTS como barras solo para cifras comparables, cada una enlazada.
+- Arica muestra fechas y advertencias de datos indexados o modelados; la publicación de una alerta no acredita su vigencia.
