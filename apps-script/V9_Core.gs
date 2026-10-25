@@ -157,7 +157,10 @@ function rv9Available_(p,now){
   const day=new Date(now.getTime());day.setHours(0,0,0,0);
   for(const e of CalendarApp.getDefaultCalendar().getEvents(day,plusDays_(day,1)))
    events.push({start:e.getStartTime().getTime(),end:e.getEndTime().getTime()});
- }catch(e){}
+ }catch(e){
+  return {state:'unavailable',windows:[],
+   message:'No se pudo leer Calendar. No se puede confirmar tiempo disponible.'};
+ }
  const minuteNow=Number(rv9Date_(now,'HH'))*60+Number(rv9Date_(now,'mm'));
  const first=Math.max(8,Math.ceil((minuteNow+15)/60)),windows=[];let began=null;
  for(let hour=first;hour<=22;hour++){
@@ -166,7 +169,8 @@ function rv9Available_(p,now){
    const block=slots[hour*60];
    const d=new Date(now.getTime());d.setHours(hour,0,0,0);
    const begin=d.getTime(),end=begin+3600000;
-   free=!!block&&!block.busy&&!events.some(e=>begin<e.end+900000&&end>e.start-900000);
+   // Sleep, recovery and meals are not work opportunities.
+   free=!!block&&!block.busy&&!block.protectedTime&&!events.some(e=>begin<e.end+900000&&end>e.start-900000);
   }
   if(free&&began===null)began=hour;
   else if(!free&&began!==null){
