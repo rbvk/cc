@@ -15,7 +15,9 @@ assert.equal((client.match(/"id":"AR-\d\d"/g)||[]).length,11);
 assert.equal((client.match(/"id":"(?:BX|CL|GY|TH|PR|FN|SL|FF|CP)-\d\d"/g)||[]).length,18);
 const manifest=JSON.parse(read('appsscript.json'));
 assert.equal(manifest.webapp.access,'MYSELF');
-assert.ok(manifest.oauthScopes.includes('https://www.googleapis.com/auth/script.external_request'));
+assert.ok(!manifest.oauthScopes.includes('https://www.googleapis.com/auth/script.external_request'));
+assert.deepEqual(manifest.oauthScopes.sort(),['https://www.googleapis.com/auth/calendar.readonly','https://www.googleapis.com/auth/spreadsheets.readonly']);
+assert.ok(![engine,core,extra,client].some(code=>/UrlFetchApp|api\.open-meteo\.com|air-quality-api\.|marine-api\./i.test(code)),'No automatic external weather requests remain');
 assert.ok(!manifest.oauthScopes.includes('https://www.googleapis.com/auth/spreadsheets'));
 assert.ok(engine.includes("createHtmlOutputFromFile('Index')"));
 assert.ok(!engine.includes('?view=v8'));
@@ -43,11 +45,6 @@ const mock={
  Sheets:{Spreadsheets:{get:(id)=>({properties:{title:'Synthetic '+id},
   sheets:['Daily log','drg','Objetivos/Paciente','Servicios','19/10','Pre Oct']
    .map(title=>({properties:{title}}))})}},
- UrlFetchApp:{fetch:url=>({getResponseCode:()=>200,getContentText:()=>{
- if(url.includes('air-quality-api'))return JSON.stringify({current:{pm2_5:9,us_aqi:35,time:'2026-10-24T18:00'}});
- if(url.includes('marine-api'))return JSON.stringify({current:{wave_height:1.2,wave_period:9,time:'2026-10-24T18:00'}});
- return JSON.stringify({current:{temperature_2m:20.5,wind_speed_10m:14,time:'2026-10-24T18:00'}});
- }})},
  CalendarApp:{getDefaultCalendar:()=>({getEvents:()=>[]})},
  startMonday_:()=>new Clock('2026-10-19T15:00:00Z'),weekKey_:()=> '19/10',
  readMatrix_:()=>({available:['19/10'],slots:{'2026-10-24':Object.fromEntries(Array.from({length:24},(_,h)=>[h*60,{busy:false}]))}}),
@@ -71,22 +68,45 @@ const mock={
 };
 const ctx=vm.createContext(mock);vm.runInContext(core+'\n'+extra,ctx);
 const call=(name,...params)=>{ctx.params=params;return vm.runInContext(name+'(...params)',ctx)};
+const boot=call('getV9Bootstrap');
+assert.equal(boot.state,'ok');
+assert.equal(boot.configuration.state,'configured');
+assert.equal(boot.arica.state,'links_only');
+assert.ok(boot.arica.sources.length>=3);
+assert.ok(!('weather' in boot.arica));
 const v=call('getV9Dashboard');
+const extended=call('getV9Extended');
+assert.equal(extended.state,'ok');
+assert.equal(v.diagnostics.primary,'ok');
+assert.equal(v.extra.state,'pending');
+assert.equal(v.availability.state,'pending');
+assert.equal(call('getV9Diagnostic').checks.outboundWeatherRequests,false);
 assert.equal(v.version,'2026.10.24.9');
 assert.equal(v.configuration.state,'configured');
+assert.ok(!('externalScope' in call('getV9Diagnostic').checks));
 stored.MATRIX_SHEET_ID='';
 assert.equal(call('getV9Dashboard').configuration.state,'setup_required');
 assert.equal(call('configureV9Sources',{MATRIX_SHEET_ID:'invalid id'}).state,'invalid');
 assert.equal(call('configureV9Sources',{MATRIX_SHEET_ID:'https://docs.google.com/spreadsheets/d/MATRIX_REPAIRED_SYNTHETIC_1234/edit?gid=1'}).state,'ok');
 assert.equal(stored.MATRIX_SHEET_ID,'MATRIX_REPAIRED_SYNTHETIC_1234');
 assert.equal(call('getV9Dashboard').configuration.state,'configured');
-assert.equal(v.extra.business.merch[0].inventoryAtCost,34000);
-assert.equal(v.extra.service.gross,35000);
-assert.equal(v.arica.weather.temperature,20.5);
-assert.equal(v.arica.marine.waveHeight,1.2);
-assert.ok(v.availability.windows.length>0);
-assert.equal(v.firstAttentions.currentWeek,1);
+assert.equal(extended.extra.business.merch[0].inventoryAtCost,34000);
+assert.equal(extended.extra.service.gross,35000);
+assert.ok(extended.availability.windows.length>0);
+assert.equal(extended.firstAttentions.currentWeek,1);
+assert.ok(v.arica.cameras.length>0);
+assert.ok(!('weather' in v.arica));
 assert.ok(v.opportunities.items.some(x=>x.id==='capacity'));
+// Simulate failure in the core Sheets/Calendar source: boot and UI must remain usable.
+const originalBase=ctx.rv9BaseDashboard_;
+ctx.rv9BaseDashboard_=()=>{throw new Error('Synthetic Sheets outage')};
+const degraded=call('getV9Dashboard');
+assert.equal(degraded.state,'ok');
+assert.equal(degraded.diagnostics.primary,'partial');
+assert.equal(degraded.base.clinical.state,'unavailable');
+assert.equal(degraded.configuration.state,'configured');
+assert.equal(call('getV9Bootstrap').state,'ok');
+ctx.rv9BaseDashboard_=originalBase;
 const lead=call('recordV9Lead','Google Maps');
 assert.equal(lead.stats.week,1);
 assert.equal(call('undoV9Lead',lead.token).stats.week,0);
@@ -108,4 +128,4 @@ assert.equal(verified.decisions.completed,1);
 assert.equal(call('resolveV9Decision',recorded.item.id,'success').state,'already_resolved');
 assert.equal(call('recordV9Decision','clinical',2,101).state,'invalid');
 
-console.log('PASS: V9 single UI, first-run private setup, 29 photos, scopes, Arica, memory, leads, simulations and calibrated decisions');
+console.log('PASS: V9 without outbound weather, minimal OAuth, staged boot, degraded-source fallback, 29 photos, captures and decisions.');
