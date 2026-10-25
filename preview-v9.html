@@ -5,7 +5,7 @@
  <meta charset="utf-8">
  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
  <meta name="theme-color" content="#0a1323">
- <title>RV Command Center V9 · Vista previa con datos ficticios</title>
+ <title>V9 · Demostración sin datos reales</title>
  <meta name="robots" content="noindex,nofollow,noarchive">
  <style>
  :root{color-scheme:dark;--bg:#07111f;--surface:#101f31;--surface2:#15283c;--border:#29435b;--muted:#a8c0d1;--text:#f1f7fb;--accent:#80d6f5;--good:#82d6bf;--warn:#f2c67d;--bad:#ff9c97;font:17px/1.54 -apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;font-synthesis:none}
@@ -137,7 +137,7 @@
  </style>
 </head>
 <body>
-<div role="banner" style="background:#553d21;color:#fff3cf;padding:9px 15px;text-align:center;font-weight:750;font-size:14px;position:relative;z-index:80">VISTA PREVIA PÚBLICA · VALORES DEMOSTRATIVOS · SIN DATOS REALES NI CONSULTAS A SHEETS, CLIMA O PACIENTES</div>
+<div role="banner" style="background:#553d21;color:#fff3cf;padding:9px 15px;text-align:center;font-weight:750;font-size:14px;position:relative;z-index:80">VISTA PREVIA PÚBLICA · DATOS FICTICIOS · NUNCA CONSULTA PACIENTES NI FUENTES EXTERNAS</div>
 <script>
 'use strict';
 /* Synthetic ONLY. This static GitHub Pages demo never reads actual patient data. */
@@ -455,6 +455,11 @@ window.google={script:{get run(){return runner()}}};
     <p id="local-marine-time" class="minor">Fecha del modelo pendiente.</p>
     <p id="local-marine-alert" class="notice">Un pronóstico de ola no constituye aviso oficial de marejadas.</p>
     <div id="local-marine-source"></div>
+    <div class="divider"></div>
+    <h3>📜 Avisos marítimos publicados</h3>
+    <p class="minor">Boletines indexados, con fecha de publicación. Su vigencia no puede suponerse por aparecer aquí.</p>
+    <div class="audit-list" id="local-maritime-bulletins"></div>
+    <div id="local-maritime-bulletins-source"></div>
    </article>
    <article class="card s6" data-photo="FF-01">
     <div class="cardhead"><h3>🛡️ Seguridad y alertas verificadas</h3><span class="tag">Fuentes oficiales</span></div>
@@ -647,7 +652,7 @@ function safeURL(url){try{const u=new URL(url);return u.protocol==='https:'&&!u.
   'www.ubiavis.cl','aipchile.dgac.gob.cl','www.skylinewebcams.com','senapred.cl',
   'www.csn.uchile.cl','climatologia.meteochile.gob.cl','sinca.mma.gob.cl',
   'meteoarmada.directemar.cl','muniarica.cl','www.sismologia.cl',
-  'open-meteo.com','news.google.com'].includes(u.hostname)}catch(e){return false}}
+  'open-meteo.com','news.google.com','www.armada.cl'].includes(u.hostname)}catch(e){return false}}
 function localClock(){
  const now=new Date(),opt={timeZone:'America/Santiago'};
  const time=new Intl.DateTimeFormat('es-CL',{...opt,hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}).format(now);
@@ -979,6 +984,20 @@ function renderLocal(v){
  text('local-marine-alert',v.marineNotice?.note||
    'El modelo de ola no permite concluir ausencia o presencia de marejadas.');
  fillMetricSource('local-marine-source',m);
+ const notices=v.maritimeBulletins||{},maritimeList=$('local-maritime-bulletins');
+ clear(maritimeList);
+ if(notices.items?.length){
+  for(const bulletin of notices.items.slice(0,4)){
+   const article=make('div','audit-item');
+   const when=new Date(bulletin.publishedAt);
+   article.append(make('strong','',bulletin.title),
+    make('p','minor','Publicado '+when.toLocaleString('es-CL',{timeZone:'America/Santiago'})+' · Vigencia por comprobar'));
+   if(safeURL(bulletin.sourceUrl))article.append(link('Abrir comunicado indexado ↗',bulletin.sourceUrl));
+   maritimeList.append(article);
+  }
+ }else maritimeList.append(make('p','minor',notices.note||'No hay publicaciones marítimas con fecha verificable.'));
+ const marinaSource=$('local-maritime-bulletins-source');clear(marinaSource);
+ if(safeURL(notices.sourceUrl))marinaSource.append(link('Ver avisos publicados por Armada de Chile ↗',notices.sourceUrl));
  const news=$('local-senapred');clear(news);
  const bulletin=v.senapred||{};
  const items=bulletin.items||[];
