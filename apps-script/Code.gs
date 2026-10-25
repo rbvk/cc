@@ -200,14 +200,15 @@ function readMatrix_(id,now) {
         if(!slots[iso])slots[iso]={};
         const t=cell.toLowerCase();
         const sleep=/^(?:zz\s*:|z{2,}\b|dormir\b|dormido\b|sleep\b|sueño\b|siesta\b)/i.test(cell);
-        const free=isFree_(cell)||sleep||/^(?:descanso|comida|almuerzo)\s*:?\s*$/i.test(cell);
+        const protectedTime=sleep||/^(?:descanso|comida|almuerzo|siesta)\b/i.test(cell);
+        const free=isFree_(cell)||protectedTime;
         const boxing=!free&&/(?:boxeo|boxing|sparring|\bppm\b|saco de box|clase box)/i.test(t);
         const gym=!free&&/(?:\bgym\b|gimnasio|\bsquat\b|\bdeadlift\b|\bbench\b|\bpesas\b|entrenamiento fuerza)/i.test(t);
         const cardio=!free&&/(?:\bz[1-4]\b|cardio|aer[oó]bic|treadmill|cinta|escaladora|stair stepper|bicicleta)/i.test(t);
         const prep=/(?:plan pac|planificar paciente|preparar paciente|notas de pacientes|revisar fichas)/i.test(t);
         const clinical=!free&&!prep&&/(?:\bpaciente\b|psicopro|psic[oó]log|psicoterapia|terapia|sesi[oó]n cl[ií]nica|consulta cl[ií]nica|atenci[oó]n cl[ií]nica)/i.test(t);
         const busy=!free&&cell.length>0;
-        slots[iso][time]={boxing,gym,cardio,clinical,busy,
+        slots[iso][time]={boxing,gym,cardio,clinical,busy,protectedTime,
           cellUrl:cellUrl_(id,tab,dayColumn_(weekday)+(rowIndex+3),metadata),
           // Raw text is kept inside the owner-only server response only for
           // genuinely unmatched Matrix clinical appointments.
@@ -350,7 +351,9 @@ function readTraining_(id,now) {
   for(const iso of Object.keys(headerDays).sort())for(const kind of Object.keys(headerDays[iso]))plans.push({date:iso,kind});
   const afterMonday=iso_(plusDays_(startMonday_(now),7));
   const nextWeekScheduled=plans.some(p=>p.date>=afterMonday);
-  const from=iso_(plusDays_(now,-7));
+  // Seven calendar days inclusive: today plus six preceding days.
+  // Must agree with adherence.from and the coached-classes counter.
+  const from=iso_(plusDays_(now,-6));
   const recentHeaders=daily.filter(row=>{
     const d=parseDmy_(row[1]);
     return d&&iso_(d)>=from&&iso_(d)<=todayIso&&isSessionHeader_(row[2]);
@@ -459,9 +462,12 @@ function readClinicalHours_(id,tabs,metadata,now) {
     }
   }
   return {state:'ok',week:key,elapsedBookingHours:elapsed,bookedWeekHours:booked,
-    attendedHours:elapsed,verifiedAttendedHours:markedAttended>0?markedAttended:null,
+    // A past appointment is NOT evidence of attendance. Only explicit
+    // attended/realizada/✅ markers can support an attended-hours figure.
+    attendedHours:markedAttended>0?markedAttended:null,
+    verifiedAttendedHours:markedAttended>0?markedAttended:null,
     explicitFreeHours:explicitlyFree,
-    note:'Horas atendidas esta semana según PSICOPRO depurado (solo citas efectivamente atendidas); cada bloque representa 1 h.',
+    note:'Horas agendadas que ya transcurrieron: no prueban asistencia. Horas atendidas solamente si la celda contiene un marcador explícito.',
     url:tabUrl_(id,tab,metadata)};
 }
 /**
@@ -537,7 +543,7 @@ function readClinical_(id,now) {
     classifiedWeeklyPatients:usable?weekly:null,target:RV_TARGET_WEEKLY,
     patientsToTarget:usable?Math.max(0,RV_TARGET_WEEKLY-weekly):null,
     patientsAboveTarget:usable?Math.max(0,weekly-RV_TARGET_WEEKLY):null,
-    attendedSessionsThisWeek:currentWeekHours.state==='ok'?currentWeekHours.attendedHours:null,
+    attendedSessionsThisWeek:currentWeekHours.state==='ok'?currentWeekHours.verifiedAttendedHours:null,
     operatingWeek:key,bookedBlocks:null,explicitlyFreeSlots:null,
     warning:'No existe pestaña de agenda para la semana operativa'
   };publicData.message+=' · Sin agenda de la semana '+key;return {publicData,bookings:[]};}
@@ -574,7 +580,7 @@ function readClinical_(id,now) {
     classifiedWeeklyPatients:usable?weekly:null,
     target:RV_TARGET_WEEKLY,patientsToTarget:usable?Math.max(0,RV_TARGET_WEEKLY-weekly):null,
     patientsAboveTarget:usable?Math.max(0,weekly-RV_TARGET_WEEKLY):null,
-    attendedSessionsThisWeek:currentWeekHours.state==='ok'?currentWeekHours.attendedHours:null,
+    attendedSessionsThisWeek:currentWeekHours.state==='ok'?currentWeekHours.verifiedAttendedHours:null,
     actualAttendedHoursThisWeek:currentWeekHours.state==='ok'?currentWeekHours.attendedHours:null,
     operatingWeek:key,bookedBlocks:bookings.length,
     explicitlyFreeSlots:explicitFreeSlots,
