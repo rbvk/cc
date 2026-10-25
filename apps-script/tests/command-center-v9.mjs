@@ -180,15 +180,18 @@ const newsFixture='<rss><channel><item><title>Alerta temprana preventiva en Pari
  '<link>https://news.google.com/rss/articles/abc</link>'+
  '<pubDate>Thu, 22 Oct 2026 19:21:00 GMT</pubDate></item></channel></rss>';
 const quakeFixture='<table><tbody><tr><td>2026-10-24 20:05:00<br>12 km al E de Putre</td><td>105 km</td><td>3.4</td></tr></tbody></table>';
+const marineNewsFixture='<rss><item><title>Aviso de marejadas desde Golfo de Penas hasta Arica - Armada de Chile</title>'+
+ '<link>https://news.google.com/rss/articles/armada</link>'+
+ '<pubDate>Wed, 30 Sep 2026 10:00:00 GMT</pubDate></item></rss>';
 const responses=[
  {current:{temperature_2m:21,wind_speed_10m:14,uv_index:8,time:'2026-10-24T18:00',relative_humidity_2m:72,apparent_temperature:22}},
  {current:{pm2_5:6,us_aqi:25,time:'2026-10-24T18:00'}},
  {current:{wave_height:1.4,wave_period:8,time:'2026-10-24T18:00'}},
- quakeFixture,newsFixture
+ quakeFixture,newsFixture,marineNewsFixture
 ];
 let fetchCalls=0;
 Object.assign(ctx,{
- UrlFetchApp:{fetchAll:requests=>{fetchCalls++;assert.equal(requests.length,5);return responses.map(x=>({
+ UrlFetchApp:{fetchAll:requests=>{fetchCalls++;assert.equal(requests.length,6);return responses.map(x=>({
   getResponseCode:()=>200,getContentText:()=>typeof x==='string'?x:JSON.stringify(x)
  }))}},
  CacheService:{getScriptCache:()=>({get(){return null},put(){}})}
@@ -202,6 +205,9 @@ assert.equal(region.seismic.events.length,1);
 assert.equal(region.seismic.events[0].location,'12 km al E de Putre');
 assert.equal(region.senapred.items.length,1);
 assert.equal(region.senapred.state,'indexed');
+assert.equal(region.maritimeBulletins.state,'indexed');
+assert.equal(region.maritimeBulletins.items.length,1);
+assert.match(region.maritimeBulletins.items[0].title,/marejadas/i);
 assert.equal(fetchCalls,1,'Only one bounded on-demand request batch');
 const sim=call('simulateV9Scenario','clinical',2);
 assert.equal(sim.applied,false);assert.equal(sim.results.find(x=>/neto potencial/i.test(x.label)).value,168000);
