@@ -1,6 +1,6 @@
 {
-  "version": "2026.10.24.9",
-  "status": "source_ready_owner_deployment_required",
+  "version": "9.3.0",
+  "status": "predeployment_audit_pending_live_acceptance",
   "title": "RV Command Center V9 · Aplicación privada única",
   "description": "V9: restauración auditoría Calendar-Matrix-MTS-PSICOPRO, sesiones clínicas semanales y mensuales, boxeo deduplicado, radar 15 habilidades, MTS barras, fotografías editoriales y Arica bajo demanda",
   "entry": "apps-script/Index.html",
@@ -49,5 +49,7 @@
     "images": "28 contextual placements; no galleries"
   },
   "onDemandArica": true,
-  "autoExternalWeatherRequests": false
+  "autoExternalWeatherRequests": false,
+  "productionVerification": "Google Apps Script owner-only /dev and /exec not yet tested in this audit",
+  "preflight": "Verify live source integrity, external provider license, mobile/desktop rendering and private access; do not deploy merely because CI passes."
 }
