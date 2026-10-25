@@ -28,6 +28,13 @@ function rv9Number_(v){
  if(!/^\d+(?:\.\d+)?$/.test(text))return null;
  const n=Number(text);return Number.isFinite(n)?n:null;
 }
+function rv9MetricNumber_(raw){
+ if(typeof raw==='number')return Number.isFinite(raw)?raw:null;
+ const value=String(raw??'').trim();
+ if(!/^-?\d{1,4}(?:[.,]\d{1,2})?$/.test(value))return null;
+ const number=Number(value.replace(',','.'));
+ return Number.isFinite(number)?number:null;
+}
 function rv9Extra_(p,now){
  const output={performance:{state:'unavailable',skills:[],kpis:[],bodyfat:[]},
   business:{state:'unavailable',sixMonths:[],merch:[]},
@@ -39,7 +46,7 @@ function rv9Extra_(p,now){
    const roadTab='Boxing roadmap',road=values_(mid,"'Boxing roadmap'!A2:D30");
    output.performance.skills=road.map((r,i)=>({
     skill:rv9Short_(r[0],40),domain:rv9Short_(r[1],40),
-    baseline:rv9Number_(r[2]),goal:rv9Number_(r[3]),
+    baseline:rv9MetricNumber_(r[2]),goal:rv9MetricNumber_(r[3]),
     sourceUrl:cellUrl_(mid,roadTab,'C'+(i+2),metadata)
    })).filter(r=>r.skill&&r.skill.toLowerCase()!=='skill'&&r.baseline!==null&&r.goal!==null)
     .slice(0,20);
