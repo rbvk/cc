@@ -42,24 +42,21 @@ Regla: mostrar solamente datos que puedan cambiar una decisión.
 - No integrar Meta Cloud API ni leer automáticamente chats en v9 por defecto. No pedir uso consistente de etiquetas.
 - Cualquier dato de ingresos atribuidos por canal debe indicarse como desconocido salvo fuente que lo demuestre.
 
-## 5. Nuevo módulo Arica Live Intelligence (SOLICITADO)
+## 5. Arica — directorio local sin consultas meteorológicas externas
 
-**Objetivo:** añadir información local y visual de Arica que sea útil cada día: hora, meteorología, viento, UV, calidad del aire, webcams públicas, alertas, litoral, sismos, eventos locales y logística de desplazamientos.
+**Decisión vigente:** el usuario canceló las consultas periódicas de clima, calidad del aire y oleaje. Se eliminó toda llamada `UrlFetchApp` y el permiso `script.external_request`; el CC no solicita datos meteorológicos ni modelados al cargar. La hora de Arica se calcula directamente desde el dispositivo mediante `Intl.DateTimeFormat` y zona `America/Santiago`.
 
-### 5.1 Datos y fuentes verificables
+### 5.1 Funciones permitidas
 
-| Bloque | Fuente / URL | Tipo | Decisión |
-|---|---|---|---|
-| Hora y fecha de Arica | Intl.DateTimeFormat timezone America/Santiago | reloj local en navegador (segundo a segundo) | horario y preparación |
-| Temperatura, viento, humedad | DMC Chacalluta estación 180005: https://climatologia.meteochile.gob.cl/application/diariob/visorDeDatosEma/180005 | observación con hora de medición; estación fuera del centro (Chacalluta) | salir, actividades exteriores, equipamiento |
-| Pronóstico + sensación/UV/viento | https://open-meteo.com/en/docs ; alternativa DMC https://www.meteochile.gob.cl | modelo meteorológico, actualizar ~15 min, marcar predicción | clima de próximas horas |
-| UV urbano | DMC Arica UTA 180016: https://climatologia.meteochile.gob.cl/application/informacion/fichaDeEstacion/180016 y API pronóstico | verificar que existe actualización efectiva antes de etiquetar live | exposición solar |
-| Aire MP2,5 | SINCA Arica https://sinca.mma.gob.cl/index.php/estacion/index/key/F01 | estación pública online declarada, pero último registro observado 10-09-2026; si no está fresco, mostrar desactualizado | actividad exterior |
-| Alertas oficiales | SENAPRED https://senapred.cl/alertas/ y DMC | avisos vigentes con vigencia/fecha | tomar precauciones; no reemplaza notificación oficial |
-| Sismos | CSN https://www.csn.uchile.cl/ | eventos publicados, hora UTC/local, latencia y magnitud | contexto de monitoreo, no predicción sísmica |
-| Litoral, marejadas | Armada/Servicio Meteorológico https://meteoarmada.directemar.cl/ ; SHOA como autoridad | aviso y vigencia verificadas, no confundir pronóstico de oleaje con habilitación de baño | seguridad playa |
-| Agenda local | Municipalidad https://muniarica.cl/eventos | eventos públicos con fecha, comprobar actualización | oportunidades culturales y logística |
-| Tránsito y llegada | Calendar + Waze (enlace contextual) | ruta en servicio externo; sin inventar ETA o acceso API | salida a tiempo |
+| Bloque | Fuente | Comportamiento |
+|---|---|---|
+| Hora y fecha de Arica | `Intl.DateTimeFormat` | Actualización local, sin solicitudes web |
+| Fotografías de archivo | Licencias catalogadas Wikimedia Commons/Pexels | Carga de imágenes al abrir una galería; no son CCTV |
+| Cámaras anunciadas | Enlaces Ubiavis, DGAC, SkylineWebcams | Apertura voluntaria en página del proveedor, sin consulta de señal desde el CC |
+| Alertas, sismos, aire, meteorología oficial y litoral | Links SENAPRED, CSN, SINCA, DMC, Armada | Acceso bajo demanda: solo al pulsar el enlace |
+| Eventos y movilidad | Enlaces oficiales y Calendar | Sin peticiones automáticas a APIs de terceros |
+
+**No reintroducir temperaturas, viento, pronóstico ni tarjetas con guiones que parezcan mediciones ausentes.** La ausencia de estas cifras es una decisión de producto, no un fallo de conexión.
 
 ### 5.2 Cámaras y fotos: estados investigados el 24/10/2026
 
@@ -75,21 +72,20 @@ Regla: mostrar solamente datos que puedan cambiar una decisión.
 
 ### 5.3 Arica local contextual
 
-- Vista principal: hora local + clima observado + viento + UV/protección solar + evento meteorológico relevante (si existe). Zona primaria: Arica/Chinchorro; observación Chacalluta advertir que está distante.
-- Panel «Ver Arica»: cámaras permitidas en directorio, fotos de aeropuerto con marca de hora, marejadas y alertas.
-- Alertas emergencias oficiales diferenciadas de noticias, caducadas = ocultas o etiquetadas caducas; **no** reemplazar canales oficiales SENAPRED/SHOA/Armada.
-- Añadir «calidad de señal» de todas las fuentes: dato, proveedor, instante medido, instante consultado, latencia, estado (actual/desactualizado/no disponible), zona horaria. Nunca sustituir con cero.
+- Vista principal: solo hora de Arica y botón a fuentes locales.
+- Vista Arica: directorio de cámaras y proveedores, fotografías de archivo y enlaces oficiales accesibles bajo demanda.
+- No verificar cámaras mediante sondeos automáticos; el enlace de un proveedor nunca demuestra transmisión en vivo.
+- No almacenar imágenes CCTV ni datos personales de terceros.
+- Clima, aire y marejadas se consultan únicamente fuera del CC cuando el propietario decide abrir la fuente.
 
-## 6. Implementación por fases (NO INICIADA)
+## 6. Estado de implementación
 
-1. **V9.0 Foundation:** quick capture + inbox privado + captura mínima WhatsApp + reloj local + clima oficial/pronóstico, con caché y timestamps.
-2. **V9.1 Intelligence:** panel diario contextual y objetivos, tendencias, fuentes climáticas oficiales, directorio cámaras validadas y estado de las fuentes.
-3. **V9.2 Opportunity:** detección de oportunidades, comparador escenario actual/alternativas, Finish Something Today, contexto Arica para desplazamientos y clima.
-4. **V9.3 Execution (solo previa autorización):** acciones propuestas, vista previa, confirmación y verificación/rollback; nunca edición clínica automática.
+1. Núcleo V9: captación agregada, buzón privado de tareas, decisiones y escenarios.
+2. Arranque por etapas: `getV9Bootstrap` no lee Sheets ni Calendar; `getV9Dashboard` procesa fuentes principales; `getV9Extended` lee otras métricas independientemente.
+3. Módulo Arica: únicamente reloj del dispositivo, cámaras como directorio y enlaces públicos manuales. **Cero llamadas meteorológicas externas del servidor.**
+4. Web App privada: requiere que el propietario copie los archivos a su proyecto Apps Script existente y publique una nueva versión.
 
-**Criterios de éxito:** menos trabajo manual, cero duplicación clínica, ninguna cámara falsa etiquetada live, cero pronósticos tratados como mediciones, una oportunidad accionable y medible por día cuando realmente existe, y pruebas con datos sintéticos.  
-**Gestión de versiones:** una única interfaz V9 vigente; utilizar Git para recuperar cualquier versión anterior.  
-**Verificación:** revisar disponibilidad de webcams, permisos de iframe/stream, políticas de fuentes y credenciales antes de implementar.
+**Pruebas:** suite sintética comprueba ausencia de `UrlFetchApp`, permiso externo eliminado, pantalla única y tolerancia a fallo del motor principal.
 
 ## 7. Diseño de interfaz, lectura y sistema visual — propuesta V9
 
@@ -120,7 +116,7 @@ Regla: mostrar solamente datos que puedan cambiar una decisión.
 2. **KPI con contexto:** valor grande, comparación relevante, horizonte, fuente y hora de actualización. La variación precisa más importante que un gráfico decorativo.
 3. **Alertas agrupadas** por decisión, prioridad y tipo; enlazar la celda concreta. Evitar duplicados entre Home, Inteligencia y notificaciones.
 4. **Más detalles bajo demanda**: título breve, evidencia, origen, incertidumbre y «Ver en fuente»; información personal/clinica en panel privado y solo cuando sea pertinente.
-5. **Tarjeta Arica Live** compacta: hora, temperatura, viento/UV, estado de alertas y fotografía verificada con fecha de captura; la galería completa vive en sección Arica.
+5. **Tarjeta Arica** compacta: reloj, acceso a fuentes oficiales y galería de fotos; ninguna temperatura, viento o UV solicitado automáticamente.
 6. **Tarjeta Opportunity Engine**: `Oportunidad -> impacto -> tiempo -> riesgo -> acción`, comparador `actual vs propuesta` con consentimiento antes de ejecutar.
 7. **Captura rápida**: entrada única, aceptar voz por dictado del teclado, reconocimiento de duplicados antes de registrar, sin 12 campos obligatorios.
 8. **Modos de densidad:** `Compacto` para revisión en 15 segundos, `Detallado` para auditoría. Preferencia local no sensible.
@@ -175,8 +171,8 @@ Regla: mostrar solamente datos que puedan cambiar una decisión.
 
 - **Implementado en GitHub:** V9_Core.gs (captación, memoria, agenda potencial, tareas y log de predicciones), V9_Intelligence.gs (fuentes Arica, inventario, rendimiento, servicios, escenarios y oportunidades), Index.html (cuatro pantallas, captura, hipótesis y galería remota de 29 fotografías), test command-center-v9.mjs y release.json versión 2026.10.24.9.
 - **Vista previa GitHub Pages:** preview-v9.html con datos ficticios, sin acceso a hojas, mensajes o cuentas privadas. La publicación Pages se prueba aparte de la app propietaria.
-- **La nueva fuente no se despliega automáticamente:** actualizar Code.gs, Index.html, V9_Core.gs y V9_Intelligence.gs en el proyecto RV-CCv9 existente, guardar appsscript.json, autorizar external_request y publicar nueva versión manteniendo acceso Solo yo.
-- **Diferimientos comprobables:** la tasa exacta de conversión individual no existe por decisión de captación mínima; primeras atenciones solo con marcador explícito en PSICOPRO; CCTV municipal no es público; webcams no se etiquetan activas; Open-Meteo gratuita requiere revisar condiciones para usos comerciales; no se modifican Calendar ni Sheets automáticamente; integración de Gmail y contenido Docs requiere autorización y delimitación de fuentes; las 29 imágenes se solicitan a servidores de origen, no se descargan a binarios del repo.
+- **Los commits no despliegan Apps Script automáticamente:** actualizar Code.gs, Index.html, V9_Core.gs y V9_Intelligence.gs en el proyecto RV-CCv9 existente, guardar appsscript.json con solo los permisos de lectura de Sheets y Calendar y publicar una nueva versión con acceso Solo yo.
+- **Diferimientos comprobables:** la tasa exacta de conversión individual no existe por decisión de captación mínima; primeras atenciones solo con marcador explícito en PSICOPRO; CCTV municipal no es público; webcams no se etiquetan activas; no existen consultas automáticas a servicios meteorológicos; no se modifican Calendar ni Sheets automáticamente; integración de Gmail y contenido Docs requiere autorización y delimitación de fuentes; las 29 imágenes se solicitan a servidores de origen, no se descargan a binarios del repo.
 - **Motor de ejecución supervisado realmente disponible:** cerrar/descartar pendientes en su almacén privado y abrir un borrador genérico de Calendar; el usuario guarda el evento en Google Calendar, no se escribe nada por detrás.
 - **Calibración de decisiones:** el motor ahora registra hipótesis por mes con confianza explícita y su resultado; no transforma este porcentaje en una probabilidad estadística comprobada sin historial suficiente.
 
@@ -192,3 +188,13 @@ Regla: mostrar solamente datos que puedan cambiar una decisión.
 - `app.js` del portal público utiliza una clave de URL local nueva, para evitar enlaces obsoletos al panel antiguo.
 - La única prueba automatizada vigente es `tests/command-center-v9.mjs`; las suites históricas están en Git.
 - Para revertir el código, usar un commit anterior y volver a implementarlo; no almacenar interfaces históricas dentro del proyecto Apps Script activo.
+
+
+## 11. Eliminación definitiva de sondeos meteorológicos (revisión posterior)
+
+- Borradas funciones de descarga de clima, aire y mar de `V9_Intelligence.gs`.
+- Eliminado `getV9Arica` como endpoint de consulta externa; Arica se entrega en el bootstrap como directorio sin API.
+- `appsscript.json` ya **no** incluye `script.external_request`; conserva solo los alcances de lectura de Sheets y Calendar.
+- `Index.html` deja de mostrar tarjetas meteorológicas que estaban vacías y añade arranque por etapas con errores aislados.
+- V9 sigue funcionando sin servicios externos de clima. La consulta manual de un enlace oficial no es una actualización automática.
+- La aplicación privada `/exec` únicamente incorpora esta corrección una vez que el propietario despliega una nueva versión del proyecto.
