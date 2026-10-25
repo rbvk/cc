@@ -5,8 +5,8 @@
  <meta charset="utf-8">
  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
  <meta name="theme-color" content="#0a1323">
- <title>V9 · Demostración sin datos reales</title>
- <meta name="robots" content="noindex,nofollow,noarchive">
+ <title>RV CC V9 · Vista previa ficticia</title>
+<meta name="robots" content="noindex,nofollow,noarchive">
  <style>
  :root{color-scheme:dark;--bg:#07111f;--surface:#101f31;--surface2:#15283c;--border:#29435b;--muted:#a8c0d1;--text:#f1f7fb;--accent:#80d6f5;--good:#82d6bf;--warn:#f2c67d;--bad:#ff9c97;font:17px/1.54 -apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;font-synthesis:none}
  *{box-sizing:border-box}
@@ -137,7 +137,7 @@
  </style>
 </head>
 <body>
-<div role="banner" style="background:#553d21;color:#fff3cf;padding:9px 15px;text-align:center;font-weight:750;font-size:14px;position:relative;z-index:80">VISTA PREVIA PÚBLICA · DATOS FICTICIOS · NUNCA CONSULTA PACIENTES NI FUENTES EXTERNAS</div>
+<div role="banner" style="background:#553d21;color:#fff3cf;padding:9px;text-align:center;font-weight:750;z-index:80;position:relative">VISTA PREVIA · DATOS FICTICIOS · Nunca reproduce información personal real</div>
 <script>
 'use strict';
 /* Synthetic ONLY. This static GitHub Pages demo never reads actual patient data. */
@@ -1044,6 +1044,66 @@ function loadLocalOnDemand(){
  }).getV9LocalData();
 }
 $('local-refresh').onclick=()=>{localLoaded=false;loadLocalOnDemand();};
+
+
+function renderRadar(skills){
+ const root=$('boxing-radar');clear(root);
+ const rows=(skills||[]).filter(x=>Number.isFinite(x.baseline)&&Number.isFinite(x.goal)).slice(0,20);
+ if(rows.length<3){root.append(make('p','minor','Radar: se requieren al menos tres habilidades numéricas.'));return}
+ const ns='http://www.w3.org/2000/svg',n=rows.length,cx=260,cy=230,r=156;
+ const svg=document.createElementNS(ns,'svg');
+ const set=(el,attrs)=>{Object.entries(attrs).forEach(([k,v])=>el.setAttribute(k,String(v)));return el};
+ set(svg,{viewBox:'0 0 520 485',width:'100%',role:'img','aria-label':'Radar de habilidades: nivel registrado frente a meta'});
+ const el=(name,attrs)=>{const v=set(document.createElementNS(ns,name),attrs);svg.append(v);return v};
+ const pt=(i,value)=>{let a=-Math.PI/2+i*2*Math.PI/n,d=r*value/10;return [cx+Math.cos(a)*d,cy+Math.sin(a)*d]};
+ const polygon=values=>values.map((v,i)=>pt(i,v).map(z=>z.toFixed(1)).join(',')).join(' ');
+ for(let v=2;v<=10;v+=2)el('polygon',{points:polygon(rows.map(()=>v)),fill:'none',stroke:'#526d81','stroke-width':1});
+ rows.forEach((x,i)=>{
+  const [a,b]=pt(i,10);el('line',{x1:cx,y1:cy,x2:a,y2:b,stroke:'#486276','stroke-width':1});
+  const [tx,ty]=pt(i,11.4),label=el('text',{x:tx,y:ty,fill:'#e7f1f8','font-size':11,
+   'text-anchor':tx>cx+10?'start':tx<cx-10?'end':'middle','dominant-baseline':'central'});
+  label.textContent=x.skill;
+ });
+ el('polygon',{points:polygon(rows.map(x=>Math.max(0,Math.min(10,x.goal)))),fill:'#80d6f522',stroke:'#80d6f5','stroke-width':2});
+ el('polygon',{points:polygon(rows.map(x=>Math.max(0,Math.min(10,x.baseline)))),fill:'#82d6bf33',stroke:'#82d6bf','stroke-width':2.5});
+ root.append(svg,make('p','minor','Verde: nivel registrado · Azul: objetivo. Escala 0–10; los niveles no implican medición actual.'));
+}
+function renderMtsProgress(kpis){
+ const root=$('intel-mts-progress'),other=$('intel-mts-kpis');clear(root);clear(other);
+ if(!(kpis||[]).length){root.append(make('p','minor','No hay objetivos comparables.'));return}
+ for(const item of kpis){
+  if(Number.isFinite(item.progressPct)&&Number.isFinite(item.currentNumber)&&Number.isFinite(item.targetNumber)){
+   const box=make('div','metric-bar-item'),header=make('div','statrow'),track=make('div','ratio'),fill=make('span');
+   header.append(make('span','',item.name),make('b','',item.currentNumber+' / '+item.targetNumber+' kg · '+item.progressPct+'%'));
+   fill.style.width=Math.max(0,Math.min(100,item.progressPct))+'%';track.append(fill);box.append(header,track);
+   if(safeURL(item.sourceUrl))box.append(link('Editar dato en Matrix ↗',item.sourceUrl,'minor'));
+   root.append(box);
+  }else{
+   const li=make('li','smalltext',item.name+': '+(item.current||'sin medición')+' · Meta: '+(item.goal||'—'));
+   if(safeURL(item.sourceUrl))li.append(link(' · Fuente ↗',item.sourceUrl));
+   other.append(li);
+  }
+ }
+ if(!other.children.length)other.append(make('li','minor','Las metas numéricas comparables se muestran arriba.'));
+}
+function renderClinicTracking(v){
+ const t=v?.base?.clinical?.tracking||{},root=$('clinic-weeks-bars');clear(root);
+ text('clinic-current-week',typeof t.currentWeek==='number'?t.currentWeek:'No registrado');
+ text('clinic-monthly',typeof t.monthToDate==='number'?t.monthToDate:'Sin subtotal');
+ text('clinic-tracking-note',t.definition||'Sesiones registradas, no asistencia verificada de forma independiente.');
+ const source=$('clinic-monthly-url');clear(source);
+ if(safeURL(t.goalsUrl))source.append(link('Abrir seguimiento ↗',t.goalsUrl));
+ const weeks=(t.recentWeeks||[]).slice(-8),scale=Math.max(15,...weeks.map(x=>Number(x.sessions)||0));
+ if(!weeks.length){root.append(make('p','minor','Sin seguimiento semanal verificable.'));return}
+ for(const week of weeks){
+  const div=make('div','metric-bar-item'),header=make('div','statrow'),bar=make('div','ratio'),fill=make('span');
+  header.append(make('span','',week.week),make('b','',Number.isFinite(week.sessions)?week.sessions+' sesiones':'Sin registro'));
+  fill.style.width=Math.min(100,(Number(week.sessions)||0)/scale*100)+'%';bar.append(fill);div.append(header,bar);
+  if(safeURL(week.sourceUrl))div.append(link('Ver celda ↗',week.sourceUrl,'minor'));
+  root.append(div);
+ }
+ root.append(make('p','minor','Son sesiones anotadas por semana, no pacientes únicos. El subtotal mensual excluye semanas futuras.'));
+}
 
 function renderIntelligence(v){
  const b=v.base||{},ext=v.extra||{};
