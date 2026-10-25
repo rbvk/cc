@@ -333,9 +333,9 @@ function configureV9Sources(raw){
 
 
 /**
- * V9 boot is deliberately independent of all Sheets, Calendar and UrlFetch calls.
- * The private app must be able to render its shell even when Google denies
- * a specific spreadsheet or the weather provider is unavailable.
+ * V9 boot is deliberately independent of Sheets and Calendar.
+ * The private app renders its shell even when a Google source is unavailable.
+ * No automatic external meteorological requests are made.
  */
 function rv9NullBase_(problem){
  return {
@@ -351,10 +351,10 @@ function rv9NullBase_(problem){
 }
 function rv9StaticArica_(now){
  return {state:'links_only',timezone:RV_TZ,place:'Arica · Chinchorro',
-  consultedAt:now.toISOString(),weather:{state:'unavailable'},
-  air:{state:'unavailable'},marine:{state:'unavailable'},
+  consultedAt:now.toISOString(),
   cameras:RV9_CAMERAS,sources:RV9_LOCAL_SOURCES,
-  alerts:{state:'links_only',message:'Consultar avisos oficiales directamente en SENAPRED y Armada'}};
+  alerts:{state:'links_only',message:'Consultar avisos oficiales directamente en SENAPRED y Armada'},
+  note:'Sin consultas automáticas de meteorología, calidad del aire ni oleaje; enlaces solo bajo demanda.'};
 }
 function rv9SafeInternals_(p,now){
  const inbox=rv9Inbox_(rv9AllIdeas_(p,now));
@@ -402,7 +402,7 @@ function getV9Dashboard(){
   modules:{capture:true,memory:true,scenario:true,arica:true,opportunity:true,
    sourceReadOnly:true,clinicalWrite:false}};
 }
-/** Secondary datasets: independent of the primary response and weather. */
+/** Secondary datasets: independent of the primary response. */
 function getV9Extended(){
  const now=new Date(),p=rv9Props_(),errors=[];
  let extra,availability,firstAttentions;
@@ -417,13 +417,6 @@ function getV9Extended(){
   extra,availability,firstAttentions,errors};
 }
 /** Arica remote models: isolated so remote latency never blocks clinical data. */
-function getV9Arica(){
- const now=new Date();
- try{return rv9Arica_(now);}
- catch(e){return Object.assign(rv9StaticArica_(now),
-  {state:'unavailable',message:'Proveedor meteorológico no disponible; enlaces oficiales operativos'});}
-}
-/** Sanitized status payload; source IDs, events and patient information omitted. */
 function getV9Diagnostic(){
  const p=rv9Props_(),now=new Date(),configuration=rv9Configuration_(p,null);
  return {state:'ok',version:RV9_VERSION,
@@ -431,6 +424,6 @@ function getV9Diagnostic(){
   checks:{boot:true,runContext:'Apps Script V9',
    calendarScope:'https://www.googleapis.com/auth/calendar.readonly',
    spreadsheetScope:'https://www.googleapis.com/auth/spreadsheets.readonly',
-   externalScope:'https://www.googleapis.com/auth/script.external_request'},
+   outboundWeatherRequests:false},
   help:'No contiene IDs, credenciales, nombres, citas ni información clínica.'};
 }
