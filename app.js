@@ -1,5 +1,5 @@
 "use strict";
-const KEY = "rvcc.private.apps_script_url.v1";
+const KEY = "rvcc.private.apps_script_url.v9";
 const $ = id => document.getElementById(id);
 let timer;
 function isValidAppsScriptUrl(input) {
@@ -27,8 +27,8 @@ function render() {
   const linked = Boolean(storedUrl());
   $("open-private").disabled = !linked;
   $("portal-state").textContent = linked
-    ? "Panel privado configurado en este navegador. Google comprobará tu sesión antes de mostrar datos."
-    : "Solo falta configurar la URL /exec de tu aplicación privada de Google Apps Script.";
+    ? "Acceso V9 configurado en este navegador. Google comprobará tu sesión."
+    : "V9: pega el enlace /exec de RV-CCv9; se descarta el enlace anterior.";
 }
 function toggleSetup(visible) {
   $("portal-setup").hidden = !visible;
