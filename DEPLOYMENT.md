@@ -12,9 +12,11 @@ El propietario ya tiene un proyecto Apps Script denominado **RV-CCv9**. Actualiz
 
 - Cargar `Code.gs`, `Index.html`, `V9_Core.gs` (en el editor puede llamarse `V9_core.gs`), `V9_Intelligence.gs` y `appsscript.json` desde [apps-script](apps-script/).
 - Borrar del proyecto Apps Script la página HTML duplicada `V9.html`, porque la única interfaz está en `Index.html`.
-- Comprobar Google Sheets avanzado v4 y ámbitos de lectura `spreadsheets.readonly`, `calendar.readonly`, `script.external_request`. El valor `runtimeVersion: V8` del manifiesto es **JavaScript V8 de Google**, no una versión de RV CC.
+- Comprobar Google Sheets avanzado v4 y ámbitos de lectura `spreadsheets.readonly` y `calendar.readonly`. El valor `runtimeVersion: V8` del manifiesto es **JavaScript V8 de Google**, no una versión de RV CC.
 - Guardar, ejecutar `getV9Dashboard` una vez en el editor si requiere autorización, y después **Implementar > Administrar implementaciones > RV-CCV9 > Editar > Nueva versión > Implementar**. Ejecutar como `Me`, acceso `Only myself`.
 - La URL /exec de la implementación existente se conserva. La versión publicada es independiente del último código guardado en el editor.
+- **Arica ya no consulta servicios meteorológicos**; no debe solicitarse el permiso `script.external_request`. El reloj es local y las fuentes meteorológicas solo aparecen como enlaces voluntarios.
+- La interfaz se abre por etapas: arranque sin dependencias, después lectura principal de Sheets/Calendar y finalmente métricas opcionales. Si una fuente falla, el panel muestra su diagnóstico en vez de quedar en blanco.
 
 ## 3. Configuración de datos en el nuevo proyecto
 
