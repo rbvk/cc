@@ -1,24 +1,30 @@
 {
   "version": "2026.10.24.9",
-  "description": "RV CC V9 · Owner-only memory, anonymous WhatsApp capture, daily intelligence, opportunities, scenario simulation, Arica model forecasts, 29 licensed image references",
-  "deployment": "Upload Code.gs, Index.html, V9_Core.gs, V9_Intelligence.gs, V9.html and appsscript.json to the existing owner-only Apps Script project; choose a new deployment version.",
-  "serverFiles": [
+  "status": "source_ready_owner_deployment_required",
+  "title": "RV Command Center V9 · Aplicación privada única",
+  "description": "Memoria operativa, captación anónima, oportunidades, decisiones, Arica Live e inteligencia de cuatro Sheets",
+  "entry": "apps-script/Index.html",
+  "scripts": [
     "Code.gs",
     "V9_Core.gs",
-    "V9_Intelligence.gs",
+    "V9_Intelligence.gs"
+  ],
+  "appsscript": "appsscript.json",
+  "uploadFiles": [
+    "Code.gs",
     "Index.html",
-    "V9.html",
+    "V9_Core.gs",
+    "V9_Intelligence.gs",
     "appsscript.json"
   ],
-  "rollback": "?view=v8",
-  "status": "code_committed_not_private_apps_script_deployed",
-  "requiresNewAuthorization": [
-    "https://www.googleapis.com/auth/script.external_request"
-  ],
-  "knownLimitations": [
-    "First attendance requires explicit PSICOPRO marker",
-    "Public webcams not verified as streaming",
-    "Open-Meteo free endpoint non-commercial terms",
-    "29 images use licensed remote host URLs; no local image binaries deployed"
+  "deploy": "Update the EXISTING RV-CCv9 Apps Script project and its existing RV-CCV9 deployment, selecting New version. Owner only, execute as Me.",
+  "configuration": "Open private /exec, select Configurar conexiones to save private four Sheet URLs. Project properties are not shared between Apps Script projects.",
+  "rollback": "Use Git commit history to restore previous source. No old UI or ?view=v8 route is shipped.",
+  "privateLink": "Never embed Apps Script project credentials or Google Sheets IDs into public GitHub.",
+  "limitations": [
+    "No verified public CCTV live stream",
+    "Exact per-person conversion not calculated",
+    "Open-Meteo requires compliant terms for use",
+    "29 photographs are externally hosted and need visual spot check"
   ]
 }
