@@ -20,7 +20,7 @@
 El proyecto privado **RV-CCv9** y su URL /exec ya existen; no es necesario crear uno nuevo.
 
 1. [Abre la guía V9](apps-script/README.md) y sustituye los archivos en el proyecto Apps Script existente.
-2. Mantén `Code.gs`, `Index.html`, `V9_core.gs` y `V9_Intelligence.gs`. La interfaz solo está en `Index.html`; elimina del editor cualquier HTML `V9` duplicado.
+2. Mantén `Code.gs`, `Index.html`, `V9_Core.gs`, `V9_Intelligence.gs` y **`V9_Local.gs`**. La interfaz solo está en `Index.html`; elimina del editor cualquier HTML `V9` duplicado.
 3. Revisa `appsscript.json`, guarda y autoriza.
 4. Implementar > Administrar implementaciones > editar **RV-CCV9** > **Nueva versión**. Mantén `Solo yo`.
 5. Abre la misma URL /exec. Si muestra **⚙️ Configurar fuentes privadas**, pega los enlaces de las cuatro hojas. Las propiedades no se copian entre proyectos Apps Script.
@@ -36,7 +36,7 @@ El proyecto privado **RV-CCv9** y su URL /exec ya existen; no es necesario crear
 - 🏥 Control de pacientes, capacidad y servicios, con marcadores explícitos para primeras atenciones.
 - 🥊 Entrenamiento, DRG, adherencia, sueño y metas.
 - 💰 Presupuesto, planes mensuales e inventario BOXINGCI.
-- 🌆 Arica: reloj, clima modelado, aire, mar, cámaras públicas listadas y avisos oficiales por enlace.
+- 🌆 Arica: reloj, temperatura/viento/UV, aire y oleaje modelados, sismos CSN y publicaciones SENAPRED fechadas cuando se verifican, con caché y consulta bajo demanda, más cámaras públicas.
 - 📷 29 imágenes de terceros etiquetadas, acreditadas y cargadas bajo demanda, sujetas a accesibilidad del proveedor.
 
 ## Estado y tests
@@ -47,3 +47,13 @@ El proyecto privado **RV-CCv9** y su URL /exec ya existen; no es necesario crear
 - Reversión: restablecer un commit anterior desde GitHub y volver a desplegarlo. **No se conservan interfaces de versiones anteriores dentro del código actual.**
 
 No registres datos de pacientes, credenciales o motivos clínicos en las capturas de V9.
+
+
+## Restauraciones de la revisión del 25/10/2026
+
+- Detectar discrepancias entre Matrix, PSICOPRO, MTS, Calendar y Finanzas con enlace al origen.
+- Contar clases dirigidas **únicas completadas** por fecha, no subejercicios (19/10 y 21/10).
+- Seguimiento PSICOPRO semanal y acumulado mensual, excluyendo semanas futuras.
+- Radar de 15 habilidades y barras de KPI numéricos con fuente editable.
+- Fotografías contextuales, ninguna galería ni pestaña “Fotos”.
+- Arica bajo demanda: datos modelados, publicaciones indexadas y sismos fechados; distinguir advertencias oficialmente vigentes de meros avisos publicados.
