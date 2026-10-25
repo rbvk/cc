@@ -289,6 +289,11 @@
     <p id="local-marine-time" class="minor">Fecha del modelo pendiente.</p>
     <p id="local-marine-alert" class="notice">Un pronóstico de ola no constituye aviso oficial de marejadas.</p>
     <div id="local-marine-source"></div>
+    <div class="divider"></div>
+    <h3>📜 Avisos marítimos publicados</h3>
+    <p class="minor">Boletines indexados, con fecha de publicación. Su vigencia no puede suponerse por aparecer aquí.</p>
+    <div class="audit-list" id="local-maritime-bulletins"></div>
+    <div id="local-maritime-bulletins-source"></div>
    </article>
    <article class="card s6" data-photo="FF-01">
     <div class="cardhead"><h3>🛡️ Seguridad y alertas verificadas</h3><span class="tag">Fuentes oficiales</span></div>
@@ -481,7 +486,7 @@ function safeURL(url){try{const u=new URL(url);return u.protocol==='https:'&&!u.
   'www.ubiavis.cl','aipchile.dgac.gob.cl','www.skylinewebcams.com','senapred.cl',
   'www.csn.uchile.cl','climatologia.meteochile.gob.cl','sinca.mma.gob.cl',
   'meteoarmada.directemar.cl','muniarica.cl','www.sismologia.cl',
-  'open-meteo.com','news.google.com'].includes(u.hostname)}catch(e){return false}}
+  'open-meteo.com','news.google.com','www.armada.cl'].includes(u.hostname)}catch(e){return false}}
 function localClock(){
  const now=new Date(),opt={timeZone:'America/Santiago'};
  const time=new Intl.DateTimeFormat('es-CL',{...opt,hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}).format(now);
@@ -813,6 +818,20 @@ function renderLocal(v){
  text('local-marine-alert',v.marineNotice?.note||
    'El modelo de ola no permite concluir ausencia o presencia de marejadas.');
  fillMetricSource('local-marine-source',m);
+ const notices=v.maritimeBulletins||{},maritimeList=$('local-maritime-bulletins');
+ clear(maritimeList);
+ if(notices.items?.length){
+  for(const bulletin of notices.items.slice(0,4)){
+   const article=make('div','audit-item');
+   const when=new Date(bulletin.publishedAt);
+   article.append(make('strong','',bulletin.title),
+    make('p','minor','Publicado '+when.toLocaleString('es-CL',{timeZone:'America/Santiago'})+' · Vigencia por comprobar'));
+   if(safeURL(bulletin.sourceUrl))article.append(link('Abrir comunicado indexado ↗',bulletin.sourceUrl));
+   maritimeList.append(article);
+  }
+ }else maritimeList.append(make('p','minor',notices.note||'No hay publicaciones marítimas con fecha verificable.'));
+ const marinaSource=$('local-maritime-bulletins-source');clear(marinaSource);
+ if(safeURL(notices.sourceUrl))marinaSource.append(link('Ver avisos publicados por Armada de Chile ↗',notices.sourceUrl));
  const news=$('local-senapred');clear(news);
  const bulletin=v.senapred||{};
  const items=bulletin.items||[];
