@@ -125,20 +125,28 @@ function rv9FirstAttentions_(p,now){
   const week=startMonday_(now),metadata=sheetMetadata_(id),tab=matchTab_(metadata.map(x=>x.title),weekKey_(week));
   if(!tab)return {state:'unavailable',currentWeek:null,message:'Sin pestaña semanal'};
   const rows=values_(id,"'"+tab.replace(/'/g,"''")+"'!A3:F15");
-  let total=0;
+  let candidates=0,verified=0;
   for(const row of rows){
    const time=hour_(row[0]);if(time===null)continue;
    for(let weekday=0;weekday<5;weekday++){
-    const text=String(row[weekday+1]||'');
-    if(!/(?:🆕|primera\s+(?:sesi[oó]n|atenci[oó]n))/i.test(text))continue;
-    const at=plusDays_(week,weekday);at.setHours(Math.floor(time/60),time%60,0,0);
-    if(at.getTime()+3600000<=now.getTime())total++;
+    const label=String(row[weekday+1]||'');
+    if(!/(?:🆕|primera\s+(?:sesi[oó]n|atenci[oó]n))/i.test(label))continue;
+    const at=plusDays_(week,weekday);
+    at.setHours(Math.floor(time/60),time%60,0,0);
+    if(at.getTime()+3600000>now.getTime())continue;
+    candidates++;
+    // A first appointment, even in the past, does not certify it was attended.
+    if(/\b(?:atendid[oa]|realizad[oa]|asisti[oó]|completad[oa])\b|✅/i.test(label))verified++;
    }
   }
-  if(total===0)return {state:'unverified',currentWeek:null,
-   message:'No hay marca validada de primeras atenciones. No interpretar cero marcas como cero pacientes nuevos.'};
-  return {state:'partial',currentWeek:total,method:'Marcador explícito 🆕/primera sesión en PSICOPRO',
-   note:'Requiere uso consistente para comparar períodos'};
+  if(verified===0)return {state:'unverified',currentWeek:null,
+   candidateFirstAppointments:candidates,
+   message:candidates?
+    'Existen primeras citas anotadas sin confirmación explícita de asistencia.':
+    'Sin marcador de primeras atenciones verificadas; la falta de marcas no equivale a cero pacientes nuevos.'};
+  return {state:'partial',currentWeek:verified,candidateFirstAppointments:candidates,
+   method:'Primera cita con marca explícita de asistencia en PSICOPRO',
+   note:'Requiere registro consistente; no permite calcular conversión individual desde consultas'};
  }catch(e){return {state:'unavailable',currentWeek:null};}
 }
 function rv9Opportunities_(base,extra,inbox,availability){
