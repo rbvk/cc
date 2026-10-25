@@ -5,8 +5,8 @@ import crypto from 'node:crypto';
 
 const root=new URL('../',import.meta.url);
 const read=name=>fs.readFileSync(new URL(name,root),'utf8');
-const engine=read('Code.gs'),core=read('V9_Core.gs'),extra=read('V9_Intelligence.gs'),html=read('Index.html');
-[engine,core,extra].forEach(s=>new vm.Script(s));
+const engine=read('Code.gs'),core=read('V9_Core.gs'),extra=read('V9_Intelligence.gs'),local=read('V9_Local.gs'),html=read('Index.html');
+[engine,core,extra,local].forEach(s=>new vm.Script(s));
 const client=html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
 assert.ok(client);new vm.Script(client);
 const ids=new Set([...html.matchAll(/\bid="([^"]+)"/g)].map(x=>x[1]));
@@ -15,9 +15,14 @@ assert.equal((client.match(/"id":"AR-\d\d"/g)||[]).length,11);
 assert.equal((client.match(/"id":"(?:BX|CL|GY|TH|PR|FN|SL|FF|CP)-\d\d"/g)||[]).length,18);
 const manifest=JSON.parse(read('appsscript.json'));
 assert.equal(manifest.webapp.access,'MYSELF');
-assert.ok(!manifest.oauthScopes.includes('https://www.googleapis.com/auth/script.external_request'));
-assert.deepEqual(manifest.oauthScopes.sort(),['https://www.googleapis.com/auth/calendar.readonly','https://www.googleapis.com/auth/spreadsheets.readonly']);
-assert.ok(![engine,core,extra,client].some(code=>/UrlFetchApp|api\.open-meteo\.com|air-quality-api\.|marine-api\./i.test(code)),'No automatic external weather requests remain');
+assert.ok(manifest.oauthScopes.includes('https://www.googleapis.com/auth/script.external_request'));
+assert.ok(![engine,core,extra].some(code=>/UrlFetchApp\.fetchAll|api\.open-meteo\.com/i.test(code)),'Weather API must not execute in bootstrap, sheet analysis or intelligence');
+assert.ok(/function getV9LocalData\(/.test(local),'On-demand Arica source must exist');
+assert.ok(!/setInterval\([^\n]*getV9LocalData/.test(client),'No repeating weather fetch timer');
+assert.ok(client.includes('loadLocalOnDemand()'),'Arica navigation should fetch on demand');
+assert.ok(html.includes('id="audit-detailed"')&&html.includes('id="boxing-radar"')&&html.includes('id="clinic-weeks-bars"'),'Cross-system audit, boxing radar and clinic chart should be visible');
+assert.ok(!html.includes('id="intel-fotografias"')&&!html.includes('id="arica-photos"'),'No photo-only galleries');
+assert.ok((html.match(/data-photo="/g)||[]).length>=20,'At least twenty editorial image placements');
 assert.ok(!manifest.oauthScopes.includes('https://www.googleapis.com/auth/spreadsheets'));
 assert.ok(engine.includes("createHtmlOutputFromFile('Index')"));
 assert.ok(!engine.includes('?view=v8'));
@@ -80,7 +85,7 @@ assert.equal(extended.state,'ok');
 assert.equal(v.diagnostics.primary,'ok');
 assert.equal(v.extra.state,'pending');
 assert.equal(v.availability.state,'pending');
-assert.equal(call('getV9Diagnostic').checks.outboundWeatherRequests,false);
+assert.equal(call('getV9Diagnostic').checks.outboundWeatherRequests,false); // boot remains network-free
 assert.equal(v.version,'2026.10.24.9');
 assert.equal(v.configuration.state,'configured');
 assert.ok(!('externalScope' in call('getV9Diagnostic').checks));
@@ -115,6 +120,89 @@ assert.equal(idea.item.minutes,45);
 assert.equal(idea.item.area,'Tesis');
 assert.equal(call('captureV9Idea','Terminar manuscrito de tesis en 45 min').state,'duplicate');
 assert.equal(call('setV9TaskStatus',idea.item.id,'done').inbox.open,0);
+// Reconstruct the two critical calculations from the original Code.gs
+// with synthetic, nonpatient fixtures. No live Sheets are written.
+const fn = name=>{
+ const start=engine.indexOf('function '+name+'(');
+ assert.ok(start>=0,'Missing source function '+name);
+ const end=engine.indexOf('\nfunction ',start+12);
+ return engine.slice(start,end<0?engine.length:end);
+};
+const dedicated=vm.createContext({
+ Date:Clock,RV_TZ:'America/Santiago',
+ Utilities:mock.Utilities,
+ iso_:d=>new Date(d).toISOString().slice(0,10),
+ parseDmy_:v=>{
+  const m=String(v).match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  return m?new Date(Number(m[3]),Number(m[2])-1,Number(m[1]),12):null;
+ },
+ sheetMetadata_:()=>[{title:'Daily log',sheetId:17},{title:'Objetivos/Paciente',sheetId:33}],
+ values_:(id,range)=>{
+  if(range==="'Daily log'!A2:D1200")return [
+   ['M9W6','19/10/2026 — Monday','🥊 MON 19/10 · Coached Boxing + LEGS',''],
+   ['M9W6','19/10/2026 — Monday','🥊 Coached Boxing — 105 min','Done'],
+   ['M9W6','19/10/2026 — Monday','🥊 TECH primer INSIDE CLASS','Done'],
+   ['M9W6','21/10/2026 — Wednesday','🥊 WED 21/10 · Coached Boxing',''],
+   ['M9W6','21/10/2026 — Wednesday','🥊 Coached Boxing — 105 min','done'],
+   ['M9W6','21/10/2026 — Wednesday','🥊 Warm-up INSIDE CLASS','Done'],
+   ['M9W6','23/10/2026 — Friday','🥊 Coached Boxing — 105 min','not done ill']];
+  if(range==="'drg'!A2:L800")return [];
+  if(range==="'Objetivos/Paciente'!A25:D75")return [
+   ['SEGUIMIENTO SEMANAL'],['Semana','Sesiones','Cupos','Ocupación'],
+   ['21/09','12','15','80%'],['28/09','10','15','66.7%'],
+   ['5/10','9','15','60%'],['12/10','12','15','80%'],
+   ['19/10','6','15','40%'],['26/10','18','15','120%']];
+  return [];
+ },
+ money_:v=>Number.isFinite(Number(v))&&String(v).trim()?Number(v):null,
+ plusDays_:(d,n)=>new Date(d.getTime()+n*86400000),
+ startMonday_:()=>new Date('2026-10-19T12:00:00Z'),
+ tabUrl_:()=> 'https://docs.google.com/spreadsheets/d/synthetic/edit#gid=33',
+ cellUrl_:(_,tab,address)=>'https://docs.google.com/spreadsheets/d/synthetic/edit#range='+address,
+ weekKey_:()=> '19/10',
+ isSessionHeader_:v=>/^\s*🥊\s*(?:MON|TUE|WED|THU|FRI|SAT|SUN)\b/i.test(String(v)),
+ planTypes_:v=>/coached|box/i.test(String(v).toLowerCase())?['boxing']:[],
+ formatDate:format,
+ money_:v=>v===null?null:Number(v),
+ RV_TARGET_WEEKLY:15
+});
+vm.runInContext(fn('readTraining_')+'\n'+fn('rv9ClinicalWeekly_'),dedicated);
+const training=vm.runInContext("readTraining_('MTS_SYNTHETIC',new Date('2026-10-25T13:00:00Z'))",dedicated);
+assert.equal(training.publicData.coachedClasses7d,2,'Unique completed coached days, not inner drills');
+assert.deepEqual(Array.from(training.publicData.coachedClassEntries,x=>x.date),['2026-10-19','2026-10-21']);
+const clinics=vm.runInContext("rv9ClinicalWeekly_('PSICO_SYNTHETIC',[],new Date('2026-10-25T13:00:00Z'))",dedicated);
+assert.equal(clinics.currentWeek,6);
+assert.equal(clinics.monthToDate,27);
+assert.equal(clinics.upcoming[0].sessions,18,'Future week must not contaminate month-to-date');
+
+// Simulate on-demand Arica. Not part of the initial getV9Dashboard RPC.
+const newsFixture='<rss><channel><item><title>Alerta temprana preventiva en Parinacota - SENAPRED</title>'+
+ '<link>https://news.google.com/rss/articles/abc</link>'+
+ '<pubDate>Thu, 22 Oct 2026 19:21:00 GMT</pubDate></item></channel></rss>';
+const quakeFixture='<table><tbody><tr><td>2026-10-24 20:05:00<br>12 km al E de Putre</td><td>105 km</td><td>3.4</td></tr></tbody></table>';
+const responses=[
+ {current:{temperature_2m:21,wind_speed_10m:14,uv_index:8,time:'2026-10-24T18:00',relative_humidity_2m:72,apparent_temperature:22}},
+ {current:{pm2_5:6,us_aqi:25,time:'2026-10-24T18:00'}},
+ {current:{wave_height:1.4,wave_period:8,time:'2026-10-24T18:00'}},
+ quakeFixture,newsFixture
+];
+let fetchCalls=0;
+Object.assign(ctx,{
+ UrlFetchApp:{fetchAll:requests=>{fetchCalls++;assert.equal(requests.length,5);return responses.map(x=>({
+  getResponseCode:()=>200,getContentText:()=>typeof x==='string'?x:JSON.stringify(x)
+ }))}},
+ CacheService:{getScriptCache:()=>({get(){return null},put(){}})}
+});
+vm.runInContext(local,ctx);
+const region=call('getV9LocalData');
+assert.equal(region.weather.temperature,21);
+assert.equal(region.air.pm25,6);
+assert.equal(region.marine.waveHeight,1.4);
+assert.equal(region.seismic.events.length,1);
+assert.equal(region.seismic.events[0].location,'12 km al E de Putre');
+assert.equal(region.senapred.items.length,1);
+assert.equal(region.senapred.state,'indexed');
+assert.equal(fetchCalls,1,'Only one bounded on-demand request batch');
 const sim=call('simulateV9Scenario','clinical',2);
 assert.equal(sim.applied,false);assert.equal(sim.results.find(x=>/neto potencial/i.test(x.label)).value,168000);
 const recorded=call('recordV9Decision','clinical',2,70);
@@ -128,4 +216,4 @@ assert.equal(verified.decisions.completed,1);
 assert.equal(call('resolveV9Decision',recorded.item.id,'success').state,'already_resolved');
 assert.equal(call('recordV9Decision','clinical',2,101).state,'invalid');
 
-console.log('PASS: V9 without outbound weather, minimal OAuth, staged boot, degraded-source fallback, 29 photos, captures and decisions.');
+console.log('PASS V9: coached Mon+Wed classes, October PSICOPRO 27 excluding future, radar/audit UI, indexed SENAPRED, dated CSN, cached on-demand Arica, privacy and decisions');
