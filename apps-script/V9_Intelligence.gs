@@ -218,7 +218,7 @@ function simulateV9Scenario(type,amount){
  const n=Math.max(1,Math.min(5,Math.floor(Number(amount)||1)));
  if(!['clinical','focus','budget','stock','recovery','boxing','training','review'].includes(type))
   return {state:'invalid'};
- const now=new Date(),base=getDashboard(),p=rv9Props_(),x=rv9Extra_(p,now);
+ const now=new Date(),base=rv9BaseDashboard_(),p=rv9Props_(),x=rv9Extra_(p,now);
  const result={state:'ok',type,quantity:n,requiresApproval:true,
   results:[],assumptions:[],warnings:[],applied:false};
  if(type==='clinical'){
