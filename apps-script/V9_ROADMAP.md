@@ -1,6 +1,6 @@
 # RV Command Center V9 — Roadmap / Diseño aprobado
 
-**Estado actualizado 24-10-2026:** V9 IMPLEMENTADO EN CÓDIGO Y PRUEBAS de GitHub; Web App privada todavía NO desplegada en el proyecto Apps Script del propietario. V8 sigue disponible mediante ?view=v8 una vez se carguen los nuevos archivos.  
+**Estado actualizado:** código V9 implementado, validado y unificado en `Index.html`. La implementación privada `RV-CCV9` ya existe, pero requiere publicar una **nueva versión** para incorporar las modificaciones más recientes. Historial de GitHub para volver atrás, sin interfaz antigua.  
 **Fecha de diseño:** 24-10-2026. **Zona horaria:** America/Santiago.  
 **Propósito:** ampliar las capacidades del usuario mediante decisiones con evidencia, oportunidades verificables y ejecución supervisada, no simplemente añadir más contadores.
 
@@ -88,12 +88,12 @@ Regla: mostrar solamente datos que puedan cambiar una decisión.
 4. **V9.3 Execution (solo previa autorización):** acciones propuestas, vista previa, confirmación y verificación/rollback; nunca edición clínica automática.
 
 **Criterios de éxito:** menos trabajo manual, cero duplicación clínica, ninguna cámara falsa etiquetada live, cero pronósticos tratados como mediciones, una oportunidad accionable y medible por día cuando realmente existe, y pruebas con datos sintéticos.  
-**Protección de V8:** no alterar el código existente ni implementación de Apps Script por crear esta hoja de ruta.  
+**Gestión de versiones:** una única interfaz V9 vigente; utilizar Git para recuperar cualquier versión anterior.  
 **Verificación:** revisar disponibilidad de webcams, permisos de iframe/stream, políticas de fuentes y credenciales antes de implementar.
 
 ## 7. Diseño de interfaz, lectura y sistema visual — propuesta V9
 
-**Estado: propuesta de diseño registrada, V8 no se modifica.** La prioridad es legibilidad móvil, velocidad de decisión y densidad informativa adaptativa; nunca añadir emojis como decoración.
+**Estado: diseño implementado como interfaz V9 única; despliegue privado debe actualizarse.** La prioridad es legibilidad móvil, velocidad de decisión y densidad informativa adaptativa; nunca añadir emojis como decoración.
 
 ### 7.1 Identidad visual y estructura
 - Identidad: **RV Command Center** sobria, profesional, oscura con acentos azul hielo/cian, fondo grafito. Variante clara si el usuario lo solicita. El color se reserva para estados o acciones, no para decorar cada tarjeta.
@@ -134,14 +134,14 @@ Regla: mostrar solamente datos que puedan cambiar una decisión.
 ### 7.6 Orden recomendado antes de implementación
 1. Definir **componentes** (tarjeta KPI, línea de tiempo, alerta, oportunidad, webcam con frescura, lista de tareas) y jerarquía.
 2. Construir una vista conceptual `Hoy` estática con datos sintéticos y probar legibilidad en iPhone.
-3. Elegir el modelo de navegación definitivo, luego aplicar a V9; mantener intacto el HTML de V8.
+3. Elegir el modelo de navegación definitivo, luego aplicar a V9; evitar una interfaz histórica adicional; versionar el único HTML mediante Git.
 4. Validar usuarios y accesibilidad antes de introducir animaciones, gráficos complejos o nuevas paletas.
 
 ## 8. Biblioteca fotográfica con licencias y uso profesional — APROBADA PARA DISEÑO V9
 
 **Meta cuantitativa: 29 fotografías distintas identificadas; 11 de Arica en Wikimedia Commons y 18 temáticas en Pexels.** Inventario verificable: [V9_PHOTO_CATALOG.json](V9_PHOTO_CATALOG.json). Las fuentes son **páginas de obras concretas** (no términos de búsqueda genéricos); cada registro indica autor, licencia, enlace, texto alternativo, área, función y formato.
 
-**Estado real del trabajo:** catálogo y política de uso seleccionados para V9. **Ningún archivo binario fue descargado ni se ha insertado una fotografía en V8 o en la Web App**. En la fase de implementación, descargar, optimizar, integrar, comprobar derechos y probar cada imagen. No afirmar que las 29 están ya visibles en producción.
+**Estado real del trabajo:** catálogo y política de uso seleccionados para V9. **Las imágenes se referencian desde sus proveedores en el HTML V9; no se descargaron como binarios locales ni se verificó su carga final dentro de Apps Script**. En la fase de implementación, descargar, optimizar, integrar, comprobar derechos y probar cada imagen. No afirmar que las 29 están ya visibles en producción.
 
 ### 8.1 Distribución editorial, no decoración
 - **Inicio «Hoy»: máximo 1–2 fotografías** (una tarjeta Arica Live opcional y una oportunidad contextual si es relevante). Priorizar información, títulos, KPIs y botones; jamás un fondo fotográfico detrás de datos clínicos o cifras.
@@ -173,11 +173,22 @@ Regla: mostrar solamente datos que puedan cambiar una decisión.
 
 ## 9. Estado real de entrega del código V9
 
-- **Implementado en GitHub:** V9_Core.gs (captación, memoria, agenda potencial, tareas y log de predicciones), V9_Intelligence.gs (fuentes Arica, inventario, rendimiento, servicios, escenarios y oportunidades), V9.html (cuatro pantallas, captura, hipótesis y galería remota de 29 fotografías), test command-center-v9.mjs y release.json versión 2026.10.24.9.
+- **Implementado en GitHub:** V9_Core.gs (captación, memoria, agenda potencial, tareas y log de predicciones), V9_Intelligence.gs (fuentes Arica, inventario, rendimiento, servicios, escenarios y oportunidades), Index.html (cuatro pantallas, captura, hipótesis y galería remota de 29 fotografías), test command-center-v9.mjs y release.json versión 2026.10.24.9.
 - **Vista previa GitHub Pages:** preview-v9.html con datos ficticios, sin acceso a hojas, mensajes o cuentas privadas. La publicación Pages se prueba aparte de la app propietaria.
-- **No desplegado automáticamente:** se deben cargar V9_Core.gs, V9_Intelligence.gs y V9.html además de Code.gs e Index.html en el Google Apps Script propietario, guardar appsscript.json, autorizar external_request y publicar nueva versión manteniendo acceso Solo yo.
+- **La nueva fuente no se despliega automáticamente:** actualizar Code.gs, Index.html, V9_Core.gs y V9_Intelligence.gs en el proyecto RV-CCv9 existente, guardar appsscript.json, autorizar external_request y publicar nueva versión manteniendo acceso Solo yo.
 - **Diferimientos comprobables:** la tasa exacta de conversión individual no existe por decisión de captación mínima; primeras atenciones solo con marcador explícito en PSICOPRO; CCTV municipal no es público; webcams no se etiquetan activas; Open-Meteo gratuita requiere revisar condiciones para usos comerciales; no se modifican Calendar ni Sheets automáticamente; integración de Gmail y contenido Docs requiere autorización y delimitación de fuentes; las 29 imágenes se solicitan a servidores de origen, no se descargan a binarios del repo.
 - **Motor de ejecución supervisado realmente disponible:** cerrar/descartar pendientes en su almacén privado y abrir un borrador genérico de Calendar; el usuario guarda el evento en Google Calendar, no se escribe nada por detrás.
 - **Calibración de decisiones:** el motor ahora registra hipótesis por mes con confianza explícita y su resultado; no transforma este porcentaje en una probabilidad estadística comprobada sin historial suficiente.
 
 **Regla de cierre:** no declarar V9 operativo en /exec hasta verificar permisos, carga y flujo con fuentes reales en una instalación Google Apps Script autenticada.
+
+
+## 10. Corrección de integración y limpieza de la versión única
+
+- La Web App existente se llama `RV-CCv9`; el propietario mostró una implementación existente. La Web App no se actualiza automáticamente al hacer commit.
+- `Index.html` contiene todo el V9. `V9.html` se eliminó del repositorio para evitar vistas duplicadas; eliminar también el archivo duplicado en el editor de Apps Script una vez sustituido `Index.html`.
+- `Code.gs` sirve exclusivamente la interfaz actual y mantiene los lectores analíticos de Sheets y Calendar que **sí** se utilizan en V9. No contiene una ruta para abrir paneles antiguos.
+- El proyecto recién creado **no hereda Script Properties**: V9 integra el cuadro **Configurar conexiones** que valida los cuatro Google Sheets y conserva sus IDs únicamente dentro de Apps Script.
+- `app.js` del portal público utiliza una clave de URL local nueva, para evitar enlaces obsoletos al panel antiguo.
+- La única prueba automatizada vigente es `tests/command-center-v9.mjs`; las suites históricas están en Git.
+- Para revertir el código, usar un commit anterior y volver a implementarlo; no almacenar interfaces históricas dentro del proyecto Apps Script activo.
