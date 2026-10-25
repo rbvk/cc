@@ -6,6 +6,7 @@ on:
       - index.html
       - app.js
       - styles.css
+      - preview-v9.html
       - .github/workflows/pages.yml
   workflow_dispatch:
 permissions:
@@ -28,12 +29,13 @@ jobs:
         run: |
           set -eu
           mkdir -p public-site
-          cp index.html app.js styles.css public-site/
+          cp index.html app.js styles.css preview-v9.html public-site/
           printf '%s\n' cc.rodolfovalle.com > public-site/CNAME
           touch public-site/.nojekyll
           test -s public-site/index.html
           test -s public-site/app.js
           test -s public-site/styles.css
+          test -s public-site/preview-v9.html
       - name: Configure Pages
         uses: actions/configure-pages@v5
       - name: Upload site
