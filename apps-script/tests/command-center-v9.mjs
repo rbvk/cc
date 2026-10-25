@@ -34,6 +34,8 @@ assert.ok(html.includes('id="audit-detailed"')&&html.includes('id="boxing-radar"
 assert.ok(!html.includes('id="intel-fotografias"')&&!html.includes('id="arica-photos"'),'No photo-only galleries');
 assert.ok((html.match(/data-photo="/g)||[]).length>=20,'At least twenty editorial image placements');
 assert.ok(!manifest.oauthScopes.includes('https://www.googleapis.com/auth/spreadsheets'));
+assert.equal(manifest.webapp.executeAs,'USER_DEPLOYING');
+assert.equal(manifest.webapp.access,'MYSELF');
 assert.ok(engine.includes("createHtmlOutputFromFile('Index')"));
 assert.ok(!engine.includes('?view=v8'));
 assert.ok(!engine.includes('getMatrixOnlyClinicalDetail'));
@@ -100,7 +102,7 @@ assert.equal(v.diagnostics.primary,'ok');
 assert.equal(v.extra.state,'pending');
 assert.equal(v.availability.state,'pending');
 assert.equal(call('getV9Diagnostic').checks.outboundWeatherRequests,false); // boot remains network-free
-assert.equal(v.version,'2026.10.24.9');
+assert.equal(v.version,'9.3.0');
 assert.equal(v.configuration.state,'configured');
 assert.ok(!('externalScope' in call('getV9Diagnostic').checks));
 stored.MATRIX_SHEET_ID='';
