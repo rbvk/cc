@@ -439,15 +439,14 @@ function goto(section){
  const meta=screenNames[section];
  text('screen-eyebrow',meta[0]);text('screen-title',meta[1]);text('screen-description',meta[2]);
  window.scrollTo({top:0,behavior:'instant'});
- if(section==='arica')ensurePhotos('arica-photos','Arica');
- if(section==='inteligencia'&&INTEL==='fotografias')ensurePhotos('other-photos','other');
+ if(section==='arica')loadLocalOnDemand();
 }
 document.querySelectorAll('[data-goto]').forEach(b=>b.addEventListener('click',()=>goto(b.dataset.goto)));
 document.querySelectorAll('[data-intel]').forEach(b=>b.addEventListener('click',()=>{
  INTEL=b.dataset.intel;
  document.querySelectorAll('.subpanel').forEach(p=>p.hidden=p.id!=='intel-'+INTEL);
  document.querySelectorAll('[data-intel]').forEach(c=>{c.classList.toggle('active',c.dataset.intel===INTEL);c.setAttribute('aria-selected',c.dataset.intel===INTEL?'true':'false')});
- if(INTEL==='fotografias')ensurePhotos('other-photos','other');
+ // Editorial photographs are embedded in domain cards, not a gallery.
 }));
 function photoSrc(photo,width){
  if(photo.provider==='Pexels'&&/^\d+$/.test(photo.photoId||''))
@@ -470,12 +469,22 @@ function photoElement(photo){
  return card;
 }
 const MOUNTED=new Set();
-function ensurePhotos(id,group){
- if(MOUNTED.has(id))return;
- const root=$(id);clear(root);
- const selected=PHOTOS.filter(p=>group==='Arica'?p.area==='Arica':p.area!=='Arica');
- for(const p of selected)root.append(photoElement(p));
- MOUNTED.add(id);
+function attachPhoto(card,photo){
+ if(!card||!photo||card.dataset.photoApplied)return;
+ const fig=make('figure','editorial-photo'),img=document.createElement('img');
+ img.src=photoSrc(photo,640);img.alt=photo.alt||photo.title;
+ img.loading='lazy';img.decoding='async';
+ img.addEventListener('error',()=>fig.remove());
+ const cap=make('figcaption');
+ cap.append(link('Foto: '+photo.author+' · '+photo.license,photo.url));
+ fig.append(img,cap);
+ const head=card.querySelector('.cardhead');
+ if(head)head.after(fig);else card.prepend(fig);
+ card.dataset.photoApplied='true';
+}
+function applyEditorialPhotos(){
+ document.querySelectorAll('[data-photo]').forEach(card=>
+  attachPhoto(card,PHOTOS.find(p=>p.id===card.dataset.photo)));
 }
 function setHero(id,photoId){
  const node=$(id),p=PHOTOS.find(x=>x.id===photoId);
@@ -489,6 +498,7 @@ setHero('hoy-hero','AR-01');
 setHero('arica-hero','AR-04');
 setHero('op-hero','PR-02');
 setHero('intel-hero','TH-01');
+applyEditorialPhotos();
 function listLines(id,rows,fmt){
  const node=$(id);clear(node);
  if(!rows?.length){node.append(make('li','minor','No hay registros verificables.'));return;}
@@ -502,8 +512,14 @@ function renderToday(v){
  text('today-why',opp?.evidence||b.nextAction?.reason||'Sin prioridades confirmadas');
  text('today-confidence',opp?'Regla verificada · '+opp.area:'Pendiente');
  text('k-patients',typeof b.clinical?.weekly==='number'?b.clinical.weekly+' / '+b.clinical.target:'—');
+ text('k-clinic-sessions',typeof b.clinical?.tracking?.currentWeek==='number'?b.clinical.tracking.currentWeek:'—');
+ const clinicLink=$('k-clinic-source');clear(clinicLink);
+ if(b.clinical?.tracking?.currentWeekUrl)clinicLink.append(link('Ver registro semanal ↗',b.clinical.tracking.currentWeekUrl));
  text('k-leads',v.leads?.week??'—');
- text('k-box',v.base?.training?.adherence?.boxing?.done??'—');
+ text('k-box',typeof b.training?.coachedClasses7d==='number'?b.training.coachedClasses7d:'—');
+ const boxLink=$('k-box-source');clear(boxLink);
+ if(b.training?.dailyLogUrl)boxLink.append(link('Ver MTS ↗',b.training.dailyLogUrl));
+ renderAudits(v);
  text('k-sleep',num(b.sleepTrend?.averageHours,' h'));
  const events=b.calendar?.todayEvents||[],root=$('today-events');clear(root);
  if(!events.length)root.append(make('p','minor',b.calendar?.state==='ok'?'Sin más eventos registrados para hoy':'Google Calendar sin datos disponibles'));
@@ -767,6 +783,7 @@ function refresh(){
  }).getV9Bootstrap();
 }
 $('refresh').onclick=refresh;
+$('audit-expand').onclick=()=>{goto('inteligencia');document.querySelector('[data-intel="auditoria"]')?.click();};
 function showSetup(){
  $('setup-modal').hidden=false;text('setup-feedback','Solo se guardarán enlaces que introduzcas.');
  $('sheet-matrix').focus();
