@@ -6,7 +6,7 @@
  * Authorized scopes: spreadsheets.readonly and calendar.readonly. No automatic weather HTTP calls.
  */
 const RV_TZ = 'America/Santiago';
-const RV_RELEASE = '2026.10.24.9';
+const RV_RELEASE = '9.3.0';
 const RV_TARGET_WEEKLY = 15;
 const RV_MONTHS = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
 const RV_EN_MONTHS = ['january','february','march','april','may','june','july','august','september','october','november','december'];
