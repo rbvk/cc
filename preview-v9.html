@@ -120,7 +120,7 @@
  </style>
 </head>
 <body>
-<div role="banner" style="background:#553d21;color:#fff3cf;padding:9px 15px;text-align:center;font-weight:750;font-size:14px;position:relative;z-index:80">VISTA PREVIA PÚBLICA · DATOS 100% FICTICIOS · Sin conexión a Matrix, PSICOPRO, MTS ni Finanzas</div>
+<div role="banner" style="background:#553d21;color:#fff3cf;padding:9px 15px;text-align:center;font-weight:750;font-size:14px;position:relative;z-index:80">VISTA PREVIA PÚBLICA · DATOS 100% FICTICIOS · Sin conexiones a Matrix, PSICOPRO, MTS, Finanzas ni clima</div>
 <script>
 'use strict';
 /* Synthetic ONLY. This static GitHub Pages demo never reads actual patient data. */
@@ -165,8 +165,7 @@ const DEMO={
    kpis:[{name:'Bench Press (ejemplo)',current:'60 kg',goal:'100 kg'}]},
   business:{sixMonths:[{month:'Oct-26',patientsGoal:12,clinicGoal:600000,clinicActual:null}],
    merch:[{name:'Protector bucal (ejemplo)',inStock:4,marginUnit:4000,inventoryAtCost:16000}]}},
- arica:{state:'partial',consultedAt:new Date().toISOString(),
-  weather:{state:'unavailable'},air:{state:'unavailable'},marine:{state:'unavailable'},
+ arica:{state:'links_only',consultedAt:new Date().toISOString(),
   alerts:{message:'Demostración: consulta SENAPRED para alertas oficiales reales.'},
   cameras:[
    {name:'Humedal Río Lluta',source:'Ubiavis',kind:'Transmisión anunciada',state:'not_verified',
@@ -185,7 +184,17 @@ function runner(){
  return {
   withSuccessHandler(fn){okay=fn;return this;},
   withFailureHandler(){return this;},
-  getV9Dashboard(){okay(DEMO)},
+  getV9Bootstrap(){
+    const {base,extra,availability,finishes,opportunities,firstAttentions,...boot}=DEMO;
+    okay({...boot,state:'ok'});
+  },
+  getV9Dashboard(){
+    const {extra,availability,finishes,...main}=DEMO;
+    okay({...main,extra:{state:'pending',performance:{skills:[],kpis:[]},business:{sixMonths:[],merch:[]}},availability:{state:'pending',windows:[]},finishes:{state:'no_window',items:[]}});
+  },
+  getV9Extended(){
+    okay({state:'ok',extra:DEMO.extra,availability:DEMO.availability,firstAttentions:DEMO.firstAttentions});
+  },
   recordV9Lead(origin){
    DEMO.leads.week++;DEMO.leads.month++;
    const old=DEMO.leads.byOrigin.find(x=>x.origin===origin);
@@ -279,12 +288,10 @@ window.google={script:{get run(){return runner()}}};
     <div class="metric" id="today-finance">—</div><p class="minor" id="today-finance-note">Calculando gasto y presupuesto…</p>
    </article>
    <article class="card s6">
-    <div class="cardhead"><h3>🌆 Arica ahora</h3><button class="button ghost small" type="button" data-goto="arica">Ver Arica</button></div>
-    <div class="dash">
-     <div class="dashitem"><div class="label">🌤️ Temperatura</div><div class="metric" id="home-weather">—</div></div>
-     <div class="dashitem"><div class="label">💨 Viento</div><div class="metric" id="home-wind">—</div></div>
-    </div>
-    <p class="minor" id="home-weather-source">Modelo meteorológico; la medición de estación se consulta por separado.</p>
+    <div class="cardhead"><h3>🌆 Arica</h3><button class="button ghost small" type="button" data-goto="arica">Ver fuentes</button></div>
+    <div class="label">🕒 Hora local</div>
+    <div class="metric" id="home-arica-clock">--:--:--</div>
+    <p class="minor">Cámaras públicas, enlaces oficiales y fotografías de Arica disponibles bajo demanda. Sin consultas meteorológicas automáticas.</p>
    </article>
   </div>
  </section>
@@ -325,26 +332,30 @@ window.google={script:{get run(){return runner()}}};
   </div>
  </section>
 
- <section class="screen" id="screen-arica" hidden aria-label="Arica en vivo">
+ <section class="screen" id="screen-arica" hidden aria-label="Arica, fuentes y fotografías">
   <div class="hero" id="arica-hero"><div class="hero-copy">
-   <div class="eyebrow">🌆 ARICA LIVE · FUENTES VERIFICABLES</div>
+   <div class="eyebrow">🌆 ARICA · DIRECTORIO PÚBLICO</div>
    <h2>Arica, donde estás.</h2>
-   <p>Clima, costa, imágenes públicas y avisos oficiales con fecha de actualización.</p>
+   <p>Hora de Arica, fotografías, cámaras anunciadas y acceso voluntario a fuentes oficiales.</p>
   </div></div>
-  <div class="sectiontop"><h2>Condiciones locales</h2><span class="tag">Datos modelo, no CCTV</span></div>
+  <div class="sectiontop"><h2>Arica sin consultas automáticas</h2><span class="tag good">Sin API meteorológica</span></div>
   <div class="grid">
-   <article class="card s3"><div class="label">🌡️ Temperatura</div><div class="metric" id="arica-temp">—</div><div class="minor" id="arica-temp-sub">Modelo en Arica</div></article>
-   <article class="card s3"><div class="label">💨 Viento</div><div class="metric" id="arica-wind">—</div><div class="minor" id="arica-gust">Ráfagas: —</div></article>
-   <article class="card s3"><div class="label">☀️ Radiación UV</div><div class="metric" id="arica-uv">—</div><div class="minor" id="arica-uv-sub">Índice modelado</div></article>
-   <article class="card s3"><div class="label">🌊 Altura de ola</div><div class="metric" id="arica-wave">—</div><div class="minor">Pronóstico marítimo</div></article>
-   <article class="card s6"><h3>🌤️ Pronóstico y aire</h3><div id="arica-conditions"></div></article>
-   <article class="card s6"><h3>🚨 Avisos y calidad de señal</h3><p class="notice">Los modelos meteorológicos NO reemplazan alertas SENAPRED, DMC o Armada.</p><p id="arica-alert-note" class="minor"></p><p id="arica-refresh" class="minor"></p></article>
-   <article class="card s12"><div class="cardhead"><h3>📷 Directorio de cámaras públicas</h3><span class="tag warn">Verificar señal</span></div>
-    <p class="sub">No se publica CCTV privado. Se distingue video confirmado, fotografía fechada y señal no disponible.</p>
+   <article class="card s6">
+    <h3>🕒 Hora oficial local</h3>
+    <div class="metric" id="arica-clock">--:--:--</div>
+    <p class="minor">America/Santiago · Hora del dispositivo con ajuste de zona horaria; sin consultas a internet para actualizarla.</p>
+   </article>
+   <article class="card s6">
+    <h3>🛡️ Fuentes locales</h3>
+    <p class="smalltext">El CC ya no consulta temperatura, viento, radiación UV, calidad del aire ni oleaje. Puedes abrir las fuentes oficiales manualmente cuando las necesites.</p>
+    <p id="arica-alert-note" class="minor">Consultar alertas directamente en SENAPRED y Armada.</p>
+   </article>
+   <article class="card s12"><div class="cardhead"><h3>📷 Directorio de cámaras públicas</h3><span class="tag warn">Señal sin verificar</span></div>
+    <p class="sub">Enlaces voluntarios a proveedores. No se consultan señales CCTV desde el servidor; las fotografías históricas nunca se etiquetan como video en vivo.</p>
     <div class="grid" id="camera-list"></div>
    </article>
-   <article class="card s12"><h3>🗺️ Arica en fotografías</h3><p class="minor">Galería de archivo con autor, licencia y fuente. Estas imágenes no son transmisiones en vivo.</p><div class="photo-grid" id="arica-photos"></div></article>
-   <article class="card s12"><h3>Enlaces oficiales y contexto local</h3><div class="grid" id="arica-sources"></div></article>
+   <article class="card s12"><h3>🗺️ Arica en fotografías</h3><p class="minor">Galería de archivo con autor, licencia y fuente, cargada cuando abres esta sección.</p><div class="photo-grid" id="arica-photos"></div></article>
+   <article class="card s12"><h3>Fuentes oficiales y contexto local</h3><p class="minor">Estos enlaces se abren solamente cuando los seleccionas; no hay solicitudes periódicas desde el CC.</p><div class="grid" id="arica-sources"></div></article>
   </div>
  </section>
 
@@ -478,16 +489,17 @@ function safeURL(url){try{const u=new URL(url);return u.protocol==='https:'&&!u.
  ['docs.google.com','calendar.google.com','github.com','www.pexels.com','commons.wikimedia.org',
   'www.ubiavis.cl','aipchile.dgac.gob.cl','www.skylinewebcams.com','senapred.cl',
   'www.csn.uchile.cl','climatologia.meteochile.gob.cl','sinca.mma.gob.cl',
-  'meteoarmada.directemar.cl','muniarica.cl','open-meteo.com'].includes(u.hostname)}catch(e){return false}}
+  'meteoarmada.directemar.cl','muniarica.cl'].includes(u.hostname)}catch(e){return false}}
 function localClock(){
  const now=new Date(),opt={timeZone:'America/Santiago'};
- text('local-clock',new Intl.DateTimeFormat('es-CL',{...opt,hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}).format(now));
+ const time=new Intl.DateTimeFormat('es-CL',{...opt,hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}).format(now);
+ text('local-clock',time);text('arica-clock',time);text('home-arica-clock',time);
  text('local-date',new Intl.DateTimeFormat('es-CL',{...opt,weekday:'short',day:'numeric',month:'short'}).format(now)+' · Arica');
 }
 setInterval(localClock,1000);localClock();
 const screenNames={hoy:['PANORAMA OPERATIVO','Mi día','Decisiones verificables, oportunidades reales y fuentes privadas.'],
  oportunidades:['OPPORTUNITY ENGINE','Oportunidades','Detectar, simular y decidir sin modificar las fuentes automáticamente.'],
- arica:['ARICA LIVE INTELLIGENCE','Arica, ahora','Tiempo local, meteorología y cámaras públicas verificables.'],
+ arica:['ARICA · DIRECTORIO','Arica, ahora','Hora local, fotografías y enlaces oficiales. Sin solicitudes meteorológicas automáticas.'],
  inteligencia:['INTELLIGENCE LAYER','Inteligencia','Indicadores con fuente, fecha y nivel de certeza.']};
 function goto(section){
  if(!screenNames[section])return;
@@ -583,8 +595,7 @@ function renderToday(v){
  text('today-finance',checked?money(fin.difference):'—');
  text('today-finance-note',checked?'Variación gasto vs presupuesto · '+fin.month+' · '+fin.message:'Presupuesto no verificado');
  text('finance-badge',fin?.state==='stale'?'Mes desactualizado':fin?.state==='ok'?'Mes conciliado':'Por verificar');
- const w=v.arica?.weather||{};text('home-weather',num(w.temperature,' °C'));text('home-wind',num(w.wind,' km/h'));
- text('home-weather-source',w.state==='model'?'Open-Meteo · modelo actualizado '+(w.time||'sin hora')+' · No es medición DMC':'Pronóstico aún no disponible; abrir sección Arica para fuentes oficiales');
+ // Arica uses the local clock only; no meteorological calls or placeholders.
 }
 function renderOpportunities(v){
  const root=$('opportunities-list');clear(root);
@@ -682,31 +693,23 @@ $('scenario-calculate').onclick=()=>{
  .simulateV9Scenario(CURRENT_SCENARIO.scenario,Number($('scenario-count').value));
 };
 function renderArica(v){
- const a=v.arica||{},w=a.weather||{},m=a.marine||{},air=a.air||{};
- text('arica-temp',num(w.temperature,' °C'));text('arica-temp-sub',w.time?'Estimación '+w.time:'Modelo no disponible');
- text('arica-wind',num(w.wind,' km/h'));text('arica-gust','Ráfagas '+num(w.gust,' km/h'));
- text('arica-uv',num(w.uv));text('arica-uv-sub','Modelo UV, no instrumento local');
- text('arica-wave',num(m.waveHeight,' m'));
- const conditions=$('arica-conditions');clear(conditions);
- const rows=[['Sensación térmica',num(w.feelsLike,' °C')],['Humedad',num(w.humidity,' %')],
-  ['Probabilidad máx. de lluvia',num(w.rainChance,' %')],['MP2.5 · modelo',num(air.pm25,' µg/m³')],
-  ['Índice AQI · modelo',num(air.usAqi)],['Período de ola · modelo',num(m.wavePeriod,' s')],
-  ['Temperatura del mar · modelo',num(m.seaTemp,' °C')],['Amanecer',w.sunrise?.slice(11)||'—'],['Atardecer',w.sunset?.slice(11)||'—']];
- rows.forEach(r=>{const row=make('div','statrow');row.append(make('span','',r[0]),make('b','',r[1]));conditions.append(row)});
- if(w.source)conditions.append(link('Fuente del modelo y metodología ↗',w.source,'smalltext'));
- text('arica-alert-note',a.alerts?.message||'Consultar avisos oficiales vigentes.');
- text('arica-refresh','Consultado: '+new Date(a.consultedAt||v.generatedAt).toLocaleString('es-CL',{timeZone:'America/Santiago'})+
-  ' · '+(w.state==='model'?'modelo disponible':'modelo no disponible')+' · uso de API sujeto a licencia del proveedor');
+ const a=v.arica||{};
+ text('arica-alert-note',a.alerts?.message||'Consultar avisos oficiales vigentes directamente.');
  const cameras=$('camera-list');clear(cameras);
  (a.cameras||[]).forEach(c=>{
-  const node=make('div','card s4 soft'),heading=make('div','cardhead');heading.append(make('h3','',c.name),
-   make('span','tag '+(c.state==='offline'?'warn':'none'),c.state==='offline'?'Fuera de línea':c.state==='dated_photos'?'Imágenes fechadas':'No verificada'));
-  node.append(heading,make('p','label',c.source+' · '+c.kind),make('p','minor',c.note),link('Abrir cámara/fuente ↗',c.url,'smalltext'));cameras.append(node);
+  const node=make('div','card s4 soft'),heading=make('div','cardhead');
+  heading.append(make('h3','',c.name),
+   make('span','tag '+(c.state==='offline'?'warn':'none'),
+    c.state==='offline'?'Fuera de línea':c.state==='dated_photos'?'Imágenes fechadas':'No verificada'));
+  node.append(heading,make('p','label',c.source+' · '+c.kind),
+   make('p','minor',c.note),link('Abrir cámara/fuente ↗',c.url,'smalltext'));
+  cameras.append(node);
  });
  const sources=$('arica-sources');clear(sources);
- (a.sources||[]).forEach(s=>{
+ (a.sources||[]).forEach(source=>{
   const col=make('div','s4'),node=make('div','card soft');
-  node.append(make('div','label',s.kind),link(s.name+' ↗',s.url,'strong'));col.append(node);sources.append(col);
+  node.append(make('div','label',source.kind),link(source.name+' ↗',source.url,'strong'));
+  col.append(node);sources.append(col);
  });
 }
 function renderIntelligence(v){
@@ -773,17 +776,69 @@ function render(v){
   ' · '+v.version+' · Panel privado');
  $('load-line').classList.remove('loading');
 }
-let pending=false;
+let pending=false, requestNumber=0, EXTENDED_CACHE=null;
+function loadError(err,description){
+ const reason=String(err?.message||'').slice(0,160);
+ text('load-line',description+(reason?' · '+reason:''));
+ if(STATE?.configuration)renderConfiguration(STATE.configuration);
+}
+function mergeExtended(){
+ if(!STATE||!EXTENDED_CACHE)return;
+ const x=EXTENDED_CACHE;
+ STATE.extra=x.extra||STATE.extra;
+ STATE.availability=x.availability||STATE.availability;
+ STATE.firstAttentions=x.firstAttentions||STATE.firstAttentions;
+ const available=STATE.availability?.windows||[],open=STATE.inbox?.items?.filter(x=>x.status==='open')||[];
+ STATE.finishes={state:available.length?'ok':'no_window',items:open.filter(item=>available.some(w=>w.minutes>=item.minutes)).slice(0,4).map(item=>({
+  id:item.id,title:item.title,area:item.area,minutes:item.minutes,start:available.find(w=>w.minutes>=item.minutes)?.start||null
+ }))};
+ renderToday(STATE);renderIntelligence(STATE);renderOpportunities(STATE);
+}
+function loadPrimary(seq){
+ google.script.run.withSuccessHandler(v=>{
+  if(seq!==requestNumber)return;
+  pending=false;$('refresh').disabled=false;
+  if(!v||v.state!=='ok'){loadError(null,'El resumen principal no devolvió datos válidos');return}
+  render(v);mergeExtended();
+  if(v.diagnostics?.primary==='partial')
+   text('load-line','⚠️ Panel abierto con datos parciales. Revisa las fuentes privadas y Apps Script > Ejecuciones.');
+ }).withFailureHandler(err=>{
+  if(seq!==requestNumber)return;
+  pending=false;$('refresh').disabled=false;
+  loadError(err,'El panel básico está disponible, pero falló el análisis de Sheets/Calendar');
+  $('setup-banner').hidden=false;
+ }).getV9Dashboard();
+}
+function loadExtended(seq){
+ google.script.run.withSuccessHandler(r=>{
+  if(seq!==requestNumber)return;
+  if(!r||!['ok','partial'].includes(r.state))return;
+  EXTENDED_CACHE=r;mergeExtended();
+ }).withFailureHandler(()=>{
+  if(seq===requestNumber&&STATE)
+   text('load-line','Panel abierto. Algunas métricas complementarias no están disponibles; el resto sigue funcionando.');
+ }).getV9Extended();
+}
 function refresh(){
- if(pending)return;pending=true;$('refresh').disabled=true;
- google.script.run.withSuccessHandler(v=>{pending=false;$('refresh').disabled=false;render(v)})
-  .withFailureHandler(e=>{
-   pending=false;$('refresh').disabled=false;
-   const reason=String(e&&e.message||'').slice(0,260);
-   text('load-line','Error de lectura: '+(reason||'Comprueba permisos y la versión desplegada.'));
-   $('setup-banner').hidden=false;
-   text('setup-message','Comprueba la configuración de fuentes, permisos de lectura y servicio avanzado Sheets.');
-  }).getV9Dashboard();
+ if(pending)return;
+ pending=true;EXTENDED_CACHE=null;
+ const seq=++requestNumber;
+ $('refresh').disabled=true;
+ text('load-line','Abriendo V9 y comprobando configuración local…');
+ google.script.run.withSuccessHandler(boot=>{
+  if(seq!==requestNumber)return;
+  if(boot?.state==='ok'){
+   render(boot);
+   text('load-line','✅ V9 abierto · Cargando Calendar y Google Sheets por separado…');
+  }
+  loadPrimary(seq);
+  loadExtended(seq);
+ }).withFailureHandler(err=>{
+  if(seq!==requestNumber)return;
+  // Attempt primary even if lightweight bootstrap fails; do not leave a permanent spinner.
+  loadError(err,'No se pudo comprobar la configuración inicial; probando las fuentes principales');
+  loadPrimary(seq);
+ }).getV9Bootstrap();
 }
 $('refresh').onclick=refresh;
 function showSetup(){
