@@ -342,7 +342,7 @@
     </article>
     <article class="card s6" data-photo="CL-01"><h3>🏥 Capacidad clínica</h3>
      <div class="metric" id="intel-capacity">—</div><p id="intel-capacity-note" class="minor"></p>
-     <div class="statrow"><span>Horas atendidas esta semana</span><b id="intel-attended">—</b></div>
+     <div class="statrow"><span>Horas agendadas ya transcurridas (no confirma asistencia)</span><b id="intel-attended">—</b></div>
      <div class="statrow"><span>Bloques en agenda operativa</span><b id="intel-booked">—</b></div>
      <div class="divider"></div><h3>Resumen PSICOPRO</h3><p id="intel-clinic-message" class="smalltext"></p>
     </article>
@@ -949,7 +949,7 @@ function renderIntelligence(v){
  listLines('intel-origins',v.leads?.byOrigin||[],x=>x.origin+' · '+x.count+' consultas');
  text('intel-capacity',typeof b.clinical?.weekly==='number'?b.clinical.weekly+' / '+b.clinical.target:'—');
  text('intel-capacity-note','Pacientes semanales · '+(b.clinical?.capacity?.patientsToTarget===null?'Sin meta comparable':(b.clinical?.capacity?.patientsToTarget||0)+' faltantes'));
- text('intel-attended',typeof b.clinical?.currentWeekHours?.attendedHours==='number'?b.clinical.currentWeekHours.attendedHours+' h':'—');
+ text('intel-attended',typeof b.clinical?.currentWeekHours?.elapsedBookingHours==='number'?b.clinical.currentWeekHours.elapsedBookingHours+' h':'—');
  text('intel-booked',b.clinical?.bookedBlocks??'—');
  text('intel-clinic-message',b.clinical?.message||'Sin resultados');
  renderClinicTracking(v);
