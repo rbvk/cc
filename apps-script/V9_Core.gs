@@ -1,7 +1,7 @@
 /**
  * RV Command Center V9 — owner-only data operations.
- * V8 Code.gs remains intact as rollback. No sensitive clinical information
- * may be stored in these aggregated counters or the ideas inbox.
+ * Data sources remain read-only. No patient labels, passwords or messages
+ * may be stored in aggregated counters or the operational ideas inbox.
  */
 const RV9_VERSION='2026.10.24.9';
 const RV9_ORIGINS=['Google Maps','Google Search','Sitio web','Instagram','Recomendación','Otro','Sin identificar'];
@@ -256,14 +256,90 @@ function resolveV9Decision(id,outcome){
  });
 }
 
+
+/**
+ * SOURCE SETUP FOR NEW SCRIPT PROJECTS
+ *
+ * Script Properties are project-specific: creating RV-CCv9 as a new Apps Script
+ * project does not import data source IDs from the prior project. This module
+ * exposes only booleans and source labels, never private IDs or patient details.
+ * Save operation writes ONLY Script Properties after read-only verification.
+ */
+const RV9_SOURCE_DEFINITIONS=[
+ {key:'MATRIX_SHEET_ID',name:'MTS · System Matrix',expected:'weekly'},
+ {key:'TRAINING_SHEET_ID',name:'MTS · Execution Log',expected:'training'},
+ {key:'CLINICAL_SHEET_ID',name:'RODOLFO.PSICOPRO',expected:'clinic'},
+ {key:'FINANCE_SHEET_ID',name:'Finanzas',expected:'finance'}
+];
+function rv9Configuration_(p,base){
+ const sources=RV9_SOURCE_DEFINITIONS.map(s=>{
+  const present=/^[A-Za-z0-9_-]{15,}$/.test(String(p.getProperty(s.key)||''));
+  let readState=base&&base[({MATRIX_SHEET_ID:'matrix',TRAINING_SHEET_ID:'training',
+   CLINICAL_SHEET_ID:'clinical',FINANCE_SHEET_ID:'finance'})[s.key]]?.state||null;
+  return {key:s.key,name:s.name,configured:present,
+   state:!present?'missing':readState==='error'?'error':readState||'configured',
+   needsAction:!present||readState==='error'};
+ });
+ const missing=sources.filter(x=>!x.configured);
+ const inaccessible=sources.filter(x=>x.state==='error');
+ return {state:missing.length?'setup_required':inaccessible.length?'access_error':'configured',
+  configuredCount:4-missing.length,total:4,
+  sources,missing:missing.map(x=>x.name),
+  message:missing.length?'Este proyecto de Apps Script todavía no tiene configuradas todas las fuentes. Las propiedades no se copian entre proyectos.':
+   inaccessible.length?'Algunas hojas no se pudieron leer: comprueba acceso de la cuenta, IDs y servicio avanzado Sheets.':
+   'Las cuatro fuentes están configuradas (esto no garantiza que todos los rangos y métricas sean actuales).'};
+}
+function rv9SpreadsheetId_(input){
+ const str=String(input||'').trim(),link=str.match(/^https:\/\/docs\.google\.com\/spreadsheets\/d\/([A-Za-z0-9_-]{15,})(?:\/|$|\?)/);
+ if(link)return link[1];
+ return /^[A-Za-z0-9_-]{15,}$/.test(str)?str:null;
+}
+function rv9ValidateSheet_(id,type){
+ const response=Sheets.Spreadsheets.get(id,{fields:'properties.title,sheets.properties.title'});
+ const tabs=(response.sheets||[]).map(x=>String(x.properties?.title||''));
+ const ok=type==='weekly'?tabs.some(x=>/^\d{1,2}\/\d{1,2}$/.test(x)):
+  type==='training'?tabs.includes('Daily log')&&tabs.includes('drg'):
+  type==='clinic'?tabs.includes('Objetivos/Paciente')&&tabs.includes('Servicios'):
+  type==='finance'?tabs.some(x=>/^(?:Pre Oct|Presupuesto|Pre \w+|Presupuesto \w+|MOV OCT|Mov Sep)$/i.test(x)):false;
+ if(!ok)throw new Error('La hoja no tiene la estructura esperada para la categoría seleccionada.');
+ return String(response.properties?.title||'Hoja comprobada').slice(0,100);
+}
+function configureV9Sources(raw){
+ if(!raw||typeof raw!=='object'||Array.isArray(raw))
+  return {state:'invalid',message:'Formulario de fuentes no válido'};
+ const entries=[],errors=[];
+ for(const definition of RV9_SOURCE_DEFINITIONS){
+  const value=String(raw[definition.key]||'').trim();
+  if(!value)continue; // partial completion is allowed
+  const id=rv9SpreadsheetId_(value);
+  if(!id){errors.push(definition.name+': pega un enlace de Google Sheets o ID válido');continue;}
+  try{
+   const title=rv9ValidateSheet_(id,definition.expected);
+   entries.push({key:definition.key,id,title,name:definition.name});
+  }catch(e){
+   errors.push(definition.name+': no se pudo verificar acceso o estructura. '+String(e.message||'').slice(0,100));
+  }
+ }
+ if(errors.length)return {state:'invalid',errors,message:'No se han guardado cambios; revisa los enlaces'};
+ if(!entries.length)return {state:'invalid',message:'Introduce al menos una hoja'};
+ return rv9Locked_(()=>{
+  const p=rv9Props_();
+  for(const row of entries)p.setProperty(row.key,row.id);
+  const configuration=rv9Configuration_(p);
+  return {state:'ok',saved:entries.map(x=>({name:x.name,title:x.title})),configuration,
+   message:'Fuentes guardadas en Script Properties privadas. No se copiaron datos clínicos.'};
+ });
+}
+
 function getV9Dashboard(){
  const now=new Date(),p=rv9Props_(),base=getDashboard();
+ const configuration=rv9Configuration_(p,base);
  const ideas=rv9AllIdeas_(p,now),inbox=rv9Inbox_(ideas),leads=rv9LeadStats_(p,now);
  const decisions=rv9DecisionSummary_(rv9AllDecisions_(p,now));
  const availability=rv9Available_(p,now),extra=rv9Extra_(p,now);
  const opportunities=rv9Opportunities_(base,extra,inbox,availability);
  return {state:'ok',version:RV9_VERSION,generatedAt:now.toISOString(),timezone:RV_TZ,
-  base,inbox,leads,decisions,availability,finishes:rv9Finish_(inbox,availability),
+  base,configuration,inbox,leads,decisions,availability,finishes:rv9Finish_(inbox,availability),
   opportunities,extra,arica:rv9Arica_(now),projects:rv9Projects_(p),
   firstAttentions:rv9FirstAttentions_(p,now),
   modules:{capture:true,memory:true,scenario:true,arica:true,opportunity:true,
