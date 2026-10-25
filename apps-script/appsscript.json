@@ -13,7 +13,8 @@
   },
   "oauthScopes": [
     "https://www.googleapis.com/auth/spreadsheets.readonly",
-    "https://www.googleapis.com/auth/calendar.readonly"
+    "https://www.googleapis.com/auth/calendar.readonly",
+    "https://www.googleapis.com/auth/script.external_request"
   ],
   "webapp": {
     "access": "MYSELF",
