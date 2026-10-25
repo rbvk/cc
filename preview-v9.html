@@ -5,7 +5,7 @@
  <meta charset="utf-8">
  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
  <meta name="theme-color" content="#0a1323">
- <title>Vista previa RV Command Center V9 · Datos ficticios</title>
+ <title>RV Command Center V9 · Vista previa con datos ficticios</title>
  <meta name="robots" content="noindex,nofollow,noarchive">
  <style>
  :root{color-scheme:dark;--bg:#07111f;--surface:#101f31;--surface2:#15283c;--border:#29435b;--muted:#a8c0d1;--text:#f1f7fb;--accent:#80d6f5;--good:#82d6bf;--warn:#f2c67d;--bad:#ff9c97;font:17px/1.54 -apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;font-synthesis:none}
@@ -114,13 +114,30 @@
  .statusfeed{font-size:14px;min-height:21px;margin:8px 0}
  .loading{color:#9fc9e2}
  .footer{border-top:1px solid var(--border);color:var(--muted);font-size:12px;margin:40px auto 10px;padding-top:15px}
+ .audit-list{display:grid;gap:10px}
+ .audit-item{border:1px solid var(--border);border-left:4px solid #d7ac72;border-radius:12px;padding:11px 14px;background:#0b1c2d}
+ .audit-item.high{border-left-color:#ff9292}.audit-item.ok{border-left-color:#67bba7}
+ .audit-item .audit-meta{display:flex;gap:8px;align-items:center;flex-wrap:wrap;color:var(--muted);font-size:12px;margin:6px 0}
+ .metric-bars{display:grid;gap:13px;margin:14px 0}
+ .metricbar-label{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:14px}
+ .metricbar-track{background:#183147;height:10px;border-radius:100px;overflow:hidden;margin:7px 0 4px}
+ .metricbar-fill{height:100%;background:linear-gradient(90deg,#3aaeb4,#97e0fc);border-radius:100px}
+ .radar-wrap{width:100%;max-width:560px;min-height:300px;margin:0 auto}
+ .radar-wrap svg{max-width:100%;height:auto;display:block;overflow:visible}
+ .skill-legend{display:flex;flex-wrap:wrap;gap:6px}
+ .skill-badge{display:inline-block;border:1px solid #34516a;background:#132b40;padding:3px 8px;border-radius:16px;font-size:12px}
+ .editorial-photo{position:relative;margin:0 0 14px;border-radius:13px;overflow:hidden;background:#10283b}
+ .editorial-photo img{display:block;width:100%;max-height:178px;min-height:110px;object-fit:cover}
+ .editorial-photo figcaption{font-size:10px;padding:4px 9px;background:#071723c9;color:#e6eef5;position:absolute;right:0;bottom:0}
+ .editorial-photo figcaption a{color:inherit}
+
  @media(max-width:900px){.s8,.s7,.s6,.s5,.s4{grid-column:span 12}.s3{grid-column:span 6}.photo-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
  @media(max-width:480px){:root{font-size:17px}.shell{padding:0 13px}.card{padding:15px;border-radius:15px}.hero{min-height:178px;padding:18px}.photo-grid{gap:9px}.photocard .details{padding:9px}.s3{grid-column:span 6}.brandtext small{font-size:11px}.sectiontop h2{font-size:23px}.currenttime strong{font-size:16px}.floating{right:13px}}
  @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
  </style>
 </head>
 <body>
-<div role="banner" style="background:#553d21;color:#fff3cf;padding:9px 15px;text-align:center;font-weight:750;font-size:14px;position:relative;z-index:80">VISTA PREVIA PÚBLICA · DATOS 100% FICTICIOS · Sin conexiones a Matrix, PSICOPRO, MTS, Finanzas ni clima</div>
+<div role="banner" style="background:#553d21;color:#fff3cf;padding:9px 15px;text-align:center;font-weight:750;font-size:14px;position:relative;z-index:80">VISTA PREVIA PÚBLICA · VALORES DEMOSTRATIVOS · SIN DATOS REALES NI CONSULTAS A SHEETS, CLIMA O PACIENTES</div>
 <script>
 'use strict';
 /* Synthetic ONLY. This static GitHub Pages demo never reads actual patient data. */
@@ -130,7 +147,15 @@ const DEMO={
   nextAction:{title:'Elegir una tarea terminable',reason:'Ejemplo de priorización'},
   clinical:{state:'ok',weekly:8,target:15,gap:-7,
    message:'Meta clínica demostrativa; los datos reales solo aparecen en la Web App privada',
-   capacity:{patientsToTarget:7},currentWeekHours:{attendedHours:4},bookedBlocks:11},
+   capacity:{patientsToTarget:7},currentWeekHours:{attendedHours:4},bookedBlocks:11,
+   tracking:{state:'ok',month:'2026-10',currentWeek:6,monthToDate:27,
+    monthNote:'Semanas iniciadas en octubre; datos DEMOSTRATIVOS',
+    definition:'Sesiones de ejemplo, no pacientes reales',
+    goalsUrl:'https://docs.google.com/',
+    recentWeeks:[{week:'5/10',startDate:'2026-10-05',sessions:9,capacity:15,sourceUrl:'https://docs.google.com/',status:'historical'},
+     {week:'12/10',startDate:'2026-10-12',sessions:12,capacity:15,sourceUrl:'https://docs.google.com/',status:'historical'},
+     {week:'19/10',startDate:'2026-10-19',sessions:6,capacity:15,sourceUrl:'https://docs.google.com/',status:'current'}],
+    upcoming:[{week:'26/10',startDate:'2026-10-26',sessions:18,capacity:15,status:'future'}]}} ,
   calendar:{state:'ok',todayEvents:[
     {title:'Bloque de estudio (ficticio)',start:new Date(Date.now()+70*60000).toISOString(),ongoing:false},
     {title:'Entrenamiento técnico (ficticio)',start:new Date(Date.now()+210*60000).toISOString(),ongoing:false}
@@ -139,8 +164,20 @@ const DEMO={
    message:'Ejemplo ilustrativo de presupuesto',projection:{state:'ok',projectedSpent:495000,method:'proyección lineal de ejemplo'}},
   training:{adherence:{boxing:{planned:3,done:2,omitted:0,unverified:1},
    gym:{planned:2,done:1,omitted:0,unverified:1},cardio:{planned:2,done:1,omitted:1,unverified:0}},
-   drgToday:{output:'PROCEED',score:8}},
+   drgToday:{output:'PROCEED',score:8},
+   coachedClasses7d:2,coachedClassEntries:[
+    {date:'2026-10-19',sourceUrl:'https://docs.google.com/'},
+    {date:'2026-10-21',sourceUrl:'https://docs.google.com/'}],
+   dailyLogUrl:'https://docs.google.com/'},
   sleepTrend:{state:'ok',averageHours:8.1,nightsBelowTarget:1,observedNights:6},
+  comparisons:{
+   calendar:{state:'ok',calendarMissingMatrix:1,matrixMissingCalendar:0,potentialConflicts:0,
+    items:[{date:'2026-10-25',hour:'13:00',title:'Compromiso ficticio',
+      matrixUrl:'https://docs.google.com/',calendarUrl:'https://calendar.google.com/'}],
+    reverseItems:[],conflictItems:[]},
+   clinical:{state:'ok',missing:0,conflicts:0,possibleDifferent:0,matrixOnly:0,
+    items:[],collisionItems:[],identityItems:[],matrixOnlyItems:[]},
+   training:{state:'ok',total:0,matrixOnlyDays:0,items:[],matrixOnlyItems:[]}},
   sourceHealth:{details:[{state:'ok',label:'Matrix',detail:'Ejemplo'},{state:'ok',label:'MTS',detail:'Ejemplo'},
    {state:'ok',label:'PSICOPRO',detail:'Ejemplo'},{state:'ok',label:'Finanzas',detail:'Ejemplo'},{state:'ok',label:'Calendar',detail:'Ejemplo'}]},
   history:{state:'ok',new24h:1,resolved24h:2,persistent:1}
@@ -161,8 +198,27 @@ const DEMO={
   {title:'Revisar stock BOXINGCI simulado',area:'BOXINGCI',evidence:'Inventario demostrativo.',
    action:'Verificar ventas antes de reponer.',impact:'Mejor capital',risk:'No representa inventario real',scenario:'stock',requiresApproval:true}
  ]},
- extra:{performance:{state:'ok',skills:[{skill:'Jab (ejemplo)',baseline:5,goal:7}],
-   kpis:[{name:'Bench Press (ejemplo)',current:'60 kg',goal:'100 kg'}]},
+ extra:{performance:{state:'ok',
+   roadmapUrl:'https://docs.google.com/',kpiUrl:'https://docs.google.com/',
+   skills:[{skill:'Jab',baseline:7,goal:7,sourceUrl:'https://docs.google.com/'},
+    {skill:'Cross',baseline:6,goal:7,sourceUrl:'https://docs.google.com/'},
+    {skill:'Hook',baseline:5,goal:6,sourceUrl:'https://docs.google.com/'},
+    {skill:'Uppercut',baseline:3,goal:3,sourceUrl:'https://docs.google.com/'},
+    {skill:'Slip',baseline:3,goal:4,sourceUrl:'https://docs.google.com/'},
+    {skill:'Roll',baseline:3,goal:4,sourceUrl:'https://docs.google.com/'},
+    {skill:'Pull',baseline:3,goal:3,sourceUrl:'https://docs.google.com/'},
+    {skill:'Parry',baseline:4,goal:4,sourceUrl:'https://docs.google.com/'},
+    {skill:'Pivot',baseline:4,goal:4,sourceUrl:'https://docs.google.com/'},
+    {skill:'Angle',baseline:3,goal:3,sourceUrl:'https://docs.google.com/'},
+    {skill:'Pendulum',baseline:2,goal:2,sourceUrl:'https://docs.google.com/'},
+    {skill:'Lateral movement',baseline:2,goal:3,sourceUrl:'https://docs.google.com/'},
+    {skill:'Distance',baseline:5,goal:5,sourceUrl:'https://docs.google.com/'},
+    {skill:'Pressure',baseline:4,goal:4,sourceUrl:'https://docs.google.com/'},
+    {skill:'Countering',baseline:4,goal:4,sourceUrl:'https://docs.google.com/'}],
+   kpis:[{name:'Bench Press (ejemplo)',area:'Strength',current:'85 kg e1RM',goal:'100 kg',
+    currentNumber:85,targetNumber:100,progressPct:85,status:'DEMO',sourceUrl:'https://docs.google.com/'},
+    {name:'Smith Deadlift (ejemplo)',area:'Strength',current:'115 kg e1RM',goal:'120 kg',
+    currentNumber:115,targetNumber:120,progressPct:96,status:'DEMO',sourceUrl:'https://docs.google.com/'}]},
   business:{sixMonths:[{month:'Oct-26',patientsGoal:12,clinicGoal:600000,clinicActual:null}],
    merch:[{name:'Protector bucal (ejemplo)',inStock:4,marginUnit:4000,inventoryAtCost:16000}]}},
  arica:{state:'links_only',consultedAt:new Date().toISOString(),
@@ -194,6 +250,15 @@ function runner(){
   },
   getV9Extended(){
     okay({state:'ok',extra:DEMO.extra,availability:DEMO.availability,firstAttentions:DEMO.firstAttentions});
+  },
+  getV9LocalData(){
+    okay({state:'partial',queriedAt:new Date().toISOString(),weather:{state:'unavailable'},
+     air:{state:'unavailable'},marine:{state:'unavailable'},
+     senapred:{state:'unverified',items:[],note:'Vista previa: no se consulta ningún aviso real.',
+       officialUrl:'https://senapred.cl/alertas/'},
+     seismic:{state:'unavailable',events:[],note:'Vista previa con datos ficticios: abre la app privada para consultar sismos fechados.',
+       sourceUrl:'https://www.sismologia.cl/'},
+     marineNotice:{state:'unverified',note:'El modelo no sustituye avisos marítimos oficiales.'}});
   },
   recordV9Lead(origin){
    DEMO.leads.week++;DEMO.leads.month++;
@@ -269,10 +334,15 @@ window.google={script:{get run(){return runner()}}};
   </div>
   <div class="sectiontop"><h2>Tu situación</h2><button class="button ghost small" type="button" id="refresh">↻ Actualizar</button></div>
   <div class="grid">
-   <article class="card s3"><div class="label">🏥 Pacientes semanales</div><div class="metric" id="k-patients">—</div><div class="minor" id="k-patients-sub">PSICOPRO · Meta 15</div></article>
+   <article class="card s3"><div class="label">🏥 Sesiones de la semana</div><div class="metric" id="k-clinic-sessions">—</div><div class="minor">PSICOPRO · Seguimiento semanal</div><div id="k-clinic-source" class="smalltext"></div></article>
    <article class="card s3"><div class="label">📲 Consultas nuevas</div><div class="metric" id="k-leads">—</div><div class="minor">Esta semana · Registro CC</div></article>
-   <article class="card s3"><div class="label">🥊 Sesiones boxeo hechas</div><div class="metric" id="k-box">—</div><div class="minor">Últimos 7 días · MTS</div></article>
+   <article class="card s3"><div class="label">🥊 Clases dirigidas realizadas</div><div class="metric" id="k-box">—</div><div class="minor">Últimos 7 días · Coached Boxing Done · MTS</div><div id="k-box-source" class="smalltext"></div></article>
    <article class="card s3"><div class="label">💤 Sueño</div><div class="metric" id="k-sleep">—</div><div class="minor">Media por noche registrada</div></article>
+   <article class="card s12" id="audit-today-card" data-photo="AR-09">
+    <div class="cardhead"><h3>⚠️ Incongruencias entre sistemas</h3><button class="button secondary small" type="button" id="audit-expand">Auditoría detallada</button></div>
+    <p class="minor">Cruces Calendar, Matrix, MTS, PSICOPRO y Finanzas. Los avisos muestran fecha, causa y enlaces directos a las fuentes.</p>
+    <div id="audit-today" class="audit-list"></div>
+   </article>
    <article class="card s7">
     <div class="cardhead"><h3>📅 Agenda de hoy</h3><a href="https://calendar.google.com/" target="_blank" rel="noopener">Abrir Calendar ↗</a></div>
     <div id="today-events" class="timeline"><p class="minor">Consultando eventos…</p></div>
@@ -287,7 +357,7 @@ window.google={script:{get run(){return runner()}}};
     <div class="cardhead"><h3>💰 Finanzas</h3><span class="tag" id="finance-badge">Mes actual</span></div>
     <div class="metric" id="today-finance">—</div><p class="minor" id="today-finance-note">Calculando gasto y presupuesto…</p>
    </article>
-   <article class="card s6">
+   <article class="card s6" data-photo="AR-10">
     <div class="cardhead"><h3>🌆 Arica</h3><button class="button ghost small" type="button" data-goto="arica">Ver fuentes</button></div>
     <div class="label">🕒 Hora local</div>
     <div class="metric" id="home-arica-clock">--:--:--</div>
@@ -332,30 +402,83 @@ window.google={script:{get run(){return runner()}}};
   </div>
  </section>
 
- <section class="screen" id="screen-arica" hidden aria-label="Arica, fuentes y fotografías">
+ <section class="screen" id="screen-arica" hidden aria-label="Arica y Parinacota, datos locales">
   <div class="hero" id="arica-hero"><div class="hero-copy">
-   <div class="eyebrow">🌆 ARICA · DIRECTORIO PÚBLICO</div>
-   <h2>Arica, donde estás.</h2>
-   <p>Hora de Arica, fotografías, cámaras anunciadas y acceso voluntario a fuentes oficiales.</p>
+   <div class="eyebrow">🌆 ARICA INTELLIGENCE</div>
+   <h2>Arica con información verificable.</h2>
+   <p>Meteorología estimada, avisos y sismos fechados, mar, cámaras públicas y acceso a los registros originales.</p>
   </div></div>
-  <div class="sectiontop"><h2>Arica sin consultas automáticas</h2><span class="tag good">Sin API meteorológica</span></div>
+  <div class="sectiontop">
+   <h2>Condiciones y avisos</h2>
+   <button class="button secondary small" type="button" id="local-refresh">↻ Comprobar fuentes</button>
+  </div>
+  <p class="statusline" id="local-updated">Los datos de Arica se solicitan únicamente cuando abres esta sección. Caché de 15 minutos.</p>
   <div class="grid">
-   <article class="card s6">
-    <h3>🕒 Hora oficial local</h3>
-    <div class="metric" id="arica-clock">--:--:--</div>
-    <p class="minor">America/Santiago · Hora del dispositivo con ajuste de zona horaria; sin consultas a internet para actualizarla.</p>
+   <article class="card s6" data-photo="AR-10">
+    <div class="cardhead"><h3>🌡️ Temperatura y viento</h3><span class="tag" id="local-weather-state">Sin consultar</span></div>
+    <div class="dash">
+      <div class="dashitem"><div class="label">Temperatura · modelo</div><div class="metric" id="local-temp">—</div></div>
+      <div class="dashitem"><div class="label">Viento · modelo</div><div class="metric" id="local-wind">—</div></div>
+      <div class="dashitem"><div class="label">Radiación UV · modelo</div><div class="metric" id="local-uv">—</div></div>
+      <div class="dashitem"><div class="label">Sensación térmica</div><div class="metric" id="local-feels">—</div></div>
+    </div>
+    <p class="minor" id="local-weather-time">Modelos Open-Meteo, no estación de medición. Fecha de dato pendiente.</p>
+    <div id="local-weather-source"></div>
    </article>
-   <article class="card s6">
-    <h3>🛡️ Fuentes locales</h3>
-    <p class="smalltext">El CC ya no consulta temperatura, viento, radiación UV, calidad del aire ni oleaje. Puedes abrir las fuentes oficiales manualmente cuando las necesites.</p>
-    <p id="arica-alert-note" class="minor">Consultar alertas directamente en SENAPRED y Armada.</p>
+   <article class="card s6" data-photo="AR-05">
+    <div class="cardhead"><h3>🌫️ Calidad del aire</h3><span class="tag" id="local-air-state">Sin consultar</span></div>
+    <div class="dash">
+      <div class="dashitem"><div class="label">MP2,5 estimado</div><div class="metric" id="local-pm25">—</div></div>
+      <div class="dashitem"><div class="label">US AQI estimado</div><div class="metric" id="local-aqi">—</div></div>
+    </div>
+    <p class="minor" id="local-air-time">Modelo de aire, no estación SINCA; fecha pendiente.</p>
+    <div id="local-air-source"></div>
    </article>
-   <article class="card s12"><div class="cardhead"><h3>📷 Directorio de cámaras públicas</h3><span class="tag warn">Señal sin verificar</span></div>
-    <p class="sub">Enlaces voluntarios a proveedores. No se consultan señales CCTV desde el servidor; las fotografías históricas nunca se etiquetan como video en vivo.</p>
+   <article class="card s6" data-photo="AR-09">
+    <div class="cardhead"><h3>🚨 Publicaciones SENAPRED · Arica y Parinacota</h3><span class="tag warn">Vigencia por verificar</span></div>
+    <p class="minor">Comunicados fechados de SENAPRED encontrados en un índice de noticias. Una publicación no certifica que una alerta continúe vigente.</p>
+    <div id="local-senapred" class="audit-list"><p class="minor">Consultar para obtener publicaciones recientes.</p></div>
+    <div id="senapred-source"></div>
+   </article>
+   <article class="card s6" data-photo="AR-02">
+    <div class="cardhead"><h3>🌎 Últimos sismos · región y norte</h3><span class="tag">CSN</span></div>
+    <p class="minor">Últimos eventos procesados, no predicción ni alerta temprana. Se distingue la región de los eventos en otras zonas.</p>
+    <div id="local-sismos" class="audit-list"><p class="minor">Sin consultar.</p></div>
+    <div id="sismos-source"></div>
+   </article>
+   <article class="card s6" data-photo="AR-08">
+    <div class="cardhead"><h3>🌊 Oleaje y mar</h3><span class="tag" id="local-marine-state">Sin consultar</span></div>
+    <div class="dash">
+      <div class="dashitem"><div class="label">Altura de ola modelada</div><div class="metric" id="local-wave">—</div></div>
+      <div class="dashitem"><div class="label">Período de ola</div><div class="metric" id="local-period">—</div></div>
+    </div>
+    <p id="local-marine-time" class="minor">Fecha del modelo pendiente.</p>
+    <p id="local-marine-alert" class="notice">Un pronóstico de ola no constituye aviso oficial de marejadas.</p>
+    <div id="local-marine-source"></div>
+   </article>
+   <article class="card s6" data-photo="FF-01">
+    <div class="cardhead"><h3>🛡️ Seguridad y alertas verificadas</h3><span class="tag">Fuentes oficiales</span></div>
+    <p class="smalltext">Consulta directamente SENAPRED, el Servicio Meteorológico de la Armada y el CSN antes de actuar ante una contingencia. Sin indicador verde falso cuando falta acceso a un feed oficial.</p>
+    <p class="minor">La presencia o ausencia de publicaciones indexadas no equivale a una declaración oficial de riesgo.</p>
+    <div id="local-alert-links"></div>
+   </article>
+   <article class="card s12" data-photo="AR-06">
+    <div class="cardhead"><h3>📷 Cámaras públicas de Arica</h3><span class="tag warn">Estado de señal no verificado</span></div>
+    <p class="minor">Cada cámara conserva su proveedor y naturaleza. Las imágenes de archivo no se confunden con transmisiones CCTV.</p>
     <div class="grid" id="camera-list"></div>
    </article>
-   <article class="card s12"><h3>🗺️ Arica en fotografías</h3><p class="minor">Galería de archivo con autor, licencia y fuente, cargada cuando abres esta sección.</p><div class="photo-grid" id="arica-photos"></div></article>
-   <article class="card s12"><h3>Fuentes oficiales y contexto local</h3><p class="minor">Estos enlaces se abren solamente cuando los seleccionas; no hay solicitudes periódicas desde el CC.</p><div class="grid" id="arica-sources"></div></article>
+   <article class="card s4" data-photo="AR-03">
+    <h3>🏛️ Centro y patrimonio</h3><p class="minor">Información ciudadana y avisos oficiales de Arica, presentada junto a una fotografía de archivo con autor.</p>
+    <a href="https://muniarica.cl/" target="_blank" rel="noopener noreferrer">Municipalidad de Arica ↗</a>
+   </article>
+   <article class="card s4" data-photo="AR-07">
+    <h3>🚆 Movilidad y desplazamientos</h3><p class="minor">Contexto de movilidad local y referencia histórica de estación Chinchorro.</p>
+    <a href="https://www.waze.com/live-map" target="_blank" rel="noopener noreferrer">Abrir mapa de movilidad ↗</a>
+   </article>
+   <article class="card s4" data-photo="AR-11">
+    <h3>📍 Sectores de Arica</h3><p class="minor">Noticias y referencias locales sin atribuir a fotografías históricas la condición actual de una calle.</p>
+    <a href="https://senapred.cl/alertas/" target="_blank" rel="noopener noreferrer">Ver estado oficial de alertas ↗</a>
+   </article>
   </div>
  </section>
 
@@ -367,47 +490,80 @@ window.google={script:{get run(){return runner()}}};
    <button class="chip" type="button" data-intel="finanzas" role="tab" aria-selected="false">💰 Finanzas</button>
    <button class="chip" type="button" data-intel="proyectos" role="tab" aria-selected="false">💻 Proyectos</button>
    <button class="chip" type="button" data-intel="fuentes" role="tab" aria-selected="false">🛡️ Fuentes</button>
-   <button class="chip" type="button" data-intel="fotografias" role="tab" aria-selected="false">📷 Fotos</button>
+   <button class="chip" type="button" data-intel="auditoria" role="tab" aria-selected="false">⚠️ Incongruencias</button>
   </div>
   <div class="subpanel" id="intel-clinica">
    <div class="grid">
-    <article class="card s6"><h3>📲 Captación mínima por WhatsApp</h3><div class="dash">
+    <article class="card s6" data-photo="CL-03"><h3>📲 Captación mínima por WhatsApp</h3><div class="dash">
       <div class="dashitem"><div class="label">Consultas del mes</div><div class="metric" id="intel-leads">—</div></div>
       <div class="dashitem"><div class="label">Primeras atenciones</div><div class="metric" id="intel-first">—</div></div></div>
      <p class="minor" id="intel-leads-note">Sin enlace individual, no se calcula conversión exacta.</p>
      <div class="divider"></div><h3>Origen de consultas</h3><ul class="softlist" id="intel-origins"></ul>
      <div class="buttons"><button class="button secondary" type="button" data-open-capture="lead">+ Nueva consulta</button></div>
     </article>
-    <article class="card s6"><h3>🏥 Capacidad clínica</h3>
+    <article class="card s6" data-photo="CL-01"><h3>🏥 Capacidad clínica</h3>
      <div class="metric" id="intel-capacity">—</div><p id="intel-capacity-note" class="minor"></p>
      <div class="statrow"><span>Horas atendidas esta semana</span><b id="intel-attended">—</b></div>
      <div class="statrow"><span>Bloques en agenda operativa</span><b id="intel-booked">—</b></div>
      <div class="divider"></div><h3>Resumen PSICOPRO</h3><p id="intel-clinic-message" class="smalltext"></p>
     </article>
+    <article class="card s12" data-photo="CL-02">
+     <div class="cardhead"><h3>📅 Seguimiento de sesiones PSICOPRO</h3><div id="clinic-monthly-url"></div></div>
+     <div class="dash">
+      <div class="dashitem"><div class="label">Sesiones registradas esta semana</div><div class="metric" id="clinic-current-week">—</div></div>
+      <div class="dashitem"><div class="label">Sesiones registradas este mes (semanas iniciadas)</div><div class="metric" id="clinic-monthly">—</div></div>
+     </div>
+     <p class="minor" id="clinic-tracking-note">Cifras del registro semanal; no implican verificación individual independiente de asistencia.</p>
+     <div id="clinic-weeks-bars" class="metric-bars"></div>
+     <div class="divider"></div>
+     <div class="statrow"><span>Pacientes habituales clasificados</span><b id="k-patients">—</b></div>
+    </article>
    </div>
   </div>
   <div class="subpanel" id="intel-rendimiento" hidden>
    <div class="grid">
-    <article class="card s6"><h3>🥊 Adherencia reciente · 7 días</h3><ul class="softlist" id="intel-adherence"></ul>
+    <article class="card s6" data-photo="BX-03"><h3>🥊 Adherencia reciente · 7 días</h3><ul class="softlist" id="intel-adherence"></ul>
      <div class="divider"></div><h3>DRG actual</h3><div class="metric" id="intel-drg">—</div><p id="intel-drg-note" class="minor"></p></article>
-    <article class="card s6"><h3>💤 Sueño registrado</h3><div class="metric" id="intel-sleep">—</div><p id="intel-sleep-note" class="minor"></p>
+    <article class="card s6" data-photo="SL-01"><h3>💤 Sueño registrado</h3><div class="metric" id="intel-sleep">—</div><p id="intel-sleep-note" class="minor"></p>
      <div class="divider"></div><h3>Cardio</h3><p id="intel-cardio" class="smalltext"></p></article>
-    <article class="card s6"><h3>🎯 Boxing roadmap</h3><ul class="softlist" id="intel-boxing-skills"></ul></article>
-    <article class="card s6"><h3>🏋️ Objetivos MTS</h3><ul class="softlist" id="intel-mts-kpis"></ul></article>
+    <article class="card s6" data-photo="BX-02">
+      <div class="cardhead"><h3>🎯 Boxing roadmap</h3><div id="boxing-roadmap-source"></div></div>
+      <p class="minor">Radar de 15 habilidades · nivel actual frente a meta (escala 0–10).</p>
+      <div id="boxing-radar" class="radar-wrap" role="img" aria-label="Radar comparativo de 15 habilidades: nivel registrado versus objetivo"></div>
+      <div id="intel-boxing-skills" class="smalltext skill-legend"></div>
+     </article>
+    <article class="card s6" data-photo="BX-01">
+      <div class="cardhead"><h3>🥊 Clases de boxeo efectivamente registradas</h3><div id="classes-mts-link"></div></div>
+      <div class="metric" id="class-boxing-count">—</div>
+      <p class="minor">Una clase por fecha con registro “Coached Boxing” marcado Done. Los ejercicios de la misma clase no suman sesiones.</p>
+      <div id="class-boxing-dates" class="smalltext"></div>
+     </article>
+     <article class="card s6" data-photo="GY-02">
+      <h3>🫀 Cardio y volumen semanal</h3>
+      <p class="minor">Solo sesiones de ejecución verificadas; los registros no verificados no cuentan como completados.</p>
+      <div class="metric" id="cardio-done">—</div>
+      <p id="cardio-status" class="minor"></p>
+     </article>
+    <article class="card s6" data-photo="GY-01">
+      <div class="cardhead"><h3>🏋️ Objetivos MTS</h3><div id="mts-kpi-source"></div></div>
+      <p class="minor">Barras de progreso únicamente para objetivos numéricos comparables. Los estados técnicos se mantienen como texto.</p>
+      <div id="intel-mts-progress" class="metric-bars"></div>
+      <ul class="softlist" id="intel-mts-kpis"></ul>
+     </article>
    </div>
   </div>
   <div class="subpanel" id="intel-finanzas" hidden>
    <div class="grid">
-    <article class="card s6"><h3>💰 Presupuesto vigente</h3><div class="metric" id="intel-finance-total">—</div><p id="intel-finance-note" class="minor"></p>
+    <article class="card s6" data-photo="FN-01"><h3>💰 Presupuesto vigente</h3><div class="metric" id="intel-finance-total">—</div><p id="intel-finance-note" class="minor"></p>
      <h3>Proyección</h3><p id="intel-projection"></p></article>
-    <article class="card s6"><h3>📆 Plan económico 6 meses</h3><ul class="softlist" id="intel-finance-plan"></ul></article>
-    <article class="card s12"><h3>🥊 BOXINGCI · Inventario y margen</h3><ul class="softlist" id="intel-merch"></ul><p class="minor">Las cifras son aproximaciones a partir de stock y precios registrados, no ventas futuras.</p></article>
+    <article class="card s6" data-photo="PR-03"><h3>📆 Plan económico 6 meses</h3><ul class="softlist" id="intel-finance-plan"></ul></article>
+    <article class="card s12" data-photo="BX-04"><h3>🥊 BOXINGCI · Inventario y margen</h3><ul class="softlist" id="intel-merch"></ul><p class="minor">Las cifras son aproximaciones a partir de stock y precios registrados, no ventas futuras.</p></article>
    </div>
   </div>
   <div class="subpanel" id="intel-proyectos" hidden>
    <div class="grid">
-    <article class="card s6"><h3>✅ Buzón operativo</h3><div class="metric" id="intel-inbox-count">—</div><p class="minor">Ideas y compromisos capturados, sin detalles clínicos</p><ul class="softlist" id="intel-project-ideas"></ul></article>
-    <article class="card s6"><h3>💻 Repositorios</h3><ul class="softlist" id="intel-github-links"></ul>
+    <article class="card s6" data-photo="TH-02"><h3>✅ Buzón operativo</h3><div class="metric" id="intel-inbox-count">—</div><p class="minor">Ideas y compromisos capturados, sin detalles clínicos</p><ul class="softlist" id="intel-project-ideas"></ul></article>
+    <article class="card s6" data-photo="PR-01"><h3>💻 Repositorios</h3><ul class="softlist" id="intel-github-links"></ul>
      <p class="minor">Los enlaces no significan que un proyecto haya terminado; debe comprobarse el entregable.</p></article>
    </div>
   </div>
@@ -419,10 +575,11 @@ window.google={script:{get run(){return runner()}}};
     <div class="buttons"><a class="button secondary" href="https://github.com/rbvk/cc/blob/main/apps-script/V9_ROADMAP.md" target="_blank" rel="noopener">Hoja de ruta ↗</a></div>
    </article>
   </div>
-  <div class="subpanel" id="intel-fotografias" hidden>
-   <article class="card"><h3>📷 Biblioteca visual · Uso responsable</h3>
-    <p class="minor">18 fotografías adicionales: clínica, boxeo, gimnasio, tesis, proyectos y productividad. Créditos y enlaces visibles. Fotografías ilustrativas, no de tu consultorio ni sesiones reales.</p>
-    <div class="photo-grid" id="other-photos"></div>
+  <div class="subpanel" id="intel-auditoria" hidden>
+   <article class="card" data-photo="AR-06">
+    <div class="cardhead"><h3>⚠️ Auditoría de incoherencias</h3><span id="audit-count" class="tag">—</span></div>
+    <p class="minor">Se conservan los controles de V8: Calendar vs Matrix, MTS vs Matrix y PSICOPRO vs Matrix, con enlaces específicos a cada origen.</p>
+    <div id="audit-detailed" class="audit-list"></div>
    </article>
   </div>
  </section>
@@ -457,7 +614,7 @@ window.google={script:{get run(){return runner()}}};
    <button class="chip active" type="button" data-capture-type="idea">🧠 Idea o pendiente</button>
    <button class="chip" type="button" data-capture-type="lead">📲 Nueva consulta</button>
   </div>
-  <div id="capture-idea">
+  <div id="capture-idea"><div data-photo="CP-01" class="editorial-inset"></div>
    <label for="idea-text" class="label">¿Qué quieres recordar o terminar?</label>
    <textarea id="idea-text" maxlength="220" placeholder="Terminar la sección..., revisar..., construir..." aria-describedby="idea-policy"></textarea>
    <p id="idea-policy" class="minor">Puedes usar el dictado del teclado del iPhone. Evita información de pacientes, contraseñas y datos personales.</p>
@@ -489,7 +646,8 @@ function safeURL(url){try{const u=new URL(url);return u.protocol==='https:'&&!u.
  ['docs.google.com','calendar.google.com','github.com','www.pexels.com','commons.wikimedia.org',
   'www.ubiavis.cl','aipchile.dgac.gob.cl','www.skylinewebcams.com','senapred.cl',
   'www.csn.uchile.cl','climatologia.meteochile.gob.cl','sinca.mma.gob.cl',
-  'meteoarmada.directemar.cl','muniarica.cl'].includes(u.hostname)}catch(e){return false}}
+  'meteoarmada.directemar.cl','muniarica.cl','www.sismologia.cl',
+  'open-meteo.com','news.google.com'].includes(u.hostname)}catch(e){return false}}
 function localClock(){
  const now=new Date(),opt={timeZone:'America/Santiago'};
  const time=new Intl.DateTimeFormat('es-CL',{...opt,hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}).format(now);
@@ -513,15 +671,14 @@ function goto(section){
  const meta=screenNames[section];
  text('screen-eyebrow',meta[0]);text('screen-title',meta[1]);text('screen-description',meta[2]);
  window.scrollTo({top:0,behavior:'instant'});
- if(section==='arica')ensurePhotos('arica-photos','Arica');
- if(section==='inteligencia'&&INTEL==='fotografias')ensurePhotos('other-photos','other');
+ if(section==='arica')loadLocalOnDemand();
 }
 document.querySelectorAll('[data-goto]').forEach(b=>b.addEventListener('click',()=>goto(b.dataset.goto)));
 document.querySelectorAll('[data-intel]').forEach(b=>b.addEventListener('click',()=>{
  INTEL=b.dataset.intel;
  document.querySelectorAll('.subpanel').forEach(p=>p.hidden=p.id!=='intel-'+INTEL);
  document.querySelectorAll('[data-intel]').forEach(c=>{c.classList.toggle('active',c.dataset.intel===INTEL);c.setAttribute('aria-selected',c.dataset.intel===INTEL?'true':'false')});
- if(INTEL==='fotografias')ensurePhotos('other-photos','other');
+ // Editorial photographs are embedded in domain cards, not a gallery.
 }));
 function photoSrc(photo,width){
  if(photo.provider==='Pexels'&&/^\d+$/.test(photo.photoId||''))
@@ -544,12 +701,22 @@ function photoElement(photo){
  return card;
 }
 const MOUNTED=new Set();
-function ensurePhotos(id,group){
- if(MOUNTED.has(id))return;
- const root=$(id);clear(root);
- const selected=PHOTOS.filter(p=>group==='Arica'?p.area==='Arica':p.area!=='Arica');
- for(const p of selected)root.append(photoElement(p));
- MOUNTED.add(id);
+function attachPhoto(card,photo){
+ if(!card||!photo||card.dataset.photoApplied)return;
+ const fig=make('figure','editorial-photo'),img=document.createElement('img');
+ img.src=photoSrc(photo,640);img.alt=photo.alt||photo.title;
+ img.loading='lazy';img.decoding='async';
+ img.addEventListener('error',()=>fig.remove());
+ const cap=make('figcaption');
+ cap.append(link('Foto: '+photo.author+' · '+photo.license,photo.url));
+ fig.append(img,cap);
+ const head=card.querySelector('.cardhead');
+ if(head)head.after(fig);else card.prepend(fig);
+ card.dataset.photoApplied='true';
+}
+function applyEditorialPhotos(){
+ document.querySelectorAll('[data-photo]').forEach(card=>
+  attachPhoto(card,PHOTOS.find(p=>p.id===card.dataset.photo)));
 }
 function setHero(id,photoId){
  const node=$(id),p=PHOTOS.find(x=>x.id===photoId);
@@ -563,6 +730,7 @@ setHero('hoy-hero','AR-01');
 setHero('arica-hero','AR-04');
 setHero('op-hero','PR-02');
 setHero('intel-hero','TH-01');
+applyEditorialPhotos();
 function listLines(id,rows,fmt){
  const node=$(id);clear(node);
  if(!rows?.length){node.append(make('li','minor','No hay registros verificables.'));return;}
@@ -570,14 +738,78 @@ function listLines(id,rows,fmt){
   const li=make('li','',fmt(row));node.append(li);
  });
 }
+function auditEntries(v){
+ const b=v.base||{},c=b.comparisons||{},a=[];
+ const put=(title,count,rows,kind,why,high)=>{
+  if(!Number.isFinite(count)||count<1)return;
+  a.push({title,count,rows:rows||[],kind,why,high:!!high});
+ };
+ const cal=c.calendar||{},cli=c.clinical||{},mts=c.training||{};
+ put('Citas de PSICOPRO ausentes en Matrix',cli.missing,cli.items,'PSICOPRO + Matrix','Citas con día y hora sin bloque equivalente.',true);
+ put('Posibles solapamientos clínicos',cli.conflicts,cli.collisionItems,'PSICOPRO + Matrix','Mismo bloque horario con otra actividad en Matrix.',true);
+ put('Posible diferencia de paciente entre sistemas',cli.possibleDifferent,cli.identityItems,'PSICOPRO + Matrix','Comparación heurística; se debe verificar antes de corregir.',true);
+ put('Atenciones Matrix ausentes en PSICOPRO',cli.matrixOnly,cli.matrixOnlyItems,'Matrix + PSICOPRO','Citas candidatas sin respaldo equivalente en agenda.');
+ put('Eventos Calendar ausentes en Matrix',cal.calendarMissingMatrix,cal.items,'Calendar + Matrix','Compromisos con fecha y hora sin cobertura.',true);
+ put('Actividades Matrix sin evento Calendar',cal.matrixMissingCalendar,cal.reverseItems,'Matrix + Calendar','Solo actividades explícitamente marcadas como eventos.');
+ put('Diferencia de actividad Calendar / Matrix',cal.potentialConflicts,cal.conflictItems,'Calendar + Matrix','Tipos de actividad incompatibles en la misma hora.',true);
+ put('Planes MTS sin bloque Matrix',mts.total,mts.items,'MTS + Matrix','Una modalidad programada sin bloque correspondiente.');
+ put('Días Matrix sin programación MTS',mts.matrixOnlyDays,mts.matrixOnlyItems,'Matrix + MTS','Jornadas programadas en Matrix sin entrada MTS.');
+ for(const src of b.sourceHealth?.details||[])
+  if(src.state!=='ok')put('Fuente a revisar: '+src.label,1,[],src.label,src.detail,src.state==='error');
+ if(b.finance?.categoryReconciled===false)
+  put('Presupuesto sin conciliación',1,[{financeUrl:b.finance?.url}],
+   'Finanzas','La suma de categorías difiere del total.',true);
+ if(b.finance?.state==='ok'&&b.finance?.over>0)
+  put('Gasto sobre presupuesto',1,[{financeUrl:b.finance?.url}],'Finanzas',b.finance.message);
+ return a.sort((x,y)=>Number(y.high)-Number(x.high)||y.count-x.count);
+}
+function drawAudit(root,items,limit){
+ clear(root);
+ if(!items.length){
+  const row=make('div','audit-item ok');
+  row.append(make('strong','','Sin incoherencias detectadas en comparaciones disponibles'),
+   make('p','minor','No garantiza ausencia de fallos fuera de las fuentes auditadas.'));
+  root.append(row);return;
+ }
+ for(const entry of items.slice(0,limit)){
+  const row=make('div','audit-item '+(entry.high?'high':'')),head=make('strong','',entry.title+' · '+entry.count);
+  row.append(head,make('div','audit-meta',entry.kind+' · '+(entry.high?'Prioridad alta':'Revisar')),
+   make('p','minor',entry.why));
+  const lines=(entry.rows||[]).slice(0,limit===3?1:6);
+  for(const issue of lines){
+   const item=make('div','smalltext',String(issue.date||'')+' '+String(issue.hour||issue.type||''));
+   const links=make('div','buttons');
+   const targets=[['PSICOPRO',issue.clinicalUrl],['Matrix',issue.matrixUrl],
+    ['Calendar',issue.calendarUrl],['Finanzas',issue.financeUrl]];
+   if(issue.date&&!issue.matrixUrl)targets.push(['MTS',STATE?.base?.training?.dailyLogUrl]);
+   for(const [label,url] of targets)if(url&&safeURL(url))links.append(link(label+' ↗',url));
+   item.append(links);row.append(item);
+  }
+  root.append(row);
+ }
+}
+function renderAudits(v){
+ const items=auditEntries(v);
+ drawAudit($('audit-today'),items,3);drawAudit($('audit-detailed'),items,100);
+ text('audit-count',items.length+' categorías');
+}
+
 function renderToday(v){
  const b=v.base||{},opp=v.opportunities?.items?.[0];
- text('today-priority',opp?.title||b.nextAction?.title||'Revisar las fuentes disponibles');
- text('today-why',opp?.evidence||b.nextAction?.reason||'Sin prioridades confirmadas');
- text('today-confidence',opp?'Regla verificada · '+opp.area:'Pendiente');
+ const priority=b.nextAction||{};
+ const useAuditPriority=(priority.level==='high'||priority.level==='critical')&&priority.title;
+ text('today-priority',useAuditPriority?priority.title:(opp?.title||priority.title||'Revisar fuentes'));
+ text('today-why',useAuditPriority?priority.reason:(opp?.evidence||priority.reason||'Sin prioridades confirmadas'));
+ text('today-confidence',useAuditPriority?'Auditoría · '+priority.level:(opp?'Oportunidad · '+opp.area:'Pendiente'));
  text('k-patients',typeof b.clinical?.weekly==='number'?b.clinical.weekly+' / '+b.clinical.target:'—');
+ text('k-clinic-sessions',typeof b.clinical?.tracking?.currentWeek==='number'?b.clinical.tracking.currentWeek:'—');
+ const clinicLink=$('k-clinic-source');clear(clinicLink);
+ if(b.clinical?.tracking?.currentWeekUrl)clinicLink.append(link('Ver registro semanal ↗',b.clinical.tracking.currentWeekUrl));
  text('k-leads',v.leads?.week??'—');
- text('k-box',v.base?.training?.adherence?.boxing?.done??'—');
+ text('k-box',typeof b.training?.coachedClasses7d==='number'?b.training.coachedClasses7d:'—');
+ const boxLink=$('k-box-source');clear(boxLink);
+ if(b.training?.dailyLogUrl)boxLink.append(link('Ver MTS ↗',b.training.dailyLogUrl));
+ renderAudits(v);
  text('k-sleep',num(b.sleepTrend?.averageHours,' h'));
  const events=b.calendar?.todayEvents||[],root=$('today-events');clear(root);
  if(!events.length)root.append(make('p','minor',b.calendar?.state==='ok'?'Sin más eventos registrados para hoy':'Google Calendar sin datos disponibles'));
@@ -694,24 +926,106 @@ $('scenario-calculate').onclick=()=>{
 };
 function renderArica(v){
  const a=v.arica||{};
- text('arica-alert-note',a.alerts?.message||'Consultar avisos oficiales vigentes directamente.');
  const cameras=$('camera-list');clear(cameras);
- (a.cameras||[]).forEach(c=>{
-  const node=make('div','card s4 soft'),heading=make('div','cardhead');
-  heading.append(make('h3','',c.name),
-   make('span','tag '+(c.state==='offline'?'warn':'none'),
-    c.state==='offline'?'Fuera de línea':c.state==='dated_photos'?'Imágenes fechadas':'No verificada'));
-  node.append(heading,make('p','label',c.source+' · '+c.kind),
-   make('p','minor',c.note),link('Abrir cámara/fuente ↗',c.url,'smalltext'));
-  cameras.append(node);
+ (a.cameras||[]).forEach(cam=>{
+  const item=make('div','card s4 soft'),head=make('div','cardhead');
+  head.append(make('h3','',cam.name),
+   make('span','tag '+(cam.state==='offline'?'warn':'none'),
+    cam.state==='offline'?'Fuera de línea':cam.state==='dated_photos'?'Fotos fechadas':'No verificada'));
+  item.append(head,make('p','label',cam.source+' · '+cam.kind),
+   make('p','minor',cam.note),link('Ver proveedor ↗',cam.url,'smalltext'));
+  cameras.append(item);
  });
- const sources=$('arica-sources');clear(sources);
- (a.sources||[]).forEach(source=>{
-  const col=make('div','s4'),node=make('div','card soft');
-  node.append(make('div','label',source.kind),link(source.name+' ↗',source.url,'strong'));
-  col.append(node);sources.append(col);
- });
+ const links=$('local-alert-links');clear(links);
+ const official=[
+  ['SENAPRED', 'https://senapred.cl/alertas/'],
+  ['Servicio Meteorológico Armada','https://meteoarmada.directemar.cl/'],
+  ['Centro Sismológico Nacional','https://www.sismologia.cl/']
+ ];
+ for(const [title,url] of official){
+  const entry=make('p','smalltext');entry.append(link(title+' ↗',url));links.append(entry);
+ }
 }
+let localLoaded=false,localLoading=false;
+function stampLocal(value){
+ if(!value)return 'Fecha no confirmada';
+ const normalized=String(value).replace('T',' · ');
+ return normalized.slice(0,19)+' hora local (fuente)';
+}
+function fillMetricSource(id,obj,other){
+ const root=$(id);clear(root);
+ if(obj?.url&&safeURL(obj.url))root.append(link('Ver fuente y metodología ↗',obj.url));
+ if(other)root.append(make('div','minor',other));
+}
+function renderLocal(v){
+ const w=v.weather||{},a=v.air||{},m=v.marine||{};
+ text('local-updated','Consultado '+new Date(v.queriedAt||Date.now()).toLocaleString('es-CL',{timeZone:'America/Santiago'})+
+  ' · '+(v.cache==='server-15-min'?'Caché del servidor · ':'')+
+  'datos modelados y avisos publicados; consulta solo al entrar a Arica.');
+ text('local-weather-state',w.state==='model'?'Modelo actualizado':w.state==='stale'?'Dato antiguo':'No disponible');
+ text('local-air-state',a.state==='model'?'Modelo actualizado':a.state==='stale'?'Dato antiguo':'No disponible');
+ text('local-marine-state',m.state==='model'?'Modelo actualizado':m.state==='stale'?'Dato antiguo':'No disponible');
+ text('local-temp',num(w.temperature,' °C'));text('local-wind',num(w.wind,' km/h'));
+ text('local-uv',num(w.uv));text('local-feels',num(w.feelsLike,' °C'));
+ text('local-weather-time','Dato: '+stampLocal(w.measuredAt)+
+  (w.ageMinutes!==null&&w.ageMinutes!==undefined?' · '+w.ageMinutes+' min desde su referencia':'')+
+  '. Pronóstico, no observación de estación.');
+ fillMetricSource('local-weather-source',w,'Datos: Open-Meteo · CC BY 4.0, uso sujeto a términos.');
+ text('local-pm25',num(a.pm25,' µg/m³'));text('local-aqi',num(a.usAqi));
+ text('local-air-time','Dato: '+stampLocal(a.measuredAt)+' · Modelo, no monitor SINCA.');
+ fillMetricSource('local-air-source',a,'Validar calidad del aire con SINCA si una decisión depende de ello.');
+ text('local-wave',num(m.waveHeight,' m'));text('local-period',num(m.wavePeriod,' s'));
+ text('local-marine-time','Dato modelado: '+stampLocal(m.measuredAt));
+ text('local-marine-alert',v.marineNotice?.note||
+   'El modelo de ola no permite concluir ausencia o presencia de marejadas.');
+ fillMetricSource('local-marine-source',m);
+ const news=$('local-senapred');clear(news);
+ const bulletin=v.senapred||{};
+ const items=bulletin.items||[];
+ if(items.length){
+  for(const item of items.slice(0,5)){
+   const card=make('div','audit-item');
+   card.append(make('strong','',item.title),
+    make('p','minor',new Date(item.publishedAt).toLocaleString('es-CL',{timeZone:'America/Santiago'})+
+     ' · Publicación indexada, vigencia no confirmada'),
+    link('Consultar publicación ↗',item.sourceUrl));
+   news.append(card);
+  }
+ }else news.append(make('div','audit-item',
+  bulletin.note||'No se obtuvo una publicación regional fechada; no implica ausencia de alertas.'));
+ const src=$('senapred-source');clear(src);
+ src.append(link('Estado oficial SENAPRED ↗',bulletin.officialUrl||'https://senapred.cl/alertas/'));
+ const seismic=$('local-sismos');clear(seismic),q=v.seismic||{};
+ const quakes=(q.events||[]);
+ const sourceRows=quakes.length?quakes:(q.nearby||[]);
+ if(sourceRows.length){
+  if(!quakes.length)seismic.append(make('p','minor',
+   'No se hallaron sismos de Arica/Parinacota en el listado procesado. Eventos del extremo norte, fuera de la región:'));
+  for(const event of sourceRows.slice(0,5)){
+   const card=make('div','audit-item');
+   card.append(make('strong','','M '+event.magnitude+' · '+event.location),
+    make('p','minor',event.dateLocal+' · Profundidad '+(event.depthKm??'—')+' km · CSN'));
+   seismic.append(card);
+  }
+ }else seismic.append(make('p','minor',q.note||'No hay listado regional verificable de sismos recientes.'));
+ const ssource=$('sismos-source');clear(ssource);
+ ssource.append(link('Registro oficial de sismos CSN ↗',q.sourceUrl||'https://www.sismologia.cl/'));
+}
+function loadLocalOnDemand(){
+ if(localLoaded||localLoading)return;
+ localLoading=true;
+ text('local-updated','Consultando fuentes públicas solo para esta vista…');
+ google.script.run.withSuccessHandler(r=>{
+  localLoading=false;localLoaded=true;
+  if(r&&['ok','partial'].includes(r.state))renderLocal(r);
+  else text('local-updated','No se pudieron verificar las fuentes públicas; sin valores simulados.');
+ }).withFailureHandler(e=>{
+  localLoading=false;localLoaded=true;
+  text('local-updated','Error al recuperar Arica: '+String(e?.message||'Sin respuesta').slice(0,140));
+ }).getV9LocalData();
+}
+$('local-refresh').onclick=()=>{localLoaded=false;loadLocalOnDemand();};
+
 function renderIntelligence(v){
  const b=v.base||{},ext=v.extra||{};
  text('intel-leads',v.leads?.month??'—');
@@ -725,18 +1039,41 @@ function renderIntelligence(v){
  text('intel-attended',typeof b.clinical?.currentWeekHours?.attendedHours==='number'?b.clinical.currentWeekHours.attendedHours+' h':'—');
  text('intel-booked',b.clinical?.bookedBlocks??'—');
  text('intel-clinic-message',b.clinical?.message||'Sin resultados');
+ renderClinicTracking(v);
  const att=b.training?.adherence||{};
  listLines('intel-adherence',['boxing','gym','cardio'],name=>{
   const n=att[name]||{};return ({boxing:'🥊 Boxeo',gym:'🏋️ Gimnasio',cardio:'🫀 Cardio'}[name])+
    ' · '+(n.done??'—')+'/'+(n.planned??'—')+' realizadas; '+(n.omitted??'—')+' omitidas, '+(n.unverified??'—')+' sin verificar';
  });
+ text('class-boxing-count',typeof b.training?.coachedClasses7d==='number'?b.training.coachedClasses7d:'—');
+ const classLink=$('classes-mts-link');clear(classLink);
+ if(b.training?.dailyLogUrl)classLink.append(link('Ver Daily log ↗',b.training.dailyLogUrl));
+ const days=$('class-boxing-dates');clear(days);
+ for(const item of b.training?.coachedClassEntries||[]){
+  const line=make('p','smalltext');
+  line.append(make('span','','✅ '+item.date+' · '));
+  if(safeURL(item.sourceUrl))line.append(link('Fila MTS ↗',item.sourceUrl));
+  days.append(line);
+ }
+ text('cardio-done',b.training?.adherence?.cardio?.done??'—');
+ text('cardio-status',(b.training?.adherence?.cardio?.unverified??'—')+
+  ' entradas sin estado de ejecución confirmado en MTS');
  text('intel-drg',b.training?.drgToday?.output||'Sin registro');
  text('intel-drg-note','DRG de hoy; si existe ABORT o hard stop no ejecutar cargas.');
  text('intel-sleep',num(b.sleepTrend?.averageHours,' h'));
  text('intel-sleep-note',b.sleepTrend?.state==='ok'?b.sleepTrend.nightsBelowTarget+' noches bajo 7 h 30 de '+b.sleepTrend.observedNights+' registradas.':'Sueño insuficiente o no verificado');
  const cardio=att.cardio||{};text('intel-cardio',cardio.done+' realizadas · '+cardio.unverified+' sin verificar (últimos 7 días)');
- listLines('intel-boxing-skills',ext.performance?.skills||[],x=>x.skill+' · nivel '+(x.baseline??'?')+' · meta '+(x.goal??'?'));
- listLines('intel-mts-kpis',ext.performance?.kpis?.slice(0,16)||[],x=>x.name+': '+x.current+' · Meta '+x.goal);
+ renderRadar(ext.performance?.skills||[]);
+ const skillLegend=$('intel-boxing-skills');clear(skillLegend);
+ for(const x of (ext.performance?.skills||[])){
+  const badge=make('span','skill-badge');
+  badge.append(link(x.skill+' '+x.baseline+'/'+x.goal,x.sourceUrl));skillLegend.append(badge);
+ }
+ const road=$('boxing-roadmap-source');clear(road);
+ if(ext.performance?.roadmapUrl)road.append(link('Abrir roadmap ↗',ext.performance.roadmapUrl));
+ const kpiSrc=$('mts-kpi-source');clear(kpiSrc);
+ if(ext.performance?.kpiUrl)kpiSrc.append(link('Abrir KPI ↗',ext.performance.kpiUrl));
+ renderMtsProgress(ext.performance?.kpis||[]);
  const fin=b.finance||{};
  text('intel-finance-total',fin.state==='ok'||fin.state==='stale'?money(fin.spent):'—');
  text('intel-finance-note',fin.message||'Presupuesto no disponible');
@@ -841,6 +1178,7 @@ function refresh(){
  }).getV9Bootstrap();
 }
 $('refresh').onclick=refresh;
+$('audit-expand').onclick=()=>{goto('inteligencia');document.querySelector('[data-intel="auditoria"]')?.click();};
 function showSetup(){
  $('setup-modal').hidden=false;text('setup-feedback','Solo se guardarán enlaces que introduzcas.');
  $('sheet-matrix').focus();
