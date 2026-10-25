@@ -87,6 +87,31 @@ function rv9LocalSenapred_(xml,now){
   note:news.length?'Comunicados indexados de SENAPRED con fecha. No equivalen a alertas vigentes; comprobar actualizaciones y cancelaciones.':
     'Sin publicaciones regionales verificables en el índice. NO implica ausencia de alertas.'};
 }
+/** Dated maritime bulletins, not a statement of present operational validity. */
+function rv9LocalArmada_(rss,now){
+ const items=String(rss||'').match(/<item\b[^>]*>[\s\S]*?<\/item>/gi)||[];
+ const news=[];
+ for(const item of items){
+  const title=rv9LocalSanitize_((item.match(/<title\b[^>]*>([\s\S]*?)<\/title>/i)||[])[1]||'')
+   .replace(/\s+-\s+Armada de Chile.*$/i,'').slice(0,190);
+  const raw=(item.match(/<link\b[^>]*>([\s\S]*?)<\/link>/i)||[])[1]||'';
+  const published=(item.match(/<pubDate\b[^>]*>([\s\S]*?)<\/pubDate>/i)||[])[1]||'';
+  const when=new Date(rv9LocalSanitize_(published)),age=(now.getTime()-when.getTime())/86400000;
+  if(!title||!/(?:marejadas|temporal|avisos? meteorol[oó]gic)/i.test(title)||
+     !/(?:Arica|norte|Golfo de Penas|Coquimbo)/i.test(title)||
+     !/^https:\/\/news\.google\.com\//.test(raw.trim())||
+     !Number.isFinite(when.getTime())||age<-.1||age>60)continue;
+  news.push({title,publishedAt:when.toISOString(),sourceUrl:raw.trim(),
+   verification:'Noticia indexada, vigencia no confirmada'});
+ }
+ news.sort((a,b)=>b.publishedAt.localeCompare(a.publishedAt));
+ return {state:news.length?'indexed':'unverified',items:news.slice(0,5),
+  sourceUrl:'https://www.armada.cl/avisosmeteorologicos',
+  checkedAt:now.toISOString(),note:news.length?
+    'Últimos avisos marítimos indexados publicados. Verificar su fecha de término en la comunicación oficial; no representan alertas necesariamente vigentes.':
+    'No se encontraron avisos marítimos fechados y verificables en este índice; no equivale a ausencia de marejadas.'};
+}
+
 function getV9LocalData(){
  const now=new Date(),cache=CacheService.getScriptCache();
  const cached=cache.get(RV9_LOCAL_CACHE_KEY);
@@ -99,7 +124,8 @@ function getV9LocalData(){
   'https://air-quality-api.open-meteo.com/v1/air-quality?latitude=-18.49&longitude=-70.30&current=pm2_5,us_aqi&timezone=America%2FSantiago',
   'https://marine-api.open-meteo.com/v1/marine?latitude=-18.47&longitude=-70.33&current=wave_height,wave_period,sea_surface_temperature&cell_selection=sea&timezone=America%2FSantiago',
   'https://www.sismologia.cl/',
-  'https://news.google.com/rss/search?q=site%3Asenapred.cl%2Falerta%2F+%28Arica+OR+Parinacota+OR+Camarones+OR+Putre%29+when%3A14d&hl=es-419&gl=CL&ceid=CL%3Aes-419'
+  'https://news.google.com/rss/search?q=site%3Asenapred.cl%2Falerta%2F+%28Arica+OR+Parinacota+OR+Camarones+OR+Putre%29+when%3A14d&hl=es-419&gl=CL&ceid=CL%3Aes-419',
+  'https://news.google.com/rss/search?q=site%3Aarmada.cl+%28Arica+OR+marejadas%29+when%3A60d&hl=es-419&gl=CL&ceid=CL%3Aes-419'
  ];
  const fetched=urls.map(()=>null);
  try{
@@ -122,6 +148,7 @@ function getV9LocalData(){
   weather:{state:'unavailable'},air:{state:'unavailable'},marine:{state:'unavailable'},
   senapred:rv9LocalSenapred_(fetched[4],now),
   seismic:rv9LocalSismos_(fetched[3],now),
+  maritimeBulletins:rv9LocalArmada_(fetched[5],now),
   marineNotice:{state:'unverified',officialUrl:'https://meteoarmada.directemar.cl/',
    note:'No existe un feed de avisos marítimos oficiales validado para lectura automática. El modelo de olas NO equivale a una alerta de marejadas.'},
   providerNotice:'Open-Meteo: modelos de pronóstico, no mediciones de estación. Uso sujeto a licencia y atribución. Se consulta solo al entrar a Arica; cache 15 min.'};
