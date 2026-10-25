@@ -1,21 +1,20 @@
 /**
- * RV Command Center — Google Apps Script, private owner-only deployment.
+ * RV Command Center V9 — owner-only data engine.
+ * All current analytics reuse the original read-only Google Sheets readers.
  * SECURITY: Deploy as Me / Only myself. Never Anyone.
- * Spreadsheet IDs live only in Script Properties, never in the GitHub Pages build.
- * Authorized scopes: spreadsheets.readonly and calendar.readonly.
+ * Private IDs belong only in per-project Script Properties, never GitHub.
+ * Authorized scopes: spreadsheets.readonly, calendar.readonly and outbound weather.
  */
 const RV_TZ = 'America/Santiago';
-const RV_RELEASE = '2026.10.24.8';
+const RV_RELEASE = '2026.10.24.9';
 const RV_TARGET_WEEKLY = 15;
 const RV_MONTHS = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
 const RV_EN_MONTHS = ['january','february','march','april','may','june','july','august','september','october','november','december'];
 
-function doGet(e) {
-  // V9 is the private default. ?view=v8 allows owner-only rollback while
-  // preserving the last known-good dashboard without changing its code.
-  const legacy=e&&e.parameter&&e.parameter.view==='v8';
-  return HtmlService.createHtmlOutputFromFile(legacy?'Index':'V9')
-    .setTitle(legacy?'RV Command Center — V8 privado':'RV Command Center — V9 privado')
+function doGet() {
+  // V9 is the only current interface. Recover earlier versions via Git history.
+  return HtmlService.createHtmlOutputFromFile('Index')
+    .setTitle('RV Command Center — V9 privado')
     .addMetaTag('viewport','width=device-width,initial-scale=1');
 }
 function iso_(d) { return Utilities.formatDate(d,RV_TZ,'yyyy-MM-dd'); }
@@ -904,32 +903,7 @@ function history_(out,props,now) {
  * Owner-only, on-demand clinical detail. Sensitive free text is not included in
  * the dashboard payload or alert history. The Web App MUST be "Only myself".
  */
-function getMatrixOnlyClinicalDetail(date,hour){
-  const dateText=String(date||''),timeText=String(hour||'');
-  if(!/^\d{4}-\d{2}-\d{2}$/.test(dateText)||!/^\d{2}:\d{2}$/.test(timeText))
-    return {state:'invalid'};
-  const now=new Date(),target=parseIso_(dateText),minutes=hour_(timeText);
-  if(minutes===null||Math.abs(target.getTime()-now.getTime())>21*24*60*60*1000)
-    return {state:'invalid'};
-  const props=PropertiesService.getScriptProperties();
-  const mid=String(props.getProperty('MATRIX_SHEET_ID')||'');
-  const cid=String(props.getProperty('CLINICAL_SHEET_ID')||'');
-  if(!/^[A-Za-z0-9_-]{15,}$/.test(mid)||!/^[A-Za-z0-9_-]{15,}$/.test(cid))
-    return {state:'unavailable'};
-  try{
-    const matrix=readMatrix_(mid,now),clinic=readClinical_(cid,now);
-    const cmp=reconcileClinical_(clinic.bookings,matrix,clinic.publicData.week,clinic);
-    const issue=(cmp.matrixOnlyItems||[]).find(x=>x.date===dateText&&x.hour===timeText);
-    if(!issue)return {state:'not_found'};
-    const slot=(matrix.slots[dateText]||{})[minutes];
-    if(!slot?.clinical)return {state:'not_found'};
-    return {state:'ok',date:dateText,hour:timeText,
-      description:String(slot.privateClinicalLabel||'Actividad clínica').slice(0,150),
-      matrixUrl:issue.matrixUrl,clinicalUrl:issue.clinicalUrl};
-  }catch(e){return {state:'unavailable'};}
-}
-
-function getDashboard(){
+function rv9BaseDashboard_(){
   const now=new Date();
   const props=PropertiesService.getScriptProperties();
   const out={
