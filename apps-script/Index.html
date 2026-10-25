@@ -710,6 +710,90 @@ function renderArica(v){
   col.append(node);sources.append(col);
  });
 }
+
+function renderClinicTracking(v){
+ const t=v.base?.clinical?.tracking||{},root=$('clinic-weeks-bars');
+ clear(root);
+ text('clinic-current-week',typeof t.currentWeek==='number'?t.currentWeek:'—');
+ text('clinic-monthly',typeof t.monthToDate==='number'?t.monthToDate:'—');
+ text('clinic-tracking-note',(t.monthNote||'')+' · '+(t.definition||'Registro no comprobado'));
+ const source=$('clinic-monthly-url');clear(source);
+ if(t.goalsUrl&&safeURL(t.goalsUrl))source.append(link('Abrir seguimiento PSICOPRO ↗',t.goalsUrl));
+ if(t.state!=='ok'){root.append(make('p','minor','No se pudo leer Seguimiento Semanal de PSICOPRO.'));return}
+ for(const x of (t.recentWeeks||[]).slice(-7)){
+  const wrap=make('div',''),row=make('div','metricbar-label');
+  if(x.sourceUrl&&safeURL(x.sourceUrl))row.append(link(x.week+' ↗',x.sourceUrl));else row.append(make('span','',x.week));
+  row.append(make('strong','',(x.sessions??'—')+' sesiones'));
+  const track=make('div','metricbar-track'),bar=make('div','metricbar-fill');
+  bar.style.width=(x.sessions===null?0:Math.max(0,Math.min(100,x.sessions/(x.capacity||15)*100)))+'%';
+  track.append(bar);wrap.append(row,track);root.append(wrap);
+ }
+ if(t.upcoming?.length){
+  const x=t.upcoming[0];
+  root.append(make('p','minor','Próxima semana '+x.week+': '+(x.sessions??'sin cifra')+
+    ' programadas; excluidas del acumulado histórico.'));
+ }
+}
+function renderRadar(skills){
+ const root=$('boxing-radar');clear(root);
+ const data=(skills||[]).filter(x=>Number.isFinite(x.baseline)&&Number.isFinite(x.goal)&&x.baseline>=0&&x.goal>=0);
+ if(data.length<3){root.append(make('p','minor','Sin habilidades suficientes para graficar.'));return}
+ const ns='http://www.w3.org/2000/svg',svg=document.createElementNS(ns,'svg');
+ svg.setAttribute('viewBox','0 0 620 600');
+ svg.setAttribute('role','img');
+ svg.setAttribute('aria-label','Radar de '+data.length+' habilidades. Actual versus meta.');
+ const cx=310,cy=278,r=195,step=2*Math.PI/data.length,range=10;
+ const pos=(i,v)=>{const angle=-Math.PI/2+i*step,m=r*Math.max(0,Math.min(range,v))/range;
+  return [cx+Math.cos(angle)*m,cy+Math.sin(angle)*m];};
+ const append=(tag,attrs,caption)=>{
+  const node=document.createElementNS(ns,tag);
+  for(const [k,v] of Object.entries(attrs||{}))node.setAttribute(k,String(v));
+  if(caption!==undefined)node.textContent=caption;
+  svg.append(node);return node;
+ };
+ for(const frac of [2,4,6,8,10])
+  append('polygon',{points:data.map((x,i)=>pos(i,frac).join(',')).join(' '),
+   fill:'none',stroke:'#35526b','stroke-width':'.8'});
+ data.forEach((x,i)=>{
+  const end=pos(i,10);
+  append('line',{x1:cx,y1:cy,x2:end[0],y2:end[1],stroke:'#29485e'});
+  const label=pos(i,12.1);
+  append('text',{x:label[0],y:label[1],'font-size':12.5,fill:'#c8dfe9',
+   'text-anchor':label[0]<cx-25?'end':label[0]>cx+25?'start':'middle',
+   'dominant-baseline':'middle'},x.skill.length>17?x.skill.slice(0,16)+'…':x.skill);
+ });
+ append('polygon',{points:data.map((x,i)=>pos(i,x.goal).join(',')).join(' '),
+  fill:'#f1ba7033',stroke:'#f1ba70','stroke-width':2.5,'stroke-linejoin':'round'});
+ append('polygon',{points:data.map((x,i)=>pos(i,x.baseline).join(',')).join(' '),
+  fill:'#6ad9f244',stroke:'#6ad9f2','stroke-width':2.5,'stroke-linejoin':'round'});
+ append('text',{x:10,y:590,fill:'#b6d2e5','font-size':13},
+  '● Azul: nivel registrado · ● Ámbar: objetivo · Escala 0–10');
+ root.append(svg);
+}
+function renderMtsProgress(kpis){
+ const root=$('intel-mts-progress'),other=$('intel-mts-kpis');
+ clear(root);clear(other);
+ const list=(kpis||[]).filter(x=>Number.isFinite(x.progressPct));
+ if(!list.length)root.append(make('p','minor','No hay objetivos de fuerza con magnitudes comparables.'));
+ for(const x of list){
+  const el=make('div',''),head=make('div','metricbar-label');
+  if(safeURL(x.sourceUrl))head.append(link(x.name+' ↗',x.sourceUrl));
+  else head.append(make('span','',x.name));
+  head.append(make('strong','',x.currentNumber+' / '+x.targetNumber+' kg'));
+  const track=make('div','metricbar-track'),bar=make('div','metricbar-fill');
+  bar.style.width=x.progressPct+'%';track.append(bar);
+  el.append(head,track,make('div','minor',x.progressPct+'% de la meta · '+x.status));
+  root.append(el);
+ }
+ for(const x of (kpis||[]).filter(x=>!Number.isFinite(x.progressPct)).slice(0,15)){
+  const li=make('li');
+  if(safeURL(x.sourceUrl))li.append(link(x.name+' ↗',x.sourceUrl));
+  else li.append(make('span','',x.name));
+  li.append(make('div','minor',x.current+' · Objetivo '+x.goal+' · '+x.status));
+  other.append(li);
+ }
+}
+
 function renderIntelligence(v){
  const b=v.base||{},ext=v.extra||{};
  text('intel-leads',v.leads?.month??'—');
@@ -723,6 +807,7 @@ function renderIntelligence(v){
  text('intel-attended',typeof b.clinical?.currentWeekHours?.attendedHours==='number'?b.clinical.currentWeekHours.attendedHours+' h':'—');
  text('intel-booked',b.clinical?.bookedBlocks??'—');
  text('intel-clinic-message',b.clinical?.message||'Sin resultados');
+ renderClinicTracking(v);
  const att=b.training?.adherence||{};
  listLines('intel-adherence',['boxing','gym','cardio'],name=>{
   const n=att[name]||{};return ({boxing:'🥊 Boxeo',gym:'🏋️ Gimnasio',cardio:'🫀 Cardio'}[name])+
@@ -733,8 +818,17 @@ function renderIntelligence(v){
  text('intel-sleep',num(b.sleepTrend?.averageHours,' h'));
  text('intel-sleep-note',b.sleepTrend?.state==='ok'?b.sleepTrend.nightsBelowTarget+' noches bajo 7 h 30 de '+b.sleepTrend.observedNights+' registradas.':'Sueño insuficiente o no verificado');
  const cardio=att.cardio||{};text('intel-cardio',cardio.done+' realizadas · '+cardio.unverified+' sin verificar (últimos 7 días)');
- listLines('intel-boxing-skills',ext.performance?.skills||[],x=>x.skill+' · nivel '+(x.baseline??'?')+' · meta '+(x.goal??'?'));
- listLines('intel-mts-kpis',ext.performance?.kpis?.slice(0,16)||[],x=>x.name+': '+x.current+' · Meta '+x.goal);
+ renderRadar(ext.performance?.skills||[]);
+ const skillLegend=$('intel-boxing-skills');clear(skillLegend);
+ for(const x of (ext.performance?.skills||[])){
+  const badge=make('span','skill-badge');
+  badge.append(link(x.skill+' '+x.baseline+'/'+x.goal,x.sourceUrl));skillLegend.append(badge);
+ }
+ const road=$('boxing-roadmap-source');clear(road);
+ if(ext.performance?.roadmapUrl)road.append(link('Abrir roadmap ↗',ext.performance.roadmapUrl));
+ const kpiSrc=$('mts-kpi-source');clear(kpiSrc);
+ if(ext.performance?.kpiUrl)kpiSrc.append(link('Abrir KPI ↗',ext.performance.kpiUrl));
+ renderMtsProgress(ext.performance?.kpis||[]);
  const fin=b.finance||{};
  text('intel-finance-total',fin.state==='ok'||fin.state==='stale'?money(fin.spent):'—');
  text('intel-finance-note',fin.message||'Presupuesto no disponible');
