@@ -1,6 +1,6 @@
 # RV Command Center V9 · Aplicación privada única
 
-**Versión activa en código:** `2026.10.24.9` (revisión: sin consultas meteorológicas externas). Esta versión sustituye completamente la interfaz anterior. Git guarda el historial para recuperar cualquier commit: no se distribuyen paneles antiguos ni enlaces a versiones de respaldo.
+**Versión activa en código:** `9.3.0` (revisión: sin consultas meteorológicas externas). Esta versión sustituye completamente la interfaz anterior. Git guarda el historial para recuperar cualquier commit: no se distribuyen paneles antiguos ni enlaces a versiones de respaldo.
 
 ## Arquitectura
 
