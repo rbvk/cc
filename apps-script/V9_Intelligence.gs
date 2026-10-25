@@ -23,6 +23,11 @@ const RV9_LOCAL_SOURCES=[
 // No automatic meteorological, air-quality or marine network requests in V9.
 // Arica keeps curated public links; the user decides whether to open them.
 
+function rv9Number_(v){
+ const text=String(v===null||v===undefined?'':v).trim().replace(',','.');
+ if(!/^\d+(?:\.\d+)?$/.test(text))return null;
+ const n=Number(text);return Number.isFinite(n)?n:null;
+}
 function rv9Extra_(p,now){
  const output={performance:{state:'unavailable',skills:[],kpis:[],bodyfat:[]},
   business:{state:'unavailable',sixMonths:[],merch:[]},
@@ -30,21 +35,38 @@ function rv9Extra_(p,now){
  const mid=String(p.getProperty('MATRIX_SHEET_ID')||'');
  if(/^[A-Za-z0-9_-]{15,}$/.test(mid)){
   try{
-   const skills=values_(mid,"'Boxing roadmap'!A2:D30");
-   output.performance.skills=skills.filter(r=>r[0]&&String(r[0]).toLowerCase()!=='skill')
-    .map(r=>({skill:rv9Short_(r[0],40),domain:rv9Short_(r[1],40),
-      baseline:money_(r[2]),goal:money_(r[3])})).slice(0,18);
-   const kpis=values_(mid,"'MONTH KPI'!A2:F40");
-   output.performance.kpis=kpis.filter(r=>r[0]&&r[1]&&String(r[1]).toLowerCase()!=='kpi')
-    .map(r=>({area:rv9Short_(r[0],40),name:rv9Short_(r[1],70),
-      current:rv9Short_(r[2],60),goal:rv9Short_(r[3],60),
-      status:rv9Short_(r[5],45)})).slice(0,30);
+   const metadata=sheetMetadata_(mid);
+   const roadTab='Boxing roadmap',road=values_(mid,"'Boxing roadmap'!A2:D30");
+   output.performance.skills=road.map((r,i)=>({
+    skill:rv9Short_(r[0],40),domain:rv9Short_(r[1],40),
+    baseline:rv9Number_(r[2]),goal:rv9Number_(r[3]),
+    sourceUrl:cellUrl_(mid,roadTab,'C'+(i+2),metadata)
+   })).filter(r=>r.skill&&r.skill.toLowerCase()!=='skill'&&r.baseline!==null&&r.goal!==null)
+    .slice(0,20);
+   output.performance.roadmapUrl=tabUrl_(mid,roadTab,metadata);
+   output.performance.roadmapReference='Nivel registrado en Septiembre · meta Octubre. La fecha de medición real no aparece en este resumen.';
+   const raw=values_(mid,"'MONTH KPI'!A2:F40");
+   output.performance.kpis=raw.map((r,i)=>{
+    const area=rv9Short_(r[0],45),name=rv9Short_(r[1],70);
+    const current=rv9Short_(r[2],80),goal=rv9Short_(r[3],80);
+    const rawCur=current.match(/(?:^|\s)(\d+(?:[.,]\d+)?)(?:\s*kg\b)/i);
+    const rawGoal=goal.match(/^(\d+(?:[.,]\d+)?)\s*(?:kg\b|[-–]|\s*milestone\b|$)/i);
+    const value=rawCur?Number(rawCur[1].replace(',','.')):null;
+    const target=rawGoal?Number(rawGoal[1].replace(',','.')):null;
+    // Progress bars only for numeric strength goals where higher is better.
+    const comparable=/^Strength$/i.test(area)&&Number.isFinite(value)&&Number.isFinite(target)&&target>0;
+    return {area,name,current,goal,status:rv9Short_(r[5],45),
+      currentNumber:comparable?value:null,targetNumber:comparable?target:null,
+      progressPct:comparable?Math.min(100,Math.round(value/target*100)):null,
+      sourceUrl:cellUrl_(mid,'MONTH KPI','C'+(i+2),metadata)};
+   }).filter(r=>r.name&&r.name.toLowerCase()!=='kpi'&&r.area).slice(0,30);
+   output.performance.kpiUrl=tabUrl_(mid,'MONTH KPI',metadata);
    const bf=values_(mid,"'Bodyfat'!A2:G30");
    output.performance.bodyfat=bf.map(r=>({date:rv9Short_(r[0],25),
     percent:Number(String(r[6]||'').replace(',','.'))}))
     .filter(x=>x.date&&x.percent>=4&&x.percent<=40).slice(-12);
    output.performance.state='ok';
-   output.performance.note='Series y metas de Matrix; comprobar fecha y calidad de mediciones antes de decidir progresiones';
+   output.performance.note='Objetivos declarados de Matrix; contrastar con fecha de medición, dolor y fase de entrenamiento antes de realizar progresiones.';
   }catch(e){output.performance.state='partial';}
  }
  const fid=String(p.getProperty('FINANCE_SHEET_ID')||'');
