@@ -113,6 +113,23 @@
  .statusfeed{font-size:14px;min-height:21px;margin:8px 0}
  .loading{color:#9fc9e2}
  .footer{border-top:1px solid var(--border);color:var(--muted);font-size:12px;margin:40px auto 10px;padding-top:15px}
+ .audit-list{display:grid;gap:10px}
+ .audit-item{border:1px solid var(--border);border-left:4px solid #d7ac72;border-radius:12px;padding:11px 14px;background:#0b1c2d}
+ .audit-item.high{border-left-color:#ff9292}.audit-item.ok{border-left-color:#67bba7}
+ .audit-item .audit-meta{display:flex;gap:8px;align-items:center;flex-wrap:wrap;color:var(--muted);font-size:12px;margin:6px 0}
+ .metric-bars{display:grid;gap:13px;margin:14px 0}
+ .metricbar-label{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:14px}
+ .metricbar-track{background:#183147;height:10px;border-radius:100px;overflow:hidden;margin:7px 0 4px}
+ .metricbar-fill{height:100%;background:linear-gradient(90deg,#3aaeb4,#97e0fc);border-radius:100px}
+ .radar-wrap{width:100%;max-width:560px;min-height:300px;margin:0 auto}
+ .radar-wrap svg{max-width:100%;height:auto;display:block;overflow:visible}
+ .skill-legend{display:flex;flex-wrap:wrap;gap:6px}
+ .skill-badge{display:inline-block;border:1px solid #34516a;background:#132b40;padding:3px 8px;border-radius:16px;font-size:12px}
+ .editorial-photo{position:relative;margin:0 0 14px;border-radius:13px;overflow:hidden;background:#10283b}
+ .editorial-photo img{display:block;width:100%;max-height:178px;min-height:110px;object-fit:cover}
+ .editorial-photo figcaption{font-size:10px;padding:4px 9px;background:#071723c9;color:#e6eef5;position:absolute;right:0;bottom:0}
+ .editorial-photo figcaption a{color:inherit}
+
  @media(max-width:900px){.s8,.s7,.s6,.s5,.s4{grid-column:span 12}.s3{grid-column:span 6}.photo-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
  @media(max-width:480px){:root{font-size:17px}.shell{padding:0 13px}.card{padding:15px;border-radius:15px}.hero{min-height:178px;padding:18px}.photo-grid{gap:9px}.photocard .details{padding:9px}.s3{grid-column:span 6}.brandtext small{font-size:11px}.sectiontop h2{font-size:23px}.currenttime strong{font-size:16px}.floating{right:13px}}
  @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
@@ -151,10 +168,15 @@
   </div>
   <div class="sectiontop"><h2>Tu situación</h2><button class="button ghost small" type="button" id="refresh">↻ Actualizar</button></div>
   <div class="grid">
-   <article class="card s3"><div class="label">🏥 Pacientes semanales</div><div class="metric" id="k-patients">—</div><div class="minor" id="k-patients-sub">PSICOPRO · Meta 15</div></article>
+   <article class="card s3"><div class="label">🏥 Sesiones de la semana</div><div class="metric" id="k-clinic-sessions">—</div><div class="minor">PSICOPRO · Seguimiento semanal</div><div id="k-clinic-source" class="smalltext"></div></article>
    <article class="card s3"><div class="label">📲 Consultas nuevas</div><div class="metric" id="k-leads">—</div><div class="minor">Esta semana · Registro CC</div></article>
-   <article class="card s3"><div class="label">🥊 Sesiones boxeo hechas</div><div class="metric" id="k-box">—</div><div class="minor">Últimos 7 días · MTS</div></article>
+   <article class="card s3"><div class="label">🥊 Clases dirigidas realizadas</div><div class="metric" id="k-box">—</div><div class="minor">Últimos 7 días · Coached Boxing Done · MTS</div><div id="k-box-source" class="smalltext"></div></article>
    <article class="card s3"><div class="label">💤 Sueño</div><div class="metric" id="k-sleep">—</div><div class="minor">Media por noche registrada</div></article>
+   <article class="card s12" id="audit-today-card" data-photo="AR-09">
+    <div class="cardhead"><h3>⚠️ Incongruencias entre sistemas</h3><button class="button secondary small" type="button" id="audit-expand">Auditoría detallada</button></div>
+    <p class="minor">Cruces Calendar, Matrix, MTS, PSICOPRO y Finanzas. Los avisos muestran fecha, causa y enlaces directos a las fuentes.</p>
+    <div id="audit-today" class="audit-list"></div>
+   </article>
    <article class="card s7">
     <div class="cardhead"><h3>📅 Agenda de hoy</h3><a href="https://calendar.google.com/" target="_blank" rel="noopener">Abrir Calendar ↗</a></div>
     <div id="today-events" class="timeline"><p class="minor">Consultando eventos…</p></div>
@@ -169,7 +191,7 @@
     <div class="cardhead"><h3>💰 Finanzas</h3><span class="tag" id="finance-badge">Mes actual</span></div>
     <div class="metric" id="today-finance">—</div><p class="minor" id="today-finance-note">Calculando gasto y presupuesto…</p>
    </article>
-   <article class="card s6">
+   <article class="card s6" data-photo="AR-10">
     <div class="cardhead"><h3>🌆 Arica</h3><button class="button ghost small" type="button" data-goto="arica">Ver fuentes</button></div>
     <div class="label">🕒 Hora local</div>
     <div class="metric" id="home-arica-clock">--:--:--</div>
@@ -249,47 +271,68 @@
    <button class="chip" type="button" data-intel="finanzas" role="tab" aria-selected="false">💰 Finanzas</button>
    <button class="chip" type="button" data-intel="proyectos" role="tab" aria-selected="false">💻 Proyectos</button>
    <button class="chip" type="button" data-intel="fuentes" role="tab" aria-selected="false">🛡️ Fuentes</button>
-   <button class="chip" type="button" data-intel="fotografias" role="tab" aria-selected="false">📷 Fotos</button>
+   <button class="chip" type="button" data-intel="auditoria" role="tab" aria-selected="false">⚠️ Incongruencias</button>
   </div>
   <div class="subpanel" id="intel-clinica">
    <div class="grid">
-    <article class="card s6"><h3>📲 Captación mínima por WhatsApp</h3><div class="dash">
+    <article class="card s6" data-photo="CL-03"><h3>📲 Captación mínima por WhatsApp</h3><div class="dash">
       <div class="dashitem"><div class="label">Consultas del mes</div><div class="metric" id="intel-leads">—</div></div>
       <div class="dashitem"><div class="label">Primeras atenciones</div><div class="metric" id="intel-first">—</div></div></div>
      <p class="minor" id="intel-leads-note">Sin enlace individual, no se calcula conversión exacta.</p>
      <div class="divider"></div><h3>Origen de consultas</h3><ul class="softlist" id="intel-origins"></ul>
      <div class="buttons"><button class="button secondary" type="button" data-open-capture="lead">+ Nueva consulta</button></div>
     </article>
-    <article class="card s6"><h3>🏥 Capacidad clínica</h3>
+    <article class="card s6" data-photo="CL-01"><h3>🏥 Capacidad clínica</h3>
      <div class="metric" id="intel-capacity">—</div><p id="intel-capacity-note" class="minor"></p>
      <div class="statrow"><span>Horas atendidas esta semana</span><b id="intel-attended">—</b></div>
      <div class="statrow"><span>Bloques en agenda operativa</span><b id="intel-booked">—</b></div>
      <div class="divider"></div><h3>Resumen PSICOPRO</h3><p id="intel-clinic-message" class="smalltext"></p>
     </article>
+    <article class="card s12" data-photo="CL-02">
+     <div class="cardhead"><h3>📅 Seguimiento de sesiones PSICOPRO</h3><div id="clinic-monthly-url"></div></div>
+     <div class="dash">
+      <div class="dashitem"><div class="label">Sesiones registradas esta semana</div><div class="metric" id="clinic-current-week">—</div></div>
+      <div class="dashitem"><div class="label">Sesiones registradas este mes (semanas iniciadas)</div><div class="metric" id="clinic-monthly">—</div></div>
+     </div>
+     <p class="minor" id="clinic-tracking-note">Cifras del registro semanal; no implican verificación individual independiente de asistencia.</p>
+     <div id="clinic-weeks-bars" class="metric-bars"></div>
+     <div class="divider"></div>
+     <div class="statrow"><span>Pacientes habituales clasificados</span><b id="k-patients">—</b></div>
+    </article>
    </div>
   </div>
   <div class="subpanel" id="intel-rendimiento" hidden>
    <div class="grid">
-    <article class="card s6"><h3>🥊 Adherencia reciente · 7 días</h3><ul class="softlist" id="intel-adherence"></ul>
+    <article class="card s6" data-photo="BX-03"><h3>🥊 Adherencia reciente · 7 días</h3><ul class="softlist" id="intel-adherence"></ul>
      <div class="divider"></div><h3>DRG actual</h3><div class="metric" id="intel-drg">—</div><p id="intel-drg-note" class="minor"></p></article>
-    <article class="card s6"><h3>💤 Sueño registrado</h3><div class="metric" id="intel-sleep">—</div><p id="intel-sleep-note" class="minor"></p>
+    <article class="card s6" data-photo="SL-01"><h3>💤 Sueño registrado</h3><div class="metric" id="intel-sleep">—</div><p id="intel-sleep-note" class="minor"></p>
      <div class="divider"></div><h3>Cardio</h3><p id="intel-cardio" class="smalltext"></p></article>
-    <article class="card s6"><h3>🎯 Boxing roadmap</h3><ul class="softlist" id="intel-boxing-skills"></ul></article>
-    <article class="card s6"><h3>🏋️ Objetivos MTS</h3><ul class="softlist" id="intel-mts-kpis"></ul></article>
+    <article class="card s6" data-photo="BX-02">
+      <div class="cardhead"><h3>🎯 Boxing roadmap</h3><div id="boxing-roadmap-source"></div></div>
+      <p class="minor">Radar de 15 habilidades · nivel actual frente a meta (escala 0–10).</p>
+      <div id="boxing-radar" class="radar-wrap" role="img" aria-label="Radar comparativo de 15 habilidades: nivel registrado versus objetivo"></div>
+      <div id="intel-boxing-skills" class="smalltext skill-legend"></div>
+     </article>
+    <article class="card s6" data-photo="GY-01">
+      <div class="cardhead"><h3>🏋️ Objetivos MTS</h3><div id="mts-kpi-source"></div></div>
+      <p class="minor">Barras de progreso únicamente para objetivos numéricos comparables. Los estados técnicos se mantienen como texto.</p>
+      <div id="intel-mts-progress" class="metric-bars"></div>
+      <ul class="softlist" id="intel-mts-kpis"></ul>
+     </article>
    </div>
   </div>
   <div class="subpanel" id="intel-finanzas" hidden>
    <div class="grid">
-    <article class="card s6"><h3>💰 Presupuesto vigente</h3><div class="metric" id="intel-finance-total">—</div><p id="intel-finance-note" class="minor"></p>
+    <article class="card s6" data-photo="FN-01"><h3>💰 Presupuesto vigente</h3><div class="metric" id="intel-finance-total">—</div><p id="intel-finance-note" class="minor"></p>
      <h3>Proyección</h3><p id="intel-projection"></p></article>
-    <article class="card s6"><h3>📆 Plan económico 6 meses</h3><ul class="softlist" id="intel-finance-plan"></ul></article>
-    <article class="card s12"><h3>🥊 BOXINGCI · Inventario y margen</h3><ul class="softlist" id="intel-merch"></ul><p class="minor">Las cifras son aproximaciones a partir de stock y precios registrados, no ventas futuras.</p></article>
+    <article class="card s6" data-photo="PR-03"><h3>📆 Plan económico 6 meses</h3><ul class="softlist" id="intel-finance-plan"></ul></article>
+    <article class="card s12" data-photo="BX-04"><h3>🥊 BOXINGCI · Inventario y margen</h3><ul class="softlist" id="intel-merch"></ul><p class="minor">Las cifras son aproximaciones a partir de stock y precios registrados, no ventas futuras.</p></article>
    </div>
   </div>
   <div class="subpanel" id="intel-proyectos" hidden>
    <div class="grid">
-    <article class="card s6"><h3>✅ Buzón operativo</h3><div class="metric" id="intel-inbox-count">—</div><p class="minor">Ideas y compromisos capturados, sin detalles clínicos</p><ul class="softlist" id="intel-project-ideas"></ul></article>
-    <article class="card s6"><h3>💻 Repositorios</h3><ul class="softlist" id="intel-github-links"></ul>
+    <article class="card s6" data-photo="TH-02"><h3>✅ Buzón operativo</h3><div class="metric" id="intel-inbox-count">—</div><p class="minor">Ideas y compromisos capturados, sin detalles clínicos</p><ul class="softlist" id="intel-project-ideas"></ul></article>
+    <article class="card s6" data-photo="PR-01"><h3>💻 Repositorios</h3><ul class="softlist" id="intel-github-links"></ul>
      <p class="minor">Los enlaces no significan que un proyecto haya terminado; debe comprobarse el entregable.</p></article>
    </div>
   </div>
@@ -301,10 +344,11 @@
     <div class="buttons"><a class="button secondary" href="https://github.com/rbvk/cc/blob/main/apps-script/V9_ROADMAP.md" target="_blank" rel="noopener">Hoja de ruta ↗</a></div>
    </article>
   </div>
-  <div class="subpanel" id="intel-fotografias" hidden>
-   <article class="card"><h3>📷 Biblioteca visual · Uso responsable</h3>
-    <p class="minor">18 fotografías adicionales: clínica, boxeo, gimnasio, tesis, proyectos y productividad. Créditos y enlaces visibles. Fotografías ilustrativas, no de tu consultorio ni sesiones reales.</p>
-    <div class="photo-grid" id="other-photos"></div>
+  <div class="subpanel" id="intel-auditoria" hidden>
+   <article class="card" data-photo="AR-06">
+    <div class="cardhead"><h3>⚠️ Auditoría de incoherencias</h3><span id="audit-count" class="tag">—</span></div>
+    <p class="minor">Se conservan los controles de V8: Calendar vs Matrix, MTS vs Matrix y PSICOPRO vs Matrix, con enlaces específicos a cada origen.</p>
+    <div id="audit-detailed" class="audit-list"></div>
    </article>
   </div>
  </section>
