@@ -42,50 +42,42 @@ Regla: mostrar solamente datos que puedan cambiar una decisión.
 - No integrar Meta Cloud API ni leer automáticamente chats en v9 por defecto. No pedir uso consistente de etiquetas.
 - Cualquier dato de ingresos atribuidos por canal debe indicarse como desconocido salvo fuente que lo demuestre.
 
-## 5. Arica — directorio local sin consultas meteorológicas externas
+## 5. Arica — inteligencia regional bajo demanda (revisión 25-10-2026)
 
-**Decisión vigente:** el usuario canceló las consultas periódicas de clima, calidad del aire y oleaje. Se eliminó toda llamada `UrlFetchApp` y el permiso `script.external_request`; el CC no solicita datos meteorológicos ni modelados al cargar. La hora de Arica se calcula directamente desde el dispositivo mediante `Intl.DateTimeFormat` y zona `America/Santiago`.
+**Decisión más reciente del usuario:** restituir temperatura, viento, radiación UV, aire y oleaje **dentro de Arica**, y añadir publicaciones y sismos recientes fechados, **sin volver a las consultas meteorológicas recurrentes**.
 
-### 5.1 Funciones permitidas
+### Modelo técnico vigente
 
-| Bloque | Fuente | Comportamiento |
-|---|---|---|
-| Hora y fecha de Arica | `Intl.DateTimeFormat` | Actualización local, sin solicitudes web |
-| Fotografías de archivo | Licencias catalogadas Wikimedia Commons/Pexels | Carga de imágenes al abrir una galería; no son CCTV |
-| Cámaras anunciadas | Enlaces Ubiavis, DGAC, SkylineWebcams | Apertura voluntaria en página del proveedor, sin consulta de señal desde el CC |
-| Alertas, sismos, aire, meteorología oficial y litoral | Links SENAPRED, CSN, SINCA, DMC, Armada | Acceso bajo demanda: solo al pulsar el enlace |
-| Eventos y movilidad | Enlaces oficiales y Calendar | Sin peticiones automáticas a APIs de terceros |
+- El reloj `America/Santiago` es local, sin llamadas web.
+- **Solo al abrir Arica** se solicita `getV9LocalData`, que agrupa hasta **6** URLs públicas en una operación `UrlFetchApp.fetchAll` y guarda un **caché de 15 minutos**. Existe un botón «Comprobar fuentes». Ningún `setInterval` llama a `getV9LocalData`.
+- Open-Meteo sirve **modelos** de temperatura, viento, sensación, radiación UV, MP2,5, AQI, altura/período de olas, cada uno con la hora del modelo y estado de frescura; no son mediciones oficiales de estación.
+- Sismos: la web pública del **CSN** sirve una lista de últimos eventos con fecha local, magnitud, profundidad y lugar; filtrar Arica/Parinacota. Si el formato cambia, indicar `No disponible`, no «Sin sismos».
+- SENAPRED: RSS indexado de artículos oficiales que mencionen Arica y Parinacota con fecha de publicación. Los comunicados *indexados* **no equivalen a alertas confirmadas vigentes**. Siempre enlazar estado oficial y mostrar la limitación.
+- Armada: publicaciones marítimas indexadas con fecha y enlace para examinar vigencia. El pronóstico de olas no valida la existencia de una alerta de marejadas.
+- En el panel, fotos patrimoniales contextualizadas y acreditadas dentro de las tarjetas de clima, sismos, mar, alertas, cámaras y zonas. **Sin galería Arica**.
 
-**No reintroducir temperaturas, viento, pronóstico ni tarjetas con guiones que parezcan mediciones ausentes.** La ausencia de estas cifras es una decisión de producto, no un fallo de conexión.
+### Verificaciones de la fuente
 
-### 5.2 Cámaras y fotos: estados investigados el 24/10/2026
+Cada tarjeta distingue proveedor, tipo `modelo / oficial / índice`, último dato o última publicación, si está desactualizado y enlace de origen. Los avisos de emergencias NUNCA deben atribuir vigencia sin verificación de cancelación, actualización y período oficial.
 
-**Regla innegociable:** una página rotulada "LIVE" NO demuestra streaming actual. Mostrar `EN VIVO` solo si hay reproducción verificable + tiempo reciente. Si es frame, marcar "imagen capturada" + timestamp. Si no hay vídeo o imágenes recientes, marcar "sin transmisión verificada".
+### Permisos
 
-- **Ubiavis / Humedal Río Lluta** https://www.ubiavis.cl/ : sitio ofrece acceso público anunciado como cámara live, pero reproducción efectiva y autorización de incrustación no comprobadas. Puede aparecer como "ver transmisión en proveedor".
-- **DGAC Chacalluta Norte/S-Oeste** https://aipchile.dgac.gob.cl/camara_ubicacion/show/designador/SCAR : dos cámaras listadas como activas con fotografías fechadas; son **imágenes periódicas**, no video streaming. Marca de tiempo visible de días anteriores; controlar frescura y no calificarlas como tiempo real.
-- **SkylineWebcams costa rocosa Arica** https://www.skylinewebcams.com/es/webcam/chile/arica-and-parinacota-region/arica/arica.html : aparece OFFLINE; no mostrar como activo.
-- **Vision-Environnement / Isla Alacrán / El Buey** https://www.vision-environnement.com/es/webcam/chile/arica-et-parinacota/5376-arica-plage-de-isla-alacran/ y https://www.vision-environnement.com/es/webcam/chile/arica-et-parinacota/5370-arica-plage-de-el-buey/ : fichas anuncian LIVE, pero últimas imágenes reportadas del 18/10/2026; no tratar como live hasta verificar frames nuevos, zona horaria y permisos.
-- **CCTV municipal (Morro, Chinchorro, Capitán Ávalos)** https://muniarica.cl/seguridad/innovacion-comunitaria : hay sistema municipal centralizado, **NO** se verificó portal autorizado de señales públicas. No intentar descubrir o incorporar streams internos ni indexadores de cámaras no autorizadas.
+`spreadsheets.readonly`, `calendar.readonly` y `script.external_request`; la última autorización se usa solo para la lectura bajo demanda de fuentes públicas de Arica en la aplicación privada. El propietario debe comprobar que los términos de Open-Meteo cubren el tipo de uso.
 
-**Diseño sugerido de tarjeta de cámara:** foto/fotograma o reproductor solo si el propietario permite embed y la señal está verificada, rótulo "en vivo" / "imagen reciente" / "offline", última captura, propietario y botón «Abrir fuente». Fallback con enlace, sin placeholder que simule imagen real. Evitar almacenado continuo de CCTV, reconocimiento facial, identificación de personas, y acceso no autorizado.
 
-### 5.3 Arica local contextual
+## 6. Implementación actual y pruebas
 
-- Vista principal: solo hora de Arica y botón a fuentes locales.
-- Vista Arica: directorio de cámaras y proveedores, fotografías de archivo y enlaces oficiales accesibles bajo demanda.
-- No verificar cámaras mediante sondeos automáticos; el enlace de un proveedor nunca demuestra transmisión en vivo.
-- No almacenar imágenes CCTV ni datos personales de terceros.
-- Clima, aire y marejadas se consultan únicamente fuera del CC cuando el propietario decide abrir la fuente.
+1. Captación anónima WhatsApp, buzón de tareas, escenarios y log de decisiones.
+2. V9 muestra nuevamente la **auditoría de incongruencias** entre Calendar, Matrix, PSICOPRO, MTS y Finanzas: evidencia, prioridad, fecha y enlaces de origen.
+3. MTS registra **2 clases dirigidas** en últimos siete días (lunes 19/10 y miércoles 21/10), sin duplicar ejercicios integrados en una misma clase.
+4. PSICOPRO `Objetivos/Paciente!A25:D75` registra 9 sesiones 5/10, 12 sesiones 12/10 y 6 sesiones 19/10: **27 sesiones de semanas iniciadas en octubre hasta 25/10**. La semana 26/10, 18, se trata como futura. No equivale a asistencia independientemente certificada.
+5. `Boxing roadmap`: radar SVG de 15 habilidades, nivel registrado y objetivo, más enlaces directos. `MONTH KPI`: barras de progreso solo con objetivos de fuerza expresados en unidades comparables y enlace directo.
+6. **Imágenes integradas editorialmente** en hero y 28 tarjetas de dominio, con crédito/licencia y sin páginas de galería separadas.
+7. **Arica a demanda** con modelo y fuentes publicadas (seis URLs, cache 15 minutos), no en el refresh automático de otros indicadores.
+8. El motor se carga por etapas. La implementación privada real debe actualizarse desde el repositorio; GitHub Pages no lo hace automáticamente.
 
-## 6. Estado de implementación
+**Pruebas:** suite sintética cubre 2 clases únicas, acumulado 27 sin 18 futura, auditoría y radar, datos marítimos/CSN/SENAPRED etiquetados y ausencia de sondeos periódicos.
 
-1. Núcleo V9: captación agregada, buzón privado de tareas, decisiones y escenarios.
-2. Arranque por etapas: `getV9Bootstrap` no lee Sheets ni Calendar; `getV9Dashboard` procesa fuentes principales; `getV9Extended` lee otras métricas independientemente.
-3. Módulo Arica: únicamente reloj del dispositivo, cámaras como directorio y enlaces públicos manuales. **Cero llamadas meteorológicas externas del servidor.**
-4. Web App privada: requiere que el propietario copie los archivos a su proyecto Apps Script existente y publique una nueva versión.
-
-**Pruebas:** suite sintética comprueba ausencia de `UrlFetchApp`, permiso externo eliminado, pantalla única y tolerancia a fallo del motor principal.
 
 ## 7. Diseño de interfaz, lectura y sistema visual — propuesta V9
 
@@ -116,7 +108,7 @@ Regla: mostrar solamente datos que puedan cambiar una decisión.
 2. **KPI con contexto:** valor grande, comparación relevante, horizonte, fuente y hora de actualización. La variación precisa más importante que un gráfico decorativo.
 3. **Alertas agrupadas** por decisión, prioridad y tipo; enlazar la celda concreta. Evitar duplicados entre Home, Inteligencia y notificaciones.
 4. **Más detalles bajo demanda**: título breve, evidencia, origen, incertidumbre y «Ver en fuente»; información personal/clinica en panel privado y solo cuando sea pertinente.
-5. **Tarjeta Arica** compacta: reloj, acceso a fuentes oficiales y galería de fotos; ninguna temperatura, viento o UV solicitado automáticamente.
+5. **Tarjeta Arica** compacta en Inicio: reloj e imagen con enlace; los modelos y comunicados fechados se consultan solo cuando se entra a la pantalla Arica.
 6. **Tarjeta Opportunity Engine**: `Oportunidad -> impacto -> tiempo -> riesgo -> acción`, comparador `actual vs propuesta` con consentimiento antes de ejecutar.
 7. **Captura rápida**: entrada única, aceptar voz por dictado del teclado, reconocimiento de duplicados antes de registrar, sin 12 campos obligatorios.
 8. **Modos de densidad:** `Compacto` para revisión en 15 segundos, `Detallado` para auditoría. Preferencia local no sensible.
@@ -171,7 +163,7 @@ Regla: mostrar solamente datos que puedan cambiar una decisión.
 
 - **Implementado en GitHub:** V9_Core.gs (captación, memoria, agenda potencial, tareas y log de predicciones), V9_Intelligence.gs (fuentes Arica, inventario, rendimiento, servicios, escenarios y oportunidades), Index.html (cuatro pantallas, captura, hipótesis y galería remota de 29 fotografías), test command-center-v9.mjs y release.json versión 2026.10.24.9.
 - **Vista previa GitHub Pages:** preview-v9.html con datos ficticios, sin acceso a hojas, mensajes o cuentas privadas. La publicación Pages se prueba aparte de la app propietaria.
-- **Los commits no despliegan Apps Script automáticamente:** actualizar Code.gs, Index.html, V9_Core.gs y V9_Intelligence.gs en el proyecto RV-CCv9 existente, guardar appsscript.json con solo los permisos de lectura de Sheets y Calendar y publicar una nueva versión con acceso Solo yo.
+- **Los commits no despliegan Apps Script automáticamente:** actualizar Code.gs, Index.html, V9_Core.gs, V9_Intelligence.gs y V9_Local.gs en el proyecto RV-CCv9 existente, guardar appsscript.json con solo los permisos de lectura de Sheets y Calendar y publicar una nueva versión con acceso Solo yo.
 - **Diferimientos comprobables:** la tasa exacta de conversión individual no existe por decisión de captación mínima; primeras atenciones solo con marcador explícito en PSICOPRO; CCTV municipal no es público; webcams no se etiquetan activas; no existen consultas automáticas a servicios meteorológicos; no se modifican Calendar ni Sheets automáticamente; integración de Gmail y contenido Docs requiere autorización y delimitación de fuentes; las 29 imágenes se solicitan a servidores de origen, no se descargan a binarios del repo.
 - **Motor de ejecución supervisado realmente disponible:** cerrar/descartar pendientes en su almacén privado y abrir un borrador genérico de Calendar; el usuario guarda el evento en Google Calendar, no se escribe nada por detrás.
 - **Calibración de decisiones:** el motor ahora registra hipótesis por mes con confianza explícita y su resultado; no transforma este porcentaje en una probabilidad estadística comprobada sin historial suficiente.
@@ -190,11 +182,15 @@ Regla: mostrar solamente datos que puedan cambiar una decisión.
 - Para revertir el código, usar un commit anterior y volver a implementarlo; no almacenar interfaces históricas dentro del proyecto Apps Script activo.
 
 
-## 11. Eliminación definitiva de sondeos meteorológicos (revisión posterior)
+## 11. Supresión de los sondeos periódicos, NO de Arica bajo demanda
 
-- Borradas funciones de descarga de clima, aire y mar de `V9_Intelligence.gs`.
-- Eliminado `getV9Arica` como endpoint de consulta externa; Arica se entrega en el bootstrap como directorio sin API.
-- `appsscript.json` ya **no** incluye `script.external_request`; conserva solo los alcances de lectura de Sheets y Calendar.
-- `Index.html` deja de mostrar tarjetas meteorológicas que estaban vacías y añade arranque por etapas con errores aislados.
-- V9 sigue funcionando sin servicios externos de clima. La consulta manual de un enlace oficial no es una actualización automática.
-- La aplicación privada `/exec` únicamente incorpora esta corrección una vez que el propietario despliega una nueva versión del proyecto.
+- Se mantiene la decisión de **no consultar el tiempo cada cinco minutos**.
+- El módulo opcional `V9_Local.gs` se ejecuta solo cuando el usuario entra a Arica y se almacena en caché durante 15 minutos.
+- El refresh periódico del panel general no consulta sitios meteorológicos; solo las fuentes de Sheets/Calendar.
+- El permiso `script.external_request` permite las consultas solicitadas manualmente dentro de Arica, no sondeos automáticos.
+- Las fuentes que no entregan estados verificables muestran «No disponible» o «Vigencia no verificada» en vez de una afirmación falsa.
+
+
+## 12. Entrega visual — sin galerías
+
+Se eliminaron la subpestaña `Fotos` y las secciones de galería de archivo. Las fotografías están integradas en las secciones como imágenes editoriales con pies breves, atribución y texto alternativo. Las cifras clínicas y financieras no usan fotos de pacientes ni consultorio imaginarios presentados como reales. El catálogo de 29 fuentes permanece como manifiesto de derechos y procedencia, no como sección visual.
