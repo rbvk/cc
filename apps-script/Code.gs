@@ -382,6 +382,22 @@ function readTraining_(id,now) {
     const item=adherence[domain];
     item.completionPct=item.planned?Math.round(item.done*100/item.planned):null;
   }
+  // A coached class is the SINGLE top-level "Coached Boxing" row marked done.
+  // Count unique DAYS, not the day headers (which often have no status),
+  // the warm-up, the technical drills embedded inside class, or hourly Matrix blocks.
+  const coachedByDay=new Map();
+  for(let idx=0;idx<daily.length;idx++){
+    const row=daily[idx],d=parseDmy_(row[1]);
+    if(!d)continue;
+    const day=iso_(d);
+    if(day<adherence.from||day>todayIso)continue;
+    const title=String(row[2]||'').split('\n')[0].trim();
+    if(!/(?:^|\s)(?:Coached Boxing|Coached boxing|clase de boxeo|clase boxeo)\s*(?:—|[-–]|$)/i.test(title))continue;
+    if(statusType(row[3])!=='done')continue;
+    const link=cellUrl_(id,'Daily log','D'+(idx+2),metadata);
+    if(!coachedByDay.has(day))coachedByDay.set(day,{date:day,sourceUrl:link});
+  }
+  const coachedClasses7d=[...coachedByDay.values()].sort((a,b)=>a.date.localeCompare(b.date));
   const drgToday=current?{date:current.date,score:current.score,output:current.output,hardStop:current.hardStop}:null;
   const drgLatest=latest?{date:latest.date,score:latest.score,output:latest.output}:null;
   const recentDrg=drgs.filter(x=>x.iso>=iso_(plusDays_(now,-6))).map(x=>
@@ -390,6 +406,8 @@ function readTraining_(id,now) {
       state:'ok',drgToday,drgLatest,
       drgState:drgToday?(drgToday.output==='SIN SALIDA'?'incomplete':'recorded'):'missing',
       completedSessions7d,omittedSessions7d,sessionHeaders7d:recentHeaders.length,
+      coachedClasses7d:coachedClasses7d.length,coachedClassEntries:coachedClasses7d,
+      coachedClassDefinition:'Días distintos con fila Coached Boxing marcada Done; excluye drills dentro de clase',
       adherence,recentDrg,
       scheduledKinds:plans.length,
       nextWeekScheduled,lastProgrammedDate,
@@ -446,9 +464,54 @@ function readClinicalHours_(id,tabs,metadata,now) {
     note:'Horas atendidas esta semana según PSICOPRO depurado (solo citas efectivamente atendidas); cada bloque representa 1 h.',
     url:tabUrl_(id,tab,metadata)};
 }
+/**
+ * Read PSICOPRO's authoritatively maintained 'SEGUIMIENTO SEMANAL'.
+ * This table reports "Sesiones"; it does not independently verify attendance.
+ * Skip future weeks in the month-to-date historical subtotal; surface separately.
+ * Do not expose names, clinical notes or patient-level records.
+ */
+function rv9ClinicalWeekly_(id,metadata,now){
+  const tab='Objetivos/Paciente';
+  const rows=values_(id,"'Objetivos/Paciente'!A25:D75");
+  if(!rows.length||!/seguimiento semanal/i.test(String(rows[0]?.[0]||'')))
+    return {state:'unavailable',weekly:[],monthToDate:null};
+  const nowIso=iso_(now),month=nowIso.slice(0,7),thisMonday=iso_(startMonday_(now));
+  const history=[],upcoming=[];
+  let currentWeek=null,monthly=0,monthWeeks=0;
+  for(let i=2;i<rows.length;i++){
+    const row=rows[i],label=String(row[0]||'').trim();
+    const m=label.match(/^(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?$/);
+    if(!m)continue;
+    const year=m[3]?Number(m[3].length===2?'20'+m[3]:m[3]):Number(month.slice(0,4));
+    const d=new Date(year,Number(m[2])-1,Number(m[1]),12);
+    if(d.getFullYear()!==year||d.getMonth()!==Number(m[2])-1||d.getDate()!==Number(m[1]))continue;
+    const date=iso_(d),value=money_(row[1]),capacity=money_(row[2]);
+    const valid=Number.isSafeInteger(value)&&value>=0&&value<=100;
+    const url=cellUrl_(id,tab,'B'+(i+25),metadata);
+    const item={week:label,startDate:date,sessions:valid?value:null,
+      capacity:Number.isFinite(capacity)?capacity:null,
+      sourceUrl:url,status:date>thisMonday?'future':date===thisMonday?'current':'historical'};
+    if(item.status==='future'){upcoming.push(item);continue;}
+    history.push(item);
+    if(item.status==='current')currentWeek=item;
+    if(date.slice(0,7)===month&&valid){monthly+=value;monthWeeks++;}
+  }
+  history.sort((a,b)=>a.startDate.localeCompare(b.startDate));
+  const last=history.slice(-10);
+  return {state:'ok',week:thisMonday,currentWeek:currentWeek?.sessions??null,
+    currentWeekUrl:currentWeek?.sourceUrl||null,
+    month,monthToDate:monthWeeks?monthly:null,
+    monthWeeksCount:monthWeeks,
+    recentWeeks:last,upcoming:upcoming.slice(0,8),
+    goalsUrl:tabUrl_(id,tab,metadata),
+    definition:'Sesiones anotadas en Seguimiento semanal PSICOPRO; no prueba independiente de asistencia',
+    monthNote:'Subtotal por fecha de inicio de semana, excluidas semanas futuras'};
+}
+
 function readClinical_(id,now) {
   const metadata=sheetMetadata_(id),tabs=metadata.map(s=>s.title);
   const goals=values_(id,"'Objetivos/Paciente'!A1:C4");
+  const sessions=rv9ClinicalWeekly_(id,metadata,now);
   const baseline=goals[1]||[];
   const targetRow=goals[2]||[];
   const weekly=/clasificad.*semanal/i.test(String(baseline[1]||''))?money_(baseline[0]):null;
@@ -464,6 +527,7 @@ function readClinical_(id,now) {
   const publicData={
     state:usable?'ok':'partial',weekly:usable?weekly:null,target:RV_TARGET_WEEKLY,
     gap:usable?delta:null,week:key,bookedBlocks:null,
+    tracking:sessions,
     currentWeekHours,
     url:null,goalsUrl:tabUrl_(id,'Objetivos/Paciente',metadata),
     message:usable?weekly+' / '+RV_TARGET_WEEKLY+' pacientes semanales · '+(delta<0?'faltan '+Math.abs(delta):delta>0?'sobre objetivo por '+delta:'meta alcanzada'):
