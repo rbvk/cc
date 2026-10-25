@@ -73,7 +73,7 @@ const mock={
  "'📆 Plan 6 meses'!A4:H18":[['Oct-26',12,648000,400000,null,634000,770000]],
  "'🥊 BOXINGCI Merch'!A2:K10":[['Protector bucal',4250,10000,8,0]],
  "'Servicios'!A1:A10":[['Sesión individual — $35.000']],
- "'19/10'!A3:F15":[['9:00','Primera sesión 🆕','','','','']]
+ "'19/10'!A3:F15":[['9:00','Primera sesión 🆕 ✅','','','','']]
  })[range]||[],
  money_:value=>value===null||value===undefined?null:Number(String(value).replace(/[^0-9-]/g,'')),
  clp_:v=>String(v),
@@ -114,6 +114,28 @@ assert.equal(extended.extra.service.gross,35000);
 assert.ok(extended.availability.windows.length>0);
 assert.equal(extended.firstAttentions.currentWeek,1);
 assert.ok(v.arica.cameras.length>0);
+// A first appointment without an explicit attendance mark cannot be counted as attended.
+const originalValues=ctx.values_;
+ctx.values_=(id,range)=>range==="'19/10'!A3:F15"?
+ [['9:00','Primera sesión 🆕','','','','']]:originalValues(id,range);
+const unverifiedFirst=call('rv9FirstAttentions_',mock.PropertiesService.getScriptProperties(),new Clock(now));
+assert.equal(unverifiedFirst.state,'unverified');
+assert.equal(unverifiedFirst.currentWeek,null);
+assert.equal(unverifiedFirst.candidateFirstAppointments,1);
+ctx.values_=originalValues;
+// Missing Calendar authorization must never create fictitious free time.
+const originalCalendar=ctx.CalendarApp;
+ctx.CalendarApp={getDefaultCalendar(){throw new Error('Calendar denied')}};
+const unavailableWindows=call('rv9Available_',mock.PropertiesService.getScriptProperties(),new Clock(now));
+assert.equal(unavailableWindows.state,'unavailable');
+assert.equal(unavailableWindows.windows.length,0);
+ctx.CalendarApp=originalCalendar;
+// Rest, sleep, and meal blocks are not valid task windows.
+const originalMatrix=ctx.readMatrix_;
+ctx.readMatrix_=()=>({available:['19/10'],slots:{'2026-10-24':
+ Object.fromEntries(Array.from({length:24},(_,h)=>[h*60,{busy:false,protectedTime:true}]))}});
+assert.equal(call('rv9Available_',mock.PropertiesService.getScriptProperties(),new Clock(now)).windows.length,0);
+ctx.readMatrix_=originalMatrix;
 assert.ok(!('weather' in v.arica));
 assert.ok(v.opportunities.items.some(x=>x.id==='capacity'));
 // Simulate failure in the core Sheets/Calendar source: boot and UI must remain usable.
@@ -153,6 +175,8 @@ const dedicated=vm.createContext({
  sheetMetadata_:()=>[{title:'Daily log',sheetId:17},{title:'Objetivos/Paciente',sheetId:33}],
  values_:(id,range)=>{
   if(range==="'Daily log'!A2:D1200")return [
+   ['M9W6','18/10/2026 — Sunday','🥊 SUN 18/10 · Coached Boxing','Done'],
+   ['M9W6','18/10/2026 — Sunday','🥊 Coached Boxing — 105 min','Done'],
    ['M9W6','19/10/2026 — Monday','🥊 MON 19/10 · Coached Boxing + LEGS',''],
    ['M9W6','19/10/2026 — Monday','🥊 Coached Boxing — 105 min','Done'],
    ['M9W6','19/10/2026 — Monday','🥊 TECH primer INSIDE CLASS','Done'],
@@ -183,11 +207,26 @@ const dedicated=vm.createContext({
 vm.runInContext(fn('readTraining_')+'\n'+fn('rv9ClinicalWeekly_'),dedicated);
 const training=vm.runInContext("readTraining_('MTS_SYNTHETIC',new Date('2026-10-25T13:00:00Z'))",dedicated);
 assert.equal(training.publicData.coachedClasses7d,2,'Unique completed coached days, not inner drills');
+assert.equal(training.publicData.adherence.boxing.planned,2,
+ 'Seven-day inclusive window must exclude the previous Sunday header');
 assert.deepEqual(Array.from(training.publicData.coachedClassEntries,x=>x.date),['2026-10-19','2026-10-21']);
 const clinics=vm.runInContext("rv9ClinicalWeekly_('PSICO_SYNTHETIC',[],new Date('2026-10-25T13:00:00Z'))",dedicated);
 assert.equal(clinics.currentWeek,6);
 assert.equal(clinics.monthToDate,27);
 assert.equal(clinics.upcoming[0].sessions,18,'Future week must not contaminate month-to-date');
+// Source booking hours must not be presented as verified clinical attendance.
+Object.assign(dedicated,{
+ matchTab_:(tabs,key)=>tabs.includes(key)?key:null,
+ hour_:value=>Number(String(value).split(':')[0])*60+Number(String(value).split(':')[1]||0),
+ isFree_:text=>!String(text||'').trim(),
+ values_:(_,range)=>range==="'19/10'!A3:F15"?
+  [['9:00','Reserva agendada'],['10:00','Atendida ✅']]:[]
+});
+vm.runInContext(fn('readClinicalHours_'),dedicated);
+const hours=vm.runInContext("readClinicalHours_('SYNTHETIC',['19/10'],[],new Date('2026-10-25T13:00:00Z'))",dedicated);
+assert.equal(hours.elapsedBookingHours,2,'Two past booked hours');
+assert.equal(hours.verifiedAttendedHours,1,'Only explicitly marked completed visit');
+assert.equal(hours.attendedHours,1,'Do not equate booked hours with attendance');
 
 // Simulate on-demand Arica. Not part of the initial getV9Dashboard RPC.
 const newsFixture='<rss><channel><item><title>Alerta temprana preventiva en Parinacota - SENAPRED</title>'+
