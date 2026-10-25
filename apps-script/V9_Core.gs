@@ -332,7 +332,7 @@ function configureV9Sources(raw){
 }
 
 function getV9Dashboard(){
- const now=new Date(),p=rv9Props_(),base=getDashboard();
+ const now=new Date(),p=rv9Props_(),base=rv9BaseDashboard_();
  const configuration=rv9Configuration_(p,base);
  const ideas=rv9AllIdeas_(p,now),inbox=rv9Inbox_(ideas),leads=rv9LeadStats_(p,now);
  const decisions=rv9DecisionSummary_(rv9AllDecisions_(p,now));
