@@ -5,8 +5,8 @@ import crypto from 'node:crypto';
 
 const root=new URL('../',import.meta.url);
 const read=name=>fs.readFileSync(new URL(name,root),'utf8');
-const legacy=read('Code.gs'),core=read('V9_Core.gs'),extra=read('V9_Intelligence.gs'),html=read('V9.html');
-[legacy,core,extra].forEach(s=>new vm.Script(s));
+const engine=read('Code.gs'),core=read('V9_Core.gs'),extra=read('V9_Intelligence.gs'),html=read('Index.html');
+[engine,core,extra].forEach(s=>new vm.Script(s));
 const client=html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
 assert.ok(client);new vm.Script(client);
 const ids=new Set([...html.matchAll(/\bid="([^"]+)"/g)].map(x=>x[1]));
@@ -17,7 +17,11 @@ const manifest=JSON.parse(read('appsscript.json'));
 assert.equal(manifest.webapp.access,'MYSELF');
 assert.ok(manifest.oauthScopes.includes('https://www.googleapis.com/auth/script.external_request'));
 assert.ok(!manifest.oauthScopes.includes('https://www.googleapis.com/auth/spreadsheets'));
-assert.ok(legacy.includes("legacy?'Index':'V9'"));
+assert.ok(engine.includes("createHtmlOutputFromFile('Index')"));
+assert.ok(!engine.includes('?view=v8'));
+assert.ok(!engine.includes('getMatrixOnlyClinicalDetail'));
+assert.ok(html.includes('id="setup-banner"'));
+assert.ok(html.includes('configureV9Sources'));
 
 const now='2026-10-24T21:00:00Z';let sequence=0;const stored={};
 class Clock extends Date{constructor(...a){super(...(a.length?a:[now]))}static now(){return Date.parse(now)}}
@@ -32,10 +36,13 @@ const mock={
  DigestAlgorithm:{SHA_256:'SHA_256'},computeDigest:(_,s)=>Array.from(crypto.createHash('sha256').update(s).digest()),
  base64EncodeWebSafe:data=>Buffer.from(data).toString('base64url')},
  PropertiesService:{getScriptProperties:()=>({
- getProperty:k=>stored[k]||({MATRIX_SHEET_ID:'MATRIX_ID_SYNTHETIC_1234',FINANCE_SHEET_ID:'FINANCE_ID_SYNTHETIC_1234',CLINICAL_SHEET_ID:'CLINIC_ID_SYNTHETIC_1234'}[k]||null),
+ getProperty:k=>Object.prototype.hasOwnProperty.call(stored,k)?stored[k]:({MATRIX_SHEET_ID:'MATRIX_ID_SYNTHETIC_1234',FINANCE_SHEET_ID:'FINANCE_ID_SYNTHETIC_1234',CLINICAL_SHEET_ID:'CLINIC_ID_SYNTHETIC_1234',TRAINING_SHEET_ID:'TRAINING_ID_SYNTHETIC_1234'}[k]||null),
  setProperty(k,v){stored[k]=String(v)},deleteProperty(k){delete stored[k]}})},
  LockService:{getScriptLock:()=>({waitLock(){},releaseLock(){}})},
  CacheService:{getScriptCache:()=>({get(){return null},put(){}})},
+ Sheets:{Spreadsheets:{get:(id)=>({properties:{title:'Synthetic '+id},
+  sheets:['Daily log','drg','Objetivos/Paciente','Servicios','19/10','Pre Oct']
+   .map(title=>({properties:{title}}))})}},
  UrlFetchApp:{fetch:url=>({getResponseCode:()=>200,getContentText:()=>{
  if(url.includes('air-quality-api'))return JSON.stringify({current:{pm2_5:9,us_aqi:35,time:'2026-10-24T18:00'}});
  if(url.includes('marine-api'))return JSON.stringify({current:{wave_height:1.2,wave_period:9,time:'2026-10-24T18:00'}});
@@ -58,7 +65,7 @@ const mock={
  })[range]||[],
  money_:value=>value===null||value===undefined?null:Number(String(value).replace(/[^0-9-]/g,'')),
  clp_:v=>String(v),
- getDashboard:()=>({clinical:{state:'ok',weekly:13,target:15,gap:-2},
+ rv9BaseDashboard_:()=>({clinical:{state:'ok',weekly:13,target:15,gap:-2},
  finance:{state:'ok',spent:180000,budget:150000,over:30000},
  training:{drgToday:{output:'PROCEED'},adherence:{boxing:{planned:3,done:2,unverified:1}}}})
 };
@@ -66,6 +73,13 @@ const ctx=vm.createContext(mock);vm.runInContext(core+'\n'+extra,ctx);
 const call=(name,...params)=>{ctx.params=params;return vm.runInContext(name+'(...params)',ctx)};
 const v=call('getV9Dashboard');
 assert.equal(v.version,'2026.10.24.9');
+assert.equal(v.configuration.state,'configured');
+stored.MATRIX_SHEET_ID='';
+assert.equal(call('getV9Dashboard').configuration.state,'setup_required');
+assert.equal(call('configureV9Sources',{MATRIX_SHEET_ID:'invalid id'}).state,'invalid');
+assert.equal(call('configureV9Sources',{MATRIX_SHEET_ID:'https://docs.google.com/spreadsheets/d/MATRIX_REPAIRED_SYNTHETIC_1234/edit?gid=1'}).state,'ok');
+assert.equal(stored.MATRIX_SHEET_ID,'MATRIX_REPAIRED_SYNTHETIC_1234');
+assert.equal(call('getV9Dashboard').configuration.state,'configured');
 assert.equal(v.extra.business.merch[0].inventoryAtCost,34000);
 assert.equal(v.extra.service.gross,35000);
 assert.equal(v.arica.weather.temperature,20.5);
@@ -94,4 +108,4 @@ assert.equal(verified.decisions.completed,1);
 assert.equal(call('resolveV9Decision',recorded.item.id,'success').state,'already_resolved');
 assert.equal(call('recordV9Decision','clinical',2,101).state,'invalid');
 
-console.log('PASS: V9 private scopes, 29 photo references, model Arica, capture, leads, undo, opportunities, simulations and calibrated decisions');
+console.log('PASS: V9 single UI, first-run private setup, 29 photos, scopes, Arica, memory, leads, simulations and calibrated decisions');
